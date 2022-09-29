@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include solve_ninja *.css
+recursive-include solve_ninja *.csv
+recursive-include solve_ninja *.html
+recursive-include solve_ninja *.ico
+recursive-include solve_ninja *.js
+recursive-include solve_ninja *.json
+recursive-include solve_ninja *.md
+recursive-include solve_ninja *.png
+recursive-include solve_ninja *.py
+recursive-include solve_ninja *.svg
+recursive-include solve_ninja *.txt
+recursive-exclude solve_ninja *.pyc
