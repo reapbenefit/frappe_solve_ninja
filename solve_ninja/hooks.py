@@ -185,3 +185,9 @@ app_license = "MIT"
 # auth_hooks = [
 #	"solve_ninja.auth.validate"
 # ]
+doc_events = {
+    "Events": {
+        "after_insert": "solve_ninja.solve_ninja.api.common.update_user_profile"
+
+    }
+}
