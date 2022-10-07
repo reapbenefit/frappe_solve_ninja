@@ -7,7 +7,7 @@ logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 
 
-def update_user_profile(doc):
+def update_user_profile(doc, _):
     logger.info("update user progile")
     return True
     response = Response()
