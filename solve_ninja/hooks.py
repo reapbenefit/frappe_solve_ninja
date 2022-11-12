@@ -187,7 +187,7 @@ app_license = "MIT"
 # ]
 doc_events = {
     "Events": {
-        "after_insert": "solve_ninja.api.common.update_user_profile_info"
+        "on_update": "solve_ninja.api.common.update_user_profile_info"
     }
 }
 
