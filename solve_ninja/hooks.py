@@ -186,8 +186,12 @@ app_license = "MIT"
 #	"solve_ninja.auth.validate"
 # ]
 doc_events = {
-    "Events": {
-        "on_update": "solve_ninja.api.common.update_user_profile_info"
+    #"Events": {
+     #   "on_update": "solve_ninja.api.common.update_user_profile_info"
+    #},
+    "Organization":{
+        
+        "before_save":"solve_ninja.api.common.update_organization_id_case"
     }
 }
 

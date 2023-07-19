@@ -1,5 +1,6 @@
 import json
-
+import string
+import random
 import frappe
 from werkzeug.wrappers import Response
 from datetime import date
@@ -182,3 +183,9 @@ def has_permission(doc, user=None, permission_type=None):
         logger.info("returning true")
         return True
     return False
+
+
+def update_organization_id_case(doc, _):
+    logger.info(
+                f"Chaging the case for org id - {doc.org_id}")
+    doc.org_id = doc.org_id.upper()
