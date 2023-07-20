@@ -7,8 +7,135 @@ from datetime import date
 from datetime import datetime
 from frappe.utils import logger
 import pytz
+from http import HTTPStatus
+from samaaja.api.common import custom_response
+
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
+
+@frappe.whitelist(allow_guest=True)
+def add_event():
+    logger.info('STARTS - adding a new event ------------')
+    message='event added successfully'
+    data=''
+    status_code=200
+    error=False
+    try:
+        logger.info(frappe.request.data)
+        event_data = json.loads(frappe.request.data)
+        event_doc = frappe.new_doc('Events')
+        event_doc.user=event_data.get("mobile")+"solveninja.org"
+        event_doc.title=event_data.get("title")
+        event_doc.type=event_data.get("type")
+        event_doc.category=event_data.get("category")
+        event_doc.description=event_data.get("description")
+        event_doc.attachment=event_data.get("attachment")
+        event_doc.source="snbot"
+        event_doc.hours_invested =event_data.get("hours_invested")
+        event_doc.insert(ignore_permissions=True)
+        logger.info('ENDS - adding a new event ------------')
+        return custom_response('', 200)
+    except Exception as e:
+        frappe.db.rollback()
+        logger.error(e, exc_info=True)
+        message=str(e)
+        status_code=500
+        error=True
+    return custom_response(message,data,status_code,error)
+
+@frappe.whitelist(allow_guest=True)
+def add_user():
+    logger.info('STARTS - adding a new user ------------')
+    message='password changed successfully'
+    data=''
+    status_code=200
+    error=False
+    try:
+        user_data = json.loads(frappe.request.data)
+        user_doc = frappe.get_doc({'doctype': 'User'})
+        user_doc.mobile_no=user_data.get("mobile")
+        user_doc.email=user_data.get("mobile")+"solveninja.org"
+        user_doc.first_name=user_data.get("first_name")
+        user_doc.wa_id=user_data.get("wa_id")
+        user_doc.org_id=user_data.get("org_id")
+        user_doc.gender=user_data.get("gender")
+        user_doc.language=user_data.get("language")
+        user_doc.age=user_data.get("age")
+        user_doc.state =user_data.get("state")
+        user_doc.state =user_data.get("district")
+        user_doc.insert(ignore_permissions=True)
+        logger.info('ENDS - adding a new user ------------')
+        return custom_response('', 200)
+    except Exception as e:
+        frappe.db.rollback()
+        logger.error(e, exc_info=True)
+        message=str(e)
+        status_code=500
+        error=True
+    return custom_response(str(e), None, 500, True)
+
+@frappe.whitelist(allow_guest=True)
+def fetch_profile():
+    logger.info('STARTS - fetch profile ------------')
+    message='success'
+    data=''
+    status_code=200
+    error=False
+    try:
+        sn_settings = frappe.get_cached_doc("Solve Ninja Settings")
+        user_data = json.loads(frappe.request.data)
+        mobile_no=user_data.get("mobile")
+        user_profile_link='https://solveninja.org/user-profile/' if sn_settings.user_profile_link is None else sn_settings.user_profile_link
+
+        if mobile_no:
+            user_doc = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['username'])
+            if len(user_doc) > 0 :
+                user_profile_link = user_profile_link + user_doc[0].username
+                data=user_profile_link
+            else:
+                message='User not found with mobile no '+mobile_no
+        else:
+            message='Mobile no is mandatory'
+            status_code=400
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        message=str(e)
+        status_code=500
+        error=True
+    logger.info('ENDS - fetch profile ------------')
+    return custom_response(message,data,status_code,error)
+
+
+
+@frappe.whitelist(allow_guest=True)
+def reset_password():
+    logger.info('STARTS - reset password ------------')
+    message='password changed successfully'
+    data=''
+    status_code=200
+    error=False
+    try:
+        user_data = json.loads(frappe.request.data)
+        mobile_no=user_data.get("mobile")
+        password=user_data.get("password")
+        if mobile_no and password:
+            user_db_docs = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['name'])
+            if len(user_db_docs) > 0 :
+                user_doc = frappe.get_doc('User',user_db_docs[0])
+                user_doc.password=password
+            else:
+                message='User not found with mobile no '+mobile_no
+        else:
+            message='Mobile no and password are mandatory'
+            status_code=400
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        message=str(e)
+        status_code=500
+        error=True
+    logger.info('ENDS - reset password ------------')
+    return custom_response(message,data,status_code,error)
+
 
 """ 
 Author - Ankit Saxena
