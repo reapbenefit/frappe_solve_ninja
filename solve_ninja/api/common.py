@@ -12,6 +12,9 @@ from samaaja.api.common import custom_response
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
+API_KEY = "HeMflsqk-2yJu3Q5mDn9-C_LIasjTXF72n5qpae1GOQu-8Oe0i_Loc4wl3iJSBt-"
+INFERENCE_URL = "https://api.dhruva.ai4bharat.org/services/inference"
+
 
 @frappe.whitelist(allow_guest=True)
 def add_event():
@@ -23,20 +26,18 @@ def add_event():
     try:
         logger.info(frappe.request.data)
         event_data = json.loads(frappe.request.data)
-        event_doc = frappe.new_doc('Events')
-        event_doc.user=event_data.get("mobile")+"solveninja.org"
-        event_doc.title=event_data.get("title")
+        event_doc = frappe.get_doc({'doctype': 'Events', 'title':event_data.get("title")})
+        event_doc.user=event_data.get("mobile")+"@solveninja.org"
         event_doc.type=event_data.get("type")
         event_doc.category=event_data.get("category")
         event_doc.description=event_data.get("description")
-        event_doc.attachment=event_data.get("attachment")
-        event_doc.source="snbot"
+        event_doc.url=event_data.get("attachment")
+        event_doc.source=event_data.get("source")
         event_doc.hours_invested =event_data.get("hours_invested")
         event_doc.insert(ignore_permissions=True)
         logger.info('ENDS - adding a new event ------------')
         return custom_response('', 200)
     except Exception as e:
-        frappe.db.rollback()
         logger.error(e, exc_info=True)
         message=str(e)
         status_code=500
@@ -44,35 +45,154 @@ def add_event():
     return custom_response(message,data,status_code,error)
 
 @frappe.whitelist(allow_guest=True)
-def add_user():
-    logger.info('STARTS - adding a new user ------------')
-    message='password changed successfully'
+def highlight_event():
+    logger.info('STARTS - highlighting an event ------------')
+    message='event highlighted'
     data=''
     status_code=200
     error=False
+    event_id=''
     try:
-        user_data = json.loads(frappe.request.data)
-        user_doc = frappe.get_doc({'doctype': 'User'})
-        user_doc.mobile_no=user_data.get("mobile")
-        user_doc.email=user_data.get("mobile")+"solveninja.org"
-        user_doc.first_name=user_data.get("first_name")
-        user_doc.wa_id=user_data.get("wa_id")
-        user_doc.org_id=user_data.get("org_id")
-        user_doc.gender=user_data.get("gender")
-        user_doc.language=user_data.get("language")
-        user_doc.age=user_data.get("age")
-        user_doc.state =user_data.get("state")
-        user_doc.state =user_data.get("district")
-        user_doc.insert(ignore_permissions=True)
-        logger.info('ENDS - adding a new user ------------')
-        return custom_response('', 200)
+        logger.info(frappe.request)
+        req_data = json.loads(frappe.request.data)
+        event_id = req_data.get("event_id")
+        user_docs = frappe.db.get_all('User', filters={'username':req_data.get("username")},fields=['name'])
+        
+        user_events= frappe.db.get_all('Events',filters={'user':user_docs[0].name},fields=['name'])
+        for event in user_events:
+            
+            event_doc = frappe.get_doc('Events',event.name)
+            if event_doc.name == event_id:
+                logger.info(f'highlighting event with id - {event_id}')
+                event_doc.highlight = 1
+            else:
+                event_doc.highlight = 0
+            event_doc.save(ignore_permissions=True)
+            frappe.db.commit()
+        
     except Exception as e:
-        frappe.db.rollback()
+        logger.error(f'Error occured while highlighting event with id  - {event_id}')
         logger.error(e, exc_info=True)
         message=str(e)
         status_code=500
         error=True
-    return custom_response(str(e), None, 500, True)
+    logger.info('ENDS - highlighting an event ------------')
+    return custom_response(message,data,status_code,error)
+
+
+@frappe.whitelist(allow_guest=True)
+def search_users():
+    logger.info('STARTS - searching users ------------')
+    message='search completed successfully'
+    data=''
+    status_code=200
+    error=False
+    mobile=''
+    try:
+        logger.info(frappe.request.data)
+        search_data = json.loads(frappe.request.data).get("search_string")
+        users = frappe.db.get_all('User',filters={'full_name': ['like', '%'+search_data+'%']},fields=['name','username','full_name','user_image','location'])
+        
+        for user in users:
+            result = frappe.db.sql("""select coalesce(SUM(nullif(e.hours_invested, 0)::float), 0) 
+            as hours_invested, count(*) as contribution_count from  `tabEvents` e where e.user = %s""", user.name,as_dict=True)
+            user["hours_invested"] = round(result[0].hours_invested,2)
+            user["contribution_count"] = result[0].contribution_count
+
+            user_badges = frappe.db.get_all('User badge', filters={'user':user.name},fields=['badge'])
+            curious_cat_badge = frappe.get_doc('Badge','Curious Cat')
+            persona_counts=0
+            persona = {
+                'name':curious_cat_badge.title,
+                'image':curious_cat_badge.icon,
+                'description':str(curious_cat_badge.description).split("^")[0].strip(),
+                'characteristics':str(curious_cat_badge.description).split("^")[1].strip().split("\n"),
+            }
+            for user_badge in user_badges:
+                badge_doc = frappe.get_doc('Badge',user_badge.badge)
+                badge_tags= badge_doc.get_tags()
+    
+                if badge_tags[0] == 'persona':
+                    if persona_counts == 0 :
+                        persona_counts = persona_counts+1
+                        persona['name']  = badge_doc.title
+                        persona['image'] = badge_doc.icon
+                        persona['description'] = str(badge_doc.description).split("^")[0].strip()
+                        persona['characteristics'] = str(badge_doc.description).split("^")[1].strip().split("\n")
+                    else:
+                        persona_counts = persona_counts+1
+
+                if persona_counts > 1:
+                    action_ant_badge = frappe.get_doc('Badge','Action Ant')
+                    
+                    persona = {
+                        'name':action_ant_badge.title,
+                        'image':action_ant_badge.icon,
+                        'description':str(action_ant_badge.description).split("^")[0].strip(),
+                        'characteristics':str(action_ant_badge.description).split("^")[1].strip().split("\n"),
+                    }
+            user["persona"] = persona               
+
+
+        data = users    
+    except Exception as e:
+        logger.error(f'Error occured while searching user ith mobile - {mobile}')
+        logger.error(e, exc_info=True)
+        message=str(e)
+        status_code=500
+        error=True
+    logger.info('ENDS - searching a new user ------------')
+    return custom_response(message,data,status_code,error)
+
+@frappe.whitelist(allow_guest=True)
+def add_user():
+    logger.info('STARTS - adding a new user ------------')
+    message='user added successfully'
+    data=''
+    status_code=200
+    error=False
+    mobile=''
+    try:
+        logger.info(frappe.request.data)
+        user_data = json.loads(frappe.request.data)
+        mobile = user_data.get("mobile")
+        user_doc = frappe.get_doc({'doctype': 'User','mobile':mobile})
+        user_doc.email=mobile+"@solveninja.org"
+        user_doc.first_name=user_data.get("first_name")
+        user_doc.wa_id=user_data.get("wa_id")
+        org_docs = frappe.get_all('User Organization',filters={'org_id':str(user_data.get("org_id")).upper()},fields=['name'])
+        if len(org_docs) > 0:
+            user_doc.org_id=org_docs[0].name
+        else:
+            logger.error(f'Organization id - {user_data.get("org_id")} was not found while registering user with mobile - {mobile}')
+        user_doc.gender=user_data.get("gender")
+        language_docs = frappe.get_all('Language',filters={'language_code':user_data.get("language")},fields=['name'])
+        if len(language_docs) > 0:
+            user_doc.language=language_docs[0].name
+        else:
+            logger.error(f'Language code - {user_data.get("language")} was not found while registering user with mobile - {mobile}')
+        user_doc.age=user_data.get("age")
+        user_doc.state =user_data.get("state")
+        city_exists = frappe.get_all('Samaaja Cities',filters={'city_name':user_data.get("district")})
+        if city_exists:
+            user_doc.city_name =user_data.get("district")
+        else:
+            new_city_doc = frappe.get_doc({'doctype':'Samaaja Cities'})
+            new_city_doc.city_name=user_data.get("district")
+            new_city_doc.insert()
+            user_doc.city_name =user_data.get("district")
+
+        user_doc.new_password = mobile
+        user_doc.insert(ignore_permissions=True)
+        data = 'https://solveninja.org/user-profile/'+user_doc.username
+    except Exception as e:
+        logger.error(f'Error occured while registering user ith mobile - {mobile}')
+        logger.error(e, exc_info=True)
+        message=str(e)
+        status_code=500
+        error=True
+    logger.info('ENDS - adding a new user ------------')
+    return custom_response(message,data,status_code,error)
 
 @frappe.whitelist(allow_guest=True)
 def fetch_profile():
@@ -82,10 +202,10 @@ def fetch_profile():
     status_code=200
     error=False
     try:
-        sn_settings = frappe.get_cached_doc("Solve Ninja Settings")
+       
         user_data = json.loads(frappe.request.data)
         mobile_no=user_data.get("mobile")
-        user_profile_link='https://solveninja.org/user-profile/' if sn_settings.user_profile_link is None else sn_settings.user_profile_link
+        user_profile_link='https://solveninja.org/user-profile/'
 
         if mobile_no:
             user_doc = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['username'])
@@ -111,7 +231,7 @@ def fetch_profile():
 def reset_password():
     logger.info('STARTS - reset password ------------')
     message='password changed successfully'
-    data=''
+    data=1
     status_code=200
     error=False
     try:
@@ -122,17 +242,22 @@ def reset_password():
             user_db_docs = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['name'])
             if len(user_db_docs) > 0 :
                 user_doc = frappe.get_doc('User',user_db_docs[0])
-                user_doc.password=password
+                user_doc.new_password=password
+                user_doc.save(ignore_permissions=True)
+                frappe.db.commit()
+
             else:
                 message='User not found with mobile no '+mobile_no
+                status_code=404
         else:
             message='Mobile no and password are mandatory'
             status_code=400
     except Exception as e:
         logger.error(e, exc_info=True)
         message=str(e)
-        status_code=500
+        status_code=200
         error=True
+        data=-1
     logger.info('ENDS - reset password ------------')
     return custom_response(message,data,status_code,error)
 

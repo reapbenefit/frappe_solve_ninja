@@ -1,0 +1,278 @@
+<div class="lb_wrapper_outer">
+    <div class="lb_wrapper">
+        <div class="lb_section_left">
+            <div class="user_badge">
+                <img src="{{current_user.user_image}}" alt="user" />
+            </div>
+            <div class="lb_left_content">
+
+                <div class="user_detail">
+                    <h3>{{current_user.full_name}} </h3>
+                    <p>
+
+                        <svg viewBox="0 0 20 20">
+                            <path fill="#51A76A"
+                                d="M10,1.375c-3.17,0-5.75,2.548-5.75,5.682c0,6.685,5.259,11.276,5.483,11.469c0.152,0.132,0.382,0.132,0.534,0c0.224-0.193,5.481-4.784,5.483-11.469C15.75,3.923,13.171,1.375,10,1.375 M10,17.653c-1.064-1.024-4.929-5.127-4.929-10.596c0-2.68,2.212-4.861,4.929-4.861s4.929,2.181,4.929,4.861C14.927,12.518,11.063,16.627,10,17.653 M10,3.839c-1.815,0-3.286,1.47-3.286,3.286s1.47,3.286,3.286,3.286s3.286-1.47,3.286-3.286S11.815,3.839,10,3.839 M10,9.589c-1.359,0-2.464-1.105-2.464-2.464S8.641,4.661,10,4.661s2.464,1.105,2.464,2.464S11.359,9.589,10,9.589">
+                            </path>
+                        </svg>
+                        {% if current_user.location %}
+                        <span>{{current_user.location}}</span>
+                        {% else %}
+                        <span>Login and add your location !</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="report_user show_mob">
+                    <a href="">Report the user</a>
+                </div>
+                <div class="ctas_wrapper show_mob">
+                    <button class="btn btn_fill">Add Action</button>
+                    
+                </div>
+                <div class="last_activity">
+                    <svg viewBox="0 0 20 20">
+                        <path fill="#51A76A"
+                            d="M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-0.181,0.401-0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412">
+                        </path>
+                    </svg>
+                    <span>Last activity: {{current_user.last_activity_date}}</span>
+                </div>
+                <div class="mob-tabs-wrapper">
+                    <div class="tabs">
+                        <div class="tab active">Profile</div>
+                        <div class="tab">Overview</div>
+                        <div class="tab">Actions</div>
+                    </div>
+                    <div class="tabs_content panels">
+                        <div class="profile_content panel">
+
+                            <div class="user_bio">
+                                <h4>Bio</h4>
+                                {% if current_user.bio %}
+                                <p>{{current_user.bio}} </p>
+                                {% else %}
+                                <p>Looks like you don't have a bio. You may login and your bio</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="user_stats">
+                                <div class="user_stats_item">
+                                    <strong>Hours Invested</strong>
+                                    <span>{{current_user.total_hours_invested}}</span>
+                                </div>
+                                <div class="user_stats_item">
+                                    <strong>Actions Taken</strong>
+                                    <span>{{current_user.contribution_count}}</span>
+                                </div>
+                            </div>
+                            <div class="skill-badges">
+                                <div class="title">Skill Badges</div>
+                                <div class="badges-wrapper">
+                                    {% if current_user.skills%}
+                                    {% for skill in current_user.skills %}
+                                    <div class="badge">
+                                        <img src="{{skill.image}}" alt="" />
+                                        <span>{{skill.name}}</span>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    To start activating skill badges share the details of action taken by you!
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="overview_content panel">
+                            <fieldset class="highlight">
+                                <legend>Highlight</legend>
+                                <h3>Founded Social Enterprise for registering more youth as voters. </h3>
+                                <p>September 2018 Developed and mentored the team to build Relief Reunite an application
+                                    that used facial recognition to match missing people with their families.</p>
+                            </fieldset>
+                            <fieldset class="superhero_for">
+                                <legend>Superhero For</legend>
+                                <div class="shf_items">
+                                    <div class="item">
+                                        <img src="/files/waste_icon.png" alt="" />
+                                        <span>Waste</span>
+                                    </div>
+                                    <div class="item">
+                                        <img src="/files/collaboration_icon.png" alt="" />
+                                        <span>Collaboration</span>
+                                    </div>
+                                    <div class="item">
+                                        <img src="/files/education_icon.png" alt="" />
+                                        <span>Education</span>
+                                    </div>
+                                </div>
+                            </fieldset>
+                            <fieldset class="persona">
+                                <legend>Persona</legend>
+                                <div class="persona_content">
+                                    <img src="{{current_user.persona.image}}" alt="" />
+                                    <div class="content">
+                                        <strong>{{current_user.persona.name}}</strong>
+                                        <p>{{current_user.persona.description}}</p>
+                                        <strong>Top Characteristics</strong>
+                                        <ul>
+                                            {% for characteristic in current_user.persona.characteristics%}
+                                            <li>{{characteristic}}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </fieldset>
+                        </div>
+                        <div class="action_content panel">
+                            {% for action in current_user.actions %}
+                            <div class="action_item">
+                                <p>
+                                    <svg viewBox="0 0 20 20">
+                                        <path fill="#51A76A"
+                                            d="M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-0.181,0.401-0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412">
+                                        </path>
+                                    </svg>
+                                    <span>{{action.creation}}</span>
+                                </p>
+                                <h3>{{action.title}}</h3>
+                                <p>
+                                    <svg viewBox="0 0 20 20">
+                                        <path fill="#51A76A"
+                                            d="M10,1.375c-3.17,0-5.75,2.548-5.75,5.682c0,6.685,5.259,11.276,5.483,11.469c0.152,0.132,0.382,0.132,0.534,0c0.224-0.193,5.481-4.784,5.483-11.469C15.75,3.923,13.171,1.375,10,1.375 M10,17.653c-1.064-1.024-4.929-5.127-4.929-10.596c0-2.68,2.212-4.861,4.929-4.861s4.929,2.181,4.929,4.861C14.927,12.518,11.063,16.627,10,17.653 M10,3.839c-1.815,0-3.286,1.47-3.286,3.286s1.47,3.286,3.286,3.286s3.286-1.47,3.286-3.286S11.815,3.839,10,3.839 M10,9.589c-1.359,0-2.464-1.105-2.464-2.464S8.641,4.661,10,4.661s2.464,1.105,2.464,2.464S11.359,9.589,10,9.589">
+                                        </path>
+                                    </svg>
+                                    {% if action.location_name %}
+                                    <span>{{action.location_name}}</span>
+                                    {% else %}
+                                    <span>Location not available !</span>
+                                    {% endif %}
+                                </p>
+                                {% if action.description %}
+                                <p>{{action.description}}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="user_stats">
+                    <div class="user_stats_item">
+                        <strong>Hours Invested</strong>
+                        <span>{{current_user.total_hours_invested}}</span>
+                    </div>
+                    <div class="user_stats_item">
+                        <strong>Actions Taken</strong>
+                        <span>{{current_user.contribution_count}}</span>
+                    </div>
+                </div>
+
+                <div class="user_bio">
+                    <h4>Bio</h4>
+                    {% if current_user.bio %}
+                    <p>{{current_user.bio}} </p>
+                    {% else %}
+                    <p>Looks like you don't have a bio. You may login and your bio</p>
+                    {% endif %}
+                </div>
+
+                <div class="ctas_wrapper">
+                    <button class="btn btn_fill">Add Action</button>
+                    <a class="btn btn_outline" href="https://wa.me/+918095500118?text=mentor" target="_blank">Contact Mentor</a>
+                    
+                </div>
+                <div class="report_user">
+                    <a href="">Report the user</a>
+                </div>
+            </div>
+        </div>
+        <div class="lb_section_right">
+            <div class="skill-badges">
+                <div class="title">Skill Badges</div>
+                <div class="badges-wrapper">
+                    {% if current_user.skills%}
+                    {% for skill in current_user.skills %}
+                    <div class="badge">
+                        <img src="{{skill.image}}" alt="" />
+                        <span>{{skill.name}}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    To start activating skill badges share the details of action taken by you!
+                    {% endif %}
+                </div>
+            </div>
+            <div class="tabs-wrapper">
+                <div class="tabs">
+                    <div class="tab active">Overview</div>
+                    <div class="tab">Actions</div>
+                </div>
+                <div class="tabs_content panels">
+                    <div class="overview_content panel">
+                        <fieldset class="highlight">
+                            <legend>Highlight</legend>
+                            <h3>Founded Social Enterprise for registering more youth as voters. </h3>
+                            <p>September 2018 Developed and mentored the team to build Relief Reunite an application
+                                that used facial recognition to match missing people with their families.</p>
+                        </fieldset>
+                        <fieldset class="superhero_for">
+                            <legend>Superhero For</legend>
+                            <div class="shf_items">
+                                {% for superhero in current_user.superheroes%}
+                                <div class="item">
+                                    <img src={{superhero.image}} alt="" />
+                                    <span>{{superhero.name}}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                        <fieldset class="persona">
+                            <legend>Persona</legend>
+                            <div class="persona_content">
+                                <img src="{{current_user.persona.image}}" alt="" />
+                                <div class="content">
+                                    <strong>{{current_user.persona.name}}</strong>
+                                    <p>{{current_user.persona.description}}</p>
+                                    <strong>Top Characteristics</strong>
+                                    <ul>
+                                        {% for characteristic in current_user.persona.characteristics%}
+                                        <li>{{characteristic}}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="action_content panel">
+                        {% for action in current_user.actions %}
+                        <div class="action_item">
+                            <p>
+                                <svg viewBox="0 0 20 20">
+                                    <path fill="#51A76A"
+                                        d="M10.25,2.375c-4.212,0-7.625,3.413-7.625,7.625s3.413,7.625,7.625,7.625s7.625-3.413,7.625-7.625S14.462,2.375,10.25,2.375M10.651,16.811v-0.403c0-0.221-0.181-0.401-0.401-0.401s-0.401,0.181-0.401,0.401v0.403c-3.443-0.201-6.208-2.966-6.409-6.409h0.404c0.22,0,0.401-0.181,0.401-0.401S4.063,9.599,3.843,9.599H3.439C3.64,6.155,6.405,3.391,9.849,3.19v0.403c0,0.22,0.181,0.401,0.401,0.401s0.401-0.181,0.401-0.401V3.19c3.443,0.201,6.208,2.965,6.409,6.409h-0.404c-0.22,0-0.4,0.181-0.4,0.401s0.181,0.401,0.4,0.401h0.404C16.859,13.845,14.095,16.609,10.651,16.811 M12.662,12.412c-0.156,0.156-0.409,0.159-0.568,0l-2.127-2.129C9.986,10.302,9.849,10.192,9.849,10V5.184c0-0.221,0.181-0.401,0.401-0.401s0.401,0.181,0.401,0.401v4.651l2.011,2.008C12.818,12.001,12.818,12.256,12.662,12.412">
+                                    </path>
+                                </svg>
+                                <span>{{action.creation}}</span>
+                            </p>
+                            <h3>{{action.title}}</h3>
+                            <p>
+                                <svg viewBox="0 0 20 20">
+                                    <path fill="#51A76A"
+                                        d="M10,1.375c-3.17,0-5.75,2.548-5.75,5.682c0,6.685,5.259,11.276,5.483,11.469c0.152,0.132,0.382,0.132,0.534,0c0.224-0.193,5.481-4.784,5.483-11.469C15.75,3.923,13.171,1.375,10,1.375 M10,17.653c-1.064-1.024-4.929-5.127-4.929-10.596c0-2.68,2.212-4.861,4.929-4.861s4.929,2.181,4.929,4.861C14.927,12.518,11.063,16.627,10,17.653 M10,3.839c-1.815,0-3.286,1.47-3.286,3.286s1.47,3.286,3.286,3.286s3.286-1.47,3.286-3.286S11.815,3.839,10,3.839 M10,9.589c-1.359,0-2.464-1.105-2.464-2.464S8.641,4.661,10,4.661s2.464,1.105,2.464,2.464S11.359,9.589,10,9.589">
+                                    </path>
+                                </svg>
+                                {% if action.location_name %}
+                                <span>{{action.location_name}}</span>
+                                {% else %}
+                                <span>Location not available !</span>
+                                {% endif %}
+                            </p>
+                            {% if action.description %}
+                            <p>{{action.description}}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor%}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
