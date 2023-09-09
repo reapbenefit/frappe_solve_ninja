@@ -34,10 +34,13 @@ def add_event():
         event_doc.url=event_data.get("attachment")
         event_doc.source=event_data.get("source")
         event_doc.hours_invested =event_data.get("hours_invested")
+        event_doc.latitude =event_data.get("latitude")
+        event_doc.longitude =event_data.get("longitude")
         event_doc.insert(ignore_permissions=True)
         logger.info('ENDS - adding a new event ------------')
         return custom_response('', 200)
     except Exception as e:
+        frappe.log_error()
         logger.error(e, exc_info=True)
         message=str(e)
         status_code=500
