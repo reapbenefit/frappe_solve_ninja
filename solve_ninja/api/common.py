@@ -30,6 +30,7 @@ def add_event():
         event_doc.user=event_data.get("mobile")+"@solveninja.org"
         event_doc.type=event_data.get("type")
         event_doc.category=event_data.get("category")
+        event_doc.subcategory=event_data.get("subcategory")
         event_doc.description=event_data.get("description")
         event_doc.url=event_data.get("attachment")
         event_doc.source=event_data.get("source")
