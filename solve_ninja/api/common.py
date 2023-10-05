@@ -162,7 +162,7 @@ def add_user():
         mobile = user_data.get("mobile")
         user_doc = frappe.get_doc({'doctype': 'User','mobile':mobile})
         user_doc.email=mobile+"@solveninja.org"
-        user_doc.mobile=mobile
+        user_doc.mobile_no=mobile
         user_doc.first_name=user_data.get("first_name")
         user_doc.wa_id=user_data.get("wa_id")
         org_docs = frappe.get_all('User Organization',filters={'org_id':str(user_data.get("org_id")).upper()},fields=['name'])
