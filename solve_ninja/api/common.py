@@ -9,6 +9,8 @@ from frappe.utils import logger
 import pytz
 from http import HTTPStatus
 from samaaja.api.common import custom_response
+import frappe
+from frappe import _
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -24,19 +26,19 @@ def add_event():
     status_code=200
     error=False
     try:
-        logger.info(frappe.request.data)
         event_data = json.loads(frappe.request.data)
+        logger.info(frappe.request.data)
         event_doc = frappe.get_doc({'doctype': 'Events', 'title':event_data.get("title")})
-        event_doc.user=event_data.get("mobile")+"@solveninja.org"
-        event_doc.type=event_data.get("type")
-        event_doc.category=event_data.get("category")
-        event_doc.subcategory=event_data.get("subcategory")
-        event_doc.description=event_data.get("description")
-        event_doc.url=event_data.get("attachment")
-        event_doc.source=event_data.get("source")
-        event_doc.hours_invested =event_data.get("hours_invested")
-        event_doc.latitude =event_data.get("latitude")
-        event_doc.longitude =event_data.get("longitude")
+        event_doc.user = event_data.get("mobile")+"@solveninja.org"
+        event_doc.type = event_data.get("type")
+        event_doc.category = event_data.get("category")
+        event_doc.subcategory = event_data.get("subcategory")
+        event_doc.description = event_data.get("description")
+        event_doc.url = event_data.get("attachment")
+        event_doc.source = event_data.get("source")
+        event_doc.hours_invested = event_data.get("hours_invested")
+        event_doc.latitude = event_data.get("latitude")
+        event_doc.longitude = event_data.get("longitude")
         event_doc.insert(ignore_permissions=True)
         logger.info('ENDS - adding a new event ------------')
         return custom_response('', 200)
@@ -48,19 +50,16 @@ def add_event():
         error=True
     return custom_response(message,data,status_code,error)
 
-@frappe.whitelist(allow_guest=True)
-def highlight_event():
+@frappe.whitelist()
+def highlight_event(username, event_id):
     logger.info('STARTS - highlighting an event ------------')
     message='event highlighted'
     data=''
     status_code=200
     error=False
-    event_id=''
     try:
         logger.info(frappe.request)
-        req_data = json.loads(frappe.request.data)
-        event_id = req_data.get("event_id")
-        user_docs = frappe.db.get_all('User', filters={'username':req_data.get("username")},fields=['name'])
+        user_docs = frappe.db.get_all('User', filters={'username':username},fields=['name'])
         
         user_events= frappe.db.get_all('Events',filters={'user':user_docs[0].name},fields=['name'])
         for event in user_events:
@@ -266,6 +265,15 @@ def reset_password():
     logger.info('ENDS - reset password ------------')
     return custom_response(message,data,status_code,error)
 
+def update_subcategory(doc, method):
+    if not doc.subcategory:
+        subcategory = frappe.db.exists("Event Sub Category", doc.category)
+        if not subcategory:
+            subcategory = frappe.get_doc({
+                "doctype": "Event Sub Category",
+                "subcategory": doc.category
+            }).insert(ignore_permissions=True)
+            doc.subcategory = doc.category
 
 """ 
 Author - Ankit Saxena
@@ -446,3 +454,13 @@ def update_organization_id_case(doc, _):
     logger.info(
                 f"Chaging the case for org id - {doc.org_id}")
     doc.org_id = doc.org_id.upper()
+
+@frappe.whitelist()
+def delete_event(event):
+    event = frappe.get_doc("Events", event)
+    if not event.user == frappe.session.user:
+        frappe.throw(_("Not Permitted"))
+    
+    frappe.delete_doc("Events", event.name, ignore_permissions=True)
+
+    return event.name

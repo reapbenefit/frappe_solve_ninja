@@ -41,9 +41,9 @@ app_license = "MIT"
 # home_page = "login"
 
 # website user home page (by Role)
-# role_home_page = {
-#	"Role": "home_page"
-# }
+role_home_page = {
+	"All": "/user-profile/me"
+}
 
 # Generators
 # ----------
@@ -186,9 +186,9 @@ app_license = "MIT"
 #	"solve_ninja.auth.validate"
 # ]
 doc_events = {
-    #"Events": {
-     #   "on_update": "solve_ninja.api.common.update_user_profile_info"
-    #},
+    "Events": {
+       "on_update": "solve_ninja.api.common.update_subcategory"
+    },
     "Organization":{
         
         "before_save":"solve_ninja.api.common.update_organization_id_case"
