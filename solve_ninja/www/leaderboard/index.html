@@ -1,0 +1,17 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _('Solve Ninja - Leaderboard') }}{% endblock %}
+{% block script %}
+    <script>{% include "www/leaderboard/index.js" %}</script>
+{% endblock %}
+{% block content %}
+{% include 'www/leaderboard/templates/hero.html' %}
+{{ frappe.render_template('www/leaderboard/templates/summary_section.html', {"total_solve_ninjas": total_solve_ninjas, "total_actions_taken": total_actions_taken, "total_hours_invested": total_hours_invested}) }}
+<div class="container">
+    <div class="title-text">Top 10 Solve Ninjas</div>
+</div>
+{{ frappe.render_template('www/leaderboard/templates/filters.html', {"orgs": orgs, "cities": cities}) }}
+<div id ="Ranktable"></div>
+{% include 'www/leaderboard/templates/footer.html' %}
+
+{% endblock %}

@@ -11,6 +11,8 @@ from http import HTTPStatus
 from samaaja.api.common import custom_response
 import frappe
 from frappe import _
+from frappe.utils import flt
+import requests
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -464,3 +466,108 @@ def delete_event(event):
     frappe.delete_doc("Events", event.name, ignore_permissions=True)
 
     return event.name
+
+@frappe.whitelist(allow_guest=True)
+def search_users_(filters=None):
+    conditions = ""
+
+    limit = "LIMIT 10"
+    if filters:
+        filters = json.loads(filters)
+        limit = ""
+
+    users = frappe.db.sql(f"""
+            SELECT
+                u.name,
+                u.username,
+                u.city,
+                coalesce(SUM(nullif(e.hours_invested, 0)::float), 0) as hours_invested,
+                u.org_id,
+                u.user_image,
+                u.location,
+                u.full_name,
+                COUNT(*) as contribution_count
+            FROM
+                `tabUser` u
+            INNER JOIN
+                `tabEvents` e
+            ON
+                u.name = e.user
+            WHERE
+                u.enabled = 1
+            GROUP BY
+                u.full_name,
+                u.location,
+                u.user_image,
+                u.username,
+                u.name
+            ORDER BY
+                hours_invested DESC,
+                u.full_name
+            {limit}
+            """
+        , as_dict=True)
+    for count, data in enumerate(users):
+        data["sr"] = count+1
+    if filters:
+        users_ = []
+        if filters.get("hr_range"):
+            if "-" in filters.get("hr_range"):
+                rng = filters.get("hr_range").split("-")
+                
+                for user in users:
+                    if flt(user.hours_invested) > flt(rng[0]) and flt(user.hours_invested) <= flt(rng[1]):
+                        users_.append(user)
+            elif "+" in filters.get("hr_range"):
+                hr_range = filters.get("hr_range").replace("+", "")
+                for user in users:
+                    if flt(user.hours_invested) > flt(hr_range):
+                        users_.append(user)
+            users = users_
+        users_ = []
+        for user in users:
+            add_user = True
+            if filters.get("ninja"):
+                if filters.get("ninja").lower() not in user.full_name.lower():
+                    add_user = False
+            if filters.get("organization") and user.org_id != filters.get("organization"):
+                add_user = False
+            if filters.get("city") and user.city != filters.get("city"):
+                add_user = False
+            if add_user:
+                users_.append(user)
+        users = users_
+    return users
+
+@frappe.whitelist()
+def download_profile(user=None):
+    if not user:
+        user = frappe.session.user
+    
+    doc = frappe.get_doc("User", user)
+    file = None
+    if not frappe.db.exists("User Profile QR", frappe.session.user):
+        params = {
+            "size": 200,
+            "centerImageUrl": "https://solveninja.org/files/solve-ninja-logo22f1bc.png",
+            "text": f"{frappe.utils.get_url()}:8002/user-profile/{doc.username}"
+        }
+        try:
+            r = requests.get(f"""https://quickchart.io/qr?text={params.get("text")}&centerImageUrl={params.get("centerImageUrl")}&size={params.get("size")}""")
+            file_args = {
+                "doctype": "File",
+                "file_name": f"{user}.png",
+                "content": r.content,
+                "is_private": 0,
+            }
+            file = frappe.get_doc(file_args).save()
+            frappe.get_doc({
+                    "doctype": "User Profile QR",
+                    "user": user,
+                    "qr": file.file_url
+                }).insert()
+        except Exception as e:
+            frappe.log_error()
+            frappe.throw("Unable to download Profile")
+            
+    return True
