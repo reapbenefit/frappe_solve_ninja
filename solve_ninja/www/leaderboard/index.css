@@ -131,6 +131,14 @@ body {
     border-radius: 4px;
     min-height: 40px;
 }
+.city-select{
+    width: 100%;
+}
+.city-select option{
+    width: 100%;
+    white-space: normal;
+    word-wrap: break-word;
+}
 .city_hours_wrapper{
     display: flex;
 }
@@ -165,6 +173,26 @@ body {
     margin: 0 0 40px;
     text-align: center;
 }
+.stats-container{
+    display: flex;
+    justify-content: center;
+    margin: 50px 0;
+}
+.stats-wrapper{
+    display: flex;
+    flex-direction: column;
+    margin: 0 100px 0 0;
+}
+.stats-container .stats-wrapper:last-child{
+    margin: 0;
+}
+.ninja-table{
+    width: 100%;
+    overflow: auto;
+}
+#Ranktable .container{
+    overflow: auto;
+}
 @media only screen and (max-width: 992px) {
     .searchbox{
         width: 100%;
@@ -186,5 +214,16 @@ body {
     }
     .city_hours_wrapper{
         justify-content: space-between;
+    }
+    .stats-container{
+        flex-wrap: wrap;
+        justify-content: space-between;
+        margin: 25px 0;
+    }
+    .stats-wrapper{
+        margin-right: 25px;
+    }
+    .stats-container .stats-wrapper:last-child{
+        margin: 25px 0 0;
     }
 }

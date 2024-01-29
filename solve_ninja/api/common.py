@@ -468,10 +468,12 @@ def delete_event(event):
     return event.name
 
 @frappe.whitelist(allow_guest=True)
-def search_users_(filters=None):
+def search_users_(filters=None, raw=None):
     conditions = ""
 
     limit = "LIMIT 10"
+    if raw:
+        limit = ''
     if filters:
         filters = json.loads(filters)
         limit = ""

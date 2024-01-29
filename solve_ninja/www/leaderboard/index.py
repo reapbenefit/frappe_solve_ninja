@@ -6,20 +6,20 @@ sitemap = 1
 no_cache = 1
 
 def get_context(context):
-	leaderboard_data_stats = search_users_()
-	leaderboard_data = leaderboard_data_stats
-	if len(leaderboard_data) > 10:
-		leaderboard_data = leaderboard_data[:10]
-
-	total_solve_ninjas = len(leaderboard_data)
+	leaderboard_data_stats = search_users_(raw = True)
+	total_solve_ninjas = len(leaderboard_data_stats)
 	total_hours_invested = 0
 	total_actions_taken = 0
+
+	leaderboard_data = list(leaderboard_data_stats)
+	if len(leaderboard_data) > 10:
+		leaderboard_data = leaderboard_data[:10]
 	context.orgs = frappe.get_all("User Organization", pluck="name")
 	context.cities = frappe.get_all("Samaaja Cities", pluck="name")
 	# add count & default user image
 	for count, data in enumerate(leaderboard_data):
 		data["sr"] = count+1
-		total_solve_ninjas = data["sr"]
+		# total_solve_ninjas = data["sr"]
 		xs = (data['full_name'])
 		name_list = xs.split()
 		if(len(name_list) == 1):
@@ -67,11 +67,7 @@ def get_context(context):
 		
 				
 	for count, data in enumerate(leaderboard_data_stats):
-		data["sr"] = count+1
-		total_solve_ninjas = data["sr"]
-		
 		total_hours_invested = total_hours_invested + data['hours_invested']
-		data['hours_invested'] = '%g'%(data['hours_invested'])
 		total_actions_taken = total_actions_taken +data['contribution_count']
 				
 	context.leaderboard_data = leaderboard_data
