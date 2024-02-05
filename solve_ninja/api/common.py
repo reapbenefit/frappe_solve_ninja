@@ -552,7 +552,7 @@ def download_profile(user=None):
         params = {
             "size": 200,
             "centerImageUrl": "https://solveninja.org/files/solve-ninja-logo22f1bc.png",
-            "text": f"{frappe.utils.get_url()}:8002/user-profile/{doc.username}"
+            "text": f"{frappe.utils.get_url()}/user-profile/{doc.username}"
         }
         try:
             r = requests.get(f"""https://quickchart.io/qr?text={params.get("text")}&centerImageUrl={params.get("centerImageUrl")}&size={params.get("size")}""")
@@ -567,7 +567,7 @@ def download_profile(user=None):
                     "doctype": "User Profile QR",
                     "user": user,
                     "qr": file.file_url
-                }).insert()
+                }).insert(ignore_permissions=True)
         except Exception as e:
             frappe.log_error()
             frappe.throw("Unable to download Profile")
