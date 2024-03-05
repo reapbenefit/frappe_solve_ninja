@@ -8,7 +8,7 @@ frappe.ready(function() {
 			get_users()
 		})
 		$(".contribute-button").click(()=>{
-			window.open("https://api.whatsapp.com/send/?phone=918095500118&text=testreg&type=phone_number&app_absent=0")
+			window.open("http://wa.me/918095500118?text=cmp")
 		})
 });
 
