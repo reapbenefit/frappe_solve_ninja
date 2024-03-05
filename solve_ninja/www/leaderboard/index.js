@@ -7,6 +7,9 @@ frappe.ready(function() {
 			clear_filters()
 			get_users()
 		})
+		$(".contribute-button").click(()=>{
+			window.open("https://api.whatsapp.com/send/?phone=918095500118&text=testreg&type=phone_number&app_absent=0")
+		})
 });
 
 var get_filters = function() {
@@ -24,11 +27,17 @@ var clear_filters = function() {
 	$("#city").val("")
 	$("#hr-range").val("")
 }
-var get_users = function(filters=null) {
+var get_users = function(filters={}) {
 		let rank_img = {
 			1: "files/rank-1.png",
 			2: "files/rank-2.png",
 			3: "files/rank-3.png",
+		}
+
+		let org_based = 0
+		const urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.get("org")) {
+			filters["organization"] = urlParams.get("org")
 		}
 
 		frappe.call({
