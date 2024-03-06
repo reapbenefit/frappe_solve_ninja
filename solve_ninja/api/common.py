@@ -470,13 +470,22 @@ def delete_event(event):
 @frappe.whitelist(allow_guest=True)
 def search_users_(filters=None, raw=None):
     conditions = ""
-
+    filters = json.loads(filters) if filters else {}
     limit = "LIMIT 10"
     if raw:
         limit = ''
     if filters:
-        filters = json.loads(filters)
         limit = ""
+        # # if filters.get("organization") and "System Manager" not in frappe.get_roles():
+        if filters.get("organization"):
+            conditions += f" and u.org_id='{filters.get('organization')}'"
+    else:
+        filters = {}
+
+    # if org_based and frappe.session.user not in ["Guest"]:
+    #     org_id = frappe.db.get_value("User", frappe.session.user, "org_id")
+    #     if org_id:
+    #         filters["organization"] = org_id
 
     users = frappe.db.sql(f"""
             SELECT
@@ -497,6 +506,7 @@ def search_users_(filters=None, raw=None):
                 u.name = e.user
             WHERE
                 u.enabled = 1
+                {conditions}
             GROUP BY
                 u.full_name,
                 u.location,
@@ -532,13 +542,18 @@ def search_users_(filters=None, raw=None):
             if filters.get("ninja"):
                 if filters.get("ninja").lower() not in user.full_name.lower():
                     add_user = False
+
             if filters.get("organization") and user.org_id != filters.get("organization"):
                 add_user = False
+
             if filters.get("city") and user.city != filters.get("city"):
                 add_user = False
+
             if add_user:
                 users_.append(user)
         users = users_
+        if not filters:
+            users = users[0:10]
     return users
 
 @frappe.whitelist()

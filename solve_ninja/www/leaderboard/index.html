@@ -10,7 +10,7 @@
 <div class="container">
     <div class="title-text">Top 10 Solve Ninjas</div>
 </div>
-{{ frappe.render_template('www/leaderboard/templates/filters.html', {"orgs": orgs, "cities": cities}) }}
+{{ frappe.render_template('www/leaderboard/templates/filters.html', {"orgs": orgs, "cities": cities, "show_org_filter": False}) }}
 <div id ="Ranktable"></div>
 {% include 'www/leaderboard/templates/footer.html' %}
 

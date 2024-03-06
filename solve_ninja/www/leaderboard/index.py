@@ -74,6 +74,7 @@ def get_context(context):
 	context.total_solve_ninjas = total_solve_ninjas
 	context.total_hours_invested = int(total_hours_invested)
 	context.total_actions_taken = total_actions_taken
+	context.show_org_filter = "System Manager" in frappe.get_roles()
 
 	context.videos = [
 		{

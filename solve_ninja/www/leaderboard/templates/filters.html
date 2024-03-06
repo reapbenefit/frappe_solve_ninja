@@ -1,12 +1,14 @@
 <div class="container">
     <div class="filter-bar">
         <input type="search" class="searchbox" placeholder="Search Ninja" id ="ninja" />
-        <select class="org-select" name="organization" id="organization">
-            <option value="">Organization</option>
-            {% for org in orgs %}
-            <option value="{{ org }}">{{ org }}</option>
-            {% endfor %}
-        </select>
+        {% if show_org_filter %}
+            <select class="org-select" name="organization" id="organization">
+                <option value="">Organization</option>
+                {% for org in orgs %}
+                <option value="{{ org }}">{{ org }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
         <div class="city_hours_wrapper">
             <select class="city-select" name="city" id="city">
                 <option value="">City</option>
