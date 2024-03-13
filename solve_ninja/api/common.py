@@ -563,7 +563,7 @@ def download_profile(user=None):
     
     doc = frappe.get_doc("User", user)
     file = None
-    if not frappe.db.exists("User Profile QR", frappe.session.user):
+    if not frappe.db.exists("User Profile QR", user):
         params = {
             "size": 200,
             "centerImageUrl": "https://solveninja.org/files/solve-ninja-logo22f1bc.png",
