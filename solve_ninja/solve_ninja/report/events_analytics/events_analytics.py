@@ -32,6 +32,12 @@ def get_columns():
 			"width": 100,
 		},
 		{
+			"label": _("Created On"),
+			"fieldname": "creation",
+			"fieldtype": "Date" ,
+			"width": 120,
+		},
+		{
 			"label": _("Title"),
 			"fieldname": "title",
 			"fieldtype": "Data" ,
@@ -83,6 +89,7 @@ def get_data(filters):
 			Events.name.as_("event"),
 			User.name.as_("user"),
 			Events.title.as_("title"),
+			Events.creation.as_("creation"),
 			Events.type.as_("type"),
 			Events.status.as_("status"),
 			Events.category.as_("category"),
