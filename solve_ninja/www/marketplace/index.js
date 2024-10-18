@@ -100,7 +100,7 @@ var get_users = function(filters={}) {
                     let sr = leader.sr ? leader.sr : "";
                     if (sr){
                         if(rank_img[sr]) {
-                            sr = `<img src="${rank_img[sr]}" style="height: 42px" />`;
+                            sr = `<img src="${rank_img[sr]}" />`;
                         }
                     }
                     let city = leader.city ? leader.city : "";
