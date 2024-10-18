@@ -91,7 +91,7 @@ def get_ninjas(verified=False, page_length=None, start=0):
 		)
 	)
 	if verified:
-		query = query.where(User.verified_by.isnotnull())
+		query = query.where((User.verified_by.isnotnull()) & (User.verified_by != ''))
 	
 	if page_length:
 		query = query.limit(page_length)

@@ -339,7 +339,7 @@ h1, h2, h3, h4, h5, h6{
     line-height: 1;
 }
 p.vnb_focus{
-    margin-top: 5px;
+    /* margin-top: 5px; */
     display: flex;
     flex-direction: column;
     align-items: flex-start;

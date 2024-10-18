@@ -160,10 +160,10 @@ var get_verified_users = function() {
                     html += `<div class="vn_box_content">
                             <p class="name">${ user.full_name } ${ city }</p>
                             <div class="vnb_stats">
-                                <p>
-                                    <span>Actions</span>
-                                    <span><b>${ user.action_count }</b></span>
-                                </p>
+                                // <p>
+                                //     <span>Actions</span>
+                                //     <span><b>${ user.action_count }</b></span>
+                                // </p>
                                 <p class="vnb_focus">
                                     <span>Focus area:</span>
                                     <span><i>${ user.focus_area }</i></span>
