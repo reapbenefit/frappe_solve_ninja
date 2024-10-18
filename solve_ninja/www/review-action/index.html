@@ -1,0 +1,254 @@
+{% extends "templates/web.html" %}
+
+{% block title %} {{ title }} {% endblock %}
+{% block script %}
+  <!-- {{ include_script('frappe-web.bundle.js') }} -->
+  <!-- <script type="text/javascript" src="/assets/frappe/js/lib/jquery/jquery.min.js"></script> -->
+  <script>
+    window.event_review = '{{review.name}}'
+  </script>
+  <script>{% include "www/review-action/index.js" %}</script>
+{% endblock %}
+{% block page_content %}
+<div id="page-review-action" data-path="review-action/new" source-type="Generator" data-doctype="Web Form">
+    <div class="page-content-wrapper">
+      <!-- breadcrumbs -->
+      <div class="page-breadcrumbs"></div>
+      <main class="container my-4">
+        <div class="page-header-wrapper">
+          <div class="page-header"></div>
+        </div>
+        <div class="page_content">
+          <!-- web form container -->
+          <div class="web-form-container">
+            <!-- breadcrumb -->
+            <div style="height: 3rem"></div>
+            <!-- header -->
+            <div class="web-form-header">
+              <div class="web-form-head">
+                <div class="title">
+                  <div class="web-form-title ellipsis">
+                    <h1 class="ellipsis">Solve Ninja - Review Action</h1>
+                  </div>
+                  <span class="indicator-pill orange hide">Not Saved</span>
+                  <div class="web-form-actions"></div>
+                </div>
+              </div>
+            </div>
+            <!-- main card -->
+            <form class="web-form" id="web-form" >
+              <div class="web-form-body">
+                <div class="web-form-wrapper">
+                  <div class="form-layout">
+                    <div class="form-message hidden"></div>
+                    <div class="form-page">
+                      <div class="row form-section visible-section">
+                        <div class="section-body">
+                          <div class="form-column col-sm-12">
+                            <div class="frappe-control input-max-width has-error" data-fieldtype="Autocomplete" data-fieldname="eventss">
+                              <div class="form-group">
+                                <div class="clearfix">
+                                  <label class="control-label reqd" style="padding-right: 0px;">Action</label>
+                                  <span class="help"></span>
+                                </div>
+                                <div class="control-input-wrapper">
+                                  <div class="control-input" style="display: none;"></div>
+                                  <div class="control-value like-disabled-input bold" style="">{{review.events}}</div>
+                                  <p class="help-box small text-muted"></p>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="frappe-control" data-fieldtype="HTML">
+                              <div id="action_html" style="position: relative; width: 100%;">{{ event_html }}</div>
+                            </div>
+                            <div class="frappe-control input-max-width has-error" data-fieldtype="Data" data-fieldname="reviewer_name">
+                              <div class="form-group">
+                                <div class="clearfix">
+                                  <label class="control-label reqd" style="padding-right: 0px;">Reviewer Name</label>
+                                  <span class="help"></span>
+                                </div>
+                                <div class="control-input-wrapper">
+                                  <div class="control-input">
+                                    <input type="text" 
+                                      autocomplete="off" 
+                                      class="input-with-feedback form-control bold"
+                                      maxlength="140" 
+                                      data-fieldtype="Data"
+                                      data-fieldname="reviewer_name"
+                                      placeholder=""
+                                      required 
+                                      {% if review.reviewer_name %}
+                                        value="{{ review.reviewer_name }}"
+                                      {% endif %}
+                                    >
+                                  </div>
+                                  <div class="control-value like-disabled-input bold" style="display: none;"></div>
+                                  <p class="help-box small text-muted"></p>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="frappe-control input-max-width has-error" data-fieldtype="Data" data-fieldname="desigantion">
+                              <div class="form-group">
+                                <div class="clearfix">
+                                  <label class="control-label reqd" style="padding-right: 0px;">Desigantion</label>
+                                  <span class="help"></span>
+                                </div>
+                                <div class="control-input-wrapper">
+                                  <div class="control-input">
+                                    <input type="text" 
+                                    autocomplete="off" 
+                                    class="input-with-feedback form-control bold" 
+                                    maxlength="140" 
+                                    data-fieldtype="Data"
+                                    data-fieldname="desigantion"
+                                    placeholder=""
+                                    required
+                                    {% if review.desigantion %}
+                                        value="{{ review.desigantion }}"
+                                    {% endif %}
+                                  >
+                                  </div>
+                                  <div class="control-value like-disabled-input bold" style="display: none;"></div>
+                                  <p class="help-box small text-muted"></p>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="frappe-control input-max-width has-error" data-fieldtype="Data" data-fieldname="organisation">
+                              <div class="form-group">
+                                <div class="clearfix">
+                                  <label class="control-label reqd" style="padding-right: 0px;">Organisation</label>
+                                  <span class="help"></span>
+                                </div>
+                                <div class="control-input-wrapper">
+                                  <div class="control-input">
+                                    <input type="text"
+                                      autocomplete="off"
+                                      class="input-with-feedback form-control bold"
+                                      maxlength="140"
+                                      data-fieldtype="Data"
+                                      data-fieldname="organisation"
+                                      placeholder=""
+                                      required
+                                      {% if review.organisation %}
+                                        value="{{ review.organisation }}"
+                                      {% endif %}
+                                    >
+                                  </div>
+                                  <div class="control-value like-disabled-input bold" style="display: none;"></div>
+                                  <p class="help-box small text-muted"></p>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="frappe-control input-max-width has-error" data-fieldtype="Data" data-fieldname="email">
+                              <div class="form-group">
+                                <div class="clearfix">
+                                  <label class="control-label reqd" style="padding-right: 0px;">Email</label>
+                                  <span class="help"></span>
+                                </div>
+                                <div class="control-input-wrapper">
+                                  <div class="control-input">
+                                    <input type="text"
+                                      autocomplete="off"
+                                      class="input-with-feedback form-control bold"
+                                      maxlength="140"
+                                      data-fieldtype="Data"
+                                      data-fieldname="email"
+                                      placeholder=""
+                                      required
+                                      {% if review.email %}
+                                        value="{{ review.email }}"
+                                      {% endif %}
+                                    >
+                                  </div>
+                                  <div class="control-value like-disabled-input bold" style="display: none;"></div>
+                                  <p class="help-box small text-muted"></p>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="frappe-control" data-fieldtype="Small Text" data-fieldname="comment">
+                              <div class="form-group">
+                                <div class="clearfix">
+                                  <label class="control-label" style="padding-right: 0px;">Comment</label>
+                                  <span class="help"></span>
+                                </div>
+                                <div class="control-input-wrapper">
+                                  <div class="control-input">
+                                    <textarea type="text"
+                                      autocomplete="off"
+                                      class="input-with-feedback form-control"
+                                      data-fieldtype="Small Text"
+                                      data-fieldname="comment"
+                                      placeholder=""
+                                      style="height: 150px;"
+                                    >{% if review.comment %}{{ review.comment }}{% endif %}</textarea>
+                                  </div>
+                                  <div class="control-value like-disabled-input for-description" style="display: none;"></div>
+                                  <p class="help-box small text-muted"></p>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="frappe-control input-max-width" data-fieldtype="Select" data-fieldname="status">
+                              <div class="form-group">
+                                <div class="clearfix">
+                                  <label class="control-label" style="padding-right: 0px;">Information is Correct?</label>
+                                  <span class="help"></span>
+                                </div>
+                                <div class="control-input-wrapper">
+                                  <div class="control-input flex align-center">
+                                    <select type="text" autocomplete="off" class="input-with-feedback form-control ellipsis" maxlength="140" data-fieldtype="Select" data-fieldname="status" placeholder="">
+                                      <option value="Accepted" selected>Accepted</option>
+                                      <option value="Rejected">Rejected</option>
+                                    </select>
+                                    <div class="select-icon ">
+                                      <svg class="icon  icon-sm" style="">
+                                        <use class="" href="#icon-select"></use>
+                                      </svg>
+                                    </div>
+                                  </div>
+                                  <div class="control-value like-disabled-input" style="display: none;">Accepted</div>
+                                  <p class="help-box small text-muted"></p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="web-form-footer">
+                <div class="web-form-actions">
+                  <div class="left-area"></div>
+                  <div class="center-area paging"></div>
+                  <div class="right-area">
+                    <!-- discard button -->
+                    <!-- <button class="discard-btn btn btn-default btn-sm"> Discard </button> -->
+                    <!-- submit button -->
+                    <button class="btn btn-sm btn-primary ml-2">Submit Review</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+            <!-- attachments -->
+            <!-- comments -->
+            <div style="height: 3rem"></div>
+          </div>
+          <!-- success page -->
+          <div class="success-page hide">
+            <div class="success-header">
+              <svg class="success-icon icon">
+                <use href="#icon-solid-success"></use>
+              </svg>
+              <h2 class="success-title">Submitted</h2>
+            </div>
+            <div class="success-body">
+              <p class="success-message">Thank you for reviewing the action. The changes (if any) will be reflected in the profile.</p>
+            </div>
+          </div>
+        </div>
+        <div class="page-footer"></div>
+      </main>
+    </div>
+  </div>
+{% endblock %}

@@ -16,7 +16,8 @@ app_license = "MIT"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/solve_ninja/css/solve_ninja.css"
-# web_include_js = "/assets/solve_ninja/js/solve_ninja.js"
+web_include_css = "/assets/samaaja/css/leaflet.css"
+web_include_js = "/assets/solve_ninja/js/solve_ninja.js"
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "solve_ninja/public/scss/website"
@@ -95,7 +96,7 @@ role_home_page = {
 # Override standard doctype classes
 
 # override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
+# 	"Energy Point Rule": "solve_ninja.overrides.energy_point_rule.CustomEnergyPointRule"
 # }
 
 # Document Events
@@ -187,7 +188,10 @@ role_home_page = {
 # ]
 doc_events = {
     "Events": {
-       "on_update": "solve_ninja.api.common.update_subcategory"
+       "on_update": "solve_ninja.api.common.update_subcategory",
+    #    "after_insert": [
+	# 		"solve_ninja.doc_events.energy_point_rule.process_energy_points",
+	# 	],
     },
     "Organization":{
         

@@ -1,0 +1,27 @@
+<div class="wrapper-white">
+    <div class="active_cities">
+        <div class="ac_title">Most Active Regions</div>
+        <div class="ac_content">
+            <div class="ac_list">
+                <div class="ac_sub_title">Our most active ninjas come from these states</div>
+                <div class="ac_list_item">
+                    {% for city in city_wise_data %}
+                        {{ frappe.render_template('www/marketplace/templates/city_bar.html', {
+                            "city": city.state,
+                            "progress": city.percentage,
+                            "count": city.user_count
+                        }) }}
+                    {% endfor %}
+                    <canvas id="myChart" style="display: none;"></canvas>
+                </div>
+            </div>
+            <div class="ac_inner_cta">
+                <p>Already In! Want to lead?</p>
+                <a href="{{ whatsapp_bot_url }}?text=LeadSolveNinjaCity"><button class="main_btn">Click Here</button></a>
+            </div>
+        </div>
+        <div class="ac_cta">
+            <a href="{{ whatsapp_bot_url }}?text=JoinSolveNinjaCity" target="_blank"><button class="primary_btn">Join a City</button></a>
+        </div>
+    </div>
+</div>

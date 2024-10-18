@@ -1,0 +1,265 @@
+frappe.ready(function() {
+    // get_verified_users()
+    get_users()
+    get_city_wise_action_count()
+    $("#search").click(()=>{
+        frappe.flags.start = 0;
+        $(".lb_content").empty()
+        get_users(get_filters())
+    })
+    $("#clear").click(()=>{
+        $(".lb_content").empty()
+        clear_filters()
+        get_users()
+    })
+    $("#ninja").keyup(function(event) {
+        if (event.keyCode === 13) {
+            $("#search").click();
+        }
+    });
+    $("#btn_load_more").click(()=>{ 
+        get_users()
+    })
+    $(".contribute-button").click(()=>{
+        if (navigator.doNotTrack != 1 && !window.is_404) {
+            let browser = frappe.utils.get_browser();
+            frappe.call("frappe.website.doctype.web_page_view.web_page_view.make_view_log", {
+                path: "contribute",
+                referrer: null,
+                browser: browser.name,
+                version: browser.version,
+                url: location.origin,
+                user_tz: Intl.DateTimeFormat().resolvedOptions().timeZone
+            })
+        }
+        window.open("http://wa.me/918095500118?text=cmp")
+    })
+});
+
+var get_filters = function() {
+    $("#btn_load_more").hide()
+    return {
+        "ninja": $("#ninja").val(),
+        "organization": $("#organization").val(),
+        "city": $("#city").val(),
+        "hr_range": $("#hr-range").val(),
+    }
+};
+
+var clear_filters = function() {
+    $("#ninja").val("")
+    $("#organization").val("")
+    $("#city").val("")
+    $("#hr-range").val("")
+    $("#btn_load_more").show()
+    frappe.flags.start = 0;
+}
+var get_users = function(filters={}) {
+    let rank_img = {
+        1: "files/rank-1.png",
+        2: "files/rank-2.png",
+        3: "files/rank-3.png",
+    }
+
+    let org_based = 0
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("org")) {
+        filters["organization"] = urlParams.get("org")
+    }
+    frappe.call({
+        method: "solve_ninja.api.common.search_users_",
+        args: {
+                "filters": filters,
+                "page_length": frappe.flags.page_length,
+                "start": frappe.flags.start,
+        },
+        freeze: true,
+        freeze_message: "...Searcing Users",
+        callback: function(result) {
+            let lb_rows = $('.lb_row').length
+            console.log(result)
+            let html = '';
+            if (result.message.length > 0) {
+                if (lb_rows < 1) {
+                    html = `<div class="lb_row row_header">
+                        <div class="lb_col col_rank">Rank</div>
+                        <div class="lb_col col_name">Name</div>
+                        <div class="lb_col col_city">City</div>
+                        <div class="lb_col col_hours">Hours</div>
+                        <div class="lb_col col_actions">Actions</div>
+                    </div>`
+                }
+                // html = `<div class="lb_row row_header">
+                //             <div class="lb_col col_rank">Rank</div>
+                //             <div class="lb_col col_name">Name</div>
+                //             <div class="lb_col col_city">City</div>
+                //             <div class="lb_col col_hours">Hours</div>
+                //             <div class="lb_col col_actions">Actions</div>
+                //         </div>`
+                result.message.forEach(leader => {
+                    let sr = leader.sr ? leader.sr : "";
+                    if (sr){
+                        if(rank_img[sr]) {
+                            sr = `<img src="${rank_img[sr]}" style="height: 42px" />`;
+                        }
+                    }
+                    let city = leader.city ? leader.city : "";
+                    html += `
+                        <div class="lb_row lb_row_result">
+                            <div class="lb_col col_rank">${sr}</div>
+                            <div class="lb_col col_name"><a href="/user-profile/${leader.username}">${leader.full_name}</a></div>
+                            <div class="lb_col col_city">${city}</div>
+                            <div class="lb_col col_hours">${leader.hours_invested}</div>
+                            <div class="lb_col col_actions">${leader.contribution_count}</div>
+                        </div>
+                    `
+                });
+                lb_rows = $('.lb_row').length
+                frappe.flags.start = lb_rows == 0 ? frappe.flags.page_length : lb_rows;
+            }
+            
+            else {
+                html=`<div class="container">
+                    <div class="no-record">
+                        No Record Found
+                    </div>
+                </div>`
+            }
+
+            $(".lb_content").append(html)
+        }
+    });
+}
+
+var get_verified_users = function() {
+    frappe.call({
+        method: "solve_ninja.api.user.get_ninjas",
+        args: {
+                "verified": true,
+                "page_length": frappe.flags.page_length,
+                "start": frappe.flags.start,
+        },
+        freeze: true,
+        freeze_message: "...Searcing Users",
+        callback: function(result) {
+            if (result.message?.length) {
+                $(".vn_content").html("")
+                result.message.forEach(user => {
+                    let city = user.city ? `, ${user.city}`: ""
+                    let html = `<div class="vn_box"><a href="${user.user_profile}"`;
+                    if (user.user_image) {
+                        html += `<div class="img_wrapper">
+                                    <img src="${ user.user_image}" alt="" />
+                                </div>`
+                    }
+                    else {
+                        html += `<div class="user_avatar">
+                            ${frappe.get_abbr(user.full_name)}
+                        </div>`
+                    }
+                    html += `<div class="vn_box_content">
+                            <p class="name">${ user.full_name } ${ city }</p>
+                            <div class="vnb_stats">
+                                <p>
+                                    <span>Actions</span>
+                                    <span><b>${ user.action_count }</b></span>
+                                </p>
+                                <p class="vnb_focus">
+                                    <span>Focus area:</span>
+                                    <span><i>${ user.focus_area }</i></span>
+                                </p>
+                            </div>
+                        </div>`
+                    
+                    if (user.verified_by) {
+                        html += `<div class="verified_badge">
+                                <svg id="Layer_1" data-name="Layer 1" viewBox="0 0 122.88 116.87"><polygon fill="#00ade9" points="61.37 8.24 80.43 0 90.88 17.79 111.15 22.32 109.15 42.85 122.88 58.43 109.2 73.87 111.15 94.55 91 99 80.43 116.87 61.51 108.62 42.45 116.87 32 99.08 11.73 94.55 13.73 74.01 0 58.43 13.68 42.99 11.73 22.32 31.88 17.87 42.45 0 61.37 8.24 61.37 8.24"></polygon><path fill="#ffffff" d="M37.92,65c-6.07-6.53,3.25-16.26,10-10.1,2.38,2.17,5.84,5.34,8.24,7.49L74.66,39.66C81.1,33,91.27,42.78,84.91,49.48L61.67,77.2a7.13,7.13,0,0,1-9.9.44C47.83,73.89,42.05,68.5,37.92,65Z"></path></svg>
+                            </div>`
+                    }
+                    html += "</a></div>"
+                    $(".vn_content").append(html)
+                });
+                frappe.flags.start += $('.vn_box').length
+            }
+            // $(".lb_content").html(html)
+        }
+    });
+}
+
+var get_city_wise_action_count = function() {
+    frappe.call({
+        method: "solve_ninja.api.leaderboard.get_city_wise_action_count",
+        callback: function(result) {
+            if (result.message?.length) {
+                console.log(result.message)
+                let labels = result.message.map(obj => obj.city);
+                let data = result.message.map(obj => obj.action_count);
+                const ctx = document.getElementById('myChart').getContext('2d');
+                const myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Action Taken',
+                            data: data,
+                            barThickness: 10,
+                            backgroundColor: "#51A76A",
+                            borderColor: "#51A76A",
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                anchor: 'end', // Position of the labels (start, end, center, etc.)
+                                align: 'end', // Alignment of the labels (start, end, center, etc.)
+                                color: 'blue', // Color of the labels
+                                font: {
+                                    weight: 'bold',
+                                },
+                                formatter: function (value, context) {
+                                    return value; // Display the actual data value
+                                }
+                            }
+                        },
+                        indexAxis: 'y', // This makes the chart horizontal
+                        scales: {
+                            x: {
+                                display: false,
+                                beginAtZero: true,
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    display: false //this will remove only the label
+                                }
+                            },
+                            y: {
+                                // display: false,
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    display: true //this will remove only the label
+                                }
+                            },
+                        }
+                    }
+                });
+            }
+        }
+    });
+}
+
+if (window.matchMedia('(max-width: 1023px)').matches) {
+    console.log('(max-width: 1023px)')
+    frappe.flags.page_length = 6;
+} else if (window.matchMedia('(max-width: 1241px)').matches){
+    console.log('(max-width: 1241px)')
+    frappe.flags.page_length = 8;
+} else {
+    console.log('else')
+    frappe.flags.page_length = 10;
+}
+frappe.flags.start = 0;

@@ -7,7 +7,23 @@ frappe.ready(function() {
 			clear_filters()
 			get_users()
 		})
+		$("#ninja").keyup(function(event) {
+			if (event.keyCode === 13) {
+				$("#search").click();
+			}
+		});
 		$(".contribute-button").click(()=>{
+			if (navigator.doNotTrack != 1 && !window.is_404) {
+				let browser = frappe.utils.get_browser();
+				frappe.call("frappe.website.doctype.web_page_view.web_page_view.make_view_log", {
+					path: "contribute",
+					referrer: null,
+					browser: browser.name,
+					version: browser.version,
+					url: location.origin,
+					user_tz: Intl.DateTimeFormat().resolvedOptions().timeZone
+				})
+			}
 			window.open("http://wa.me/918095500118?text=cmp")
 		})
 });

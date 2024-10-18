@@ -468,11 +468,16 @@ def delete_event(event):
     return event.name
 
 @frappe.whitelist(allow_guest=True)
-def search_users_(filters=None, raw=None):
+def search_users_(filters=None, raw=None, page_length=10, start=0):
     conditions = ""
+    start = frappe.utils.cint(start)
+    page_length = frappe.utils.cint(page_length)
     filters = json.loads(filters) if filters else {}
-    limit = "LIMIT 10"
+    if page_length:
+        limit = f"LIMIT {page_length}"
+        offset = f"OFFSET {start}"
     if raw:
+        offset = ''
         limit = ''
     if filters:
         limit = ""
@@ -492,35 +497,32 @@ def search_users_(filters=None, raw=None):
                 u.name,
                 u.username,
                 u.city,
-                coalesce(SUM(nullif(e.hours_invested, 0)::float), 0) as hours_invested,
+                COALESCE(SUM(NULLIF(e.hours_invested, 0)), 0) AS hours_invested,
                 u.org_id,
                 u.user_image,
                 u.location,
                 u.full_name,
-                COUNT(*) as contribution_count
+                COUNT(e.user) AS contribution_count
             FROM
                 `tabUser` u
-            INNER JOIN
-                `tabEvents` e
-            ON
-                u.name = e.user
+            JOIN
+                `tabEvents` e ON u.name = e.user
             WHERE
                 u.enabled = 1
                 {conditions}
             GROUP BY
-                u.full_name,
-                u.location,
-                u.user_image,
-                u.username,
                 u.name
             ORDER BY
-                hours_invested DESC,
+                contribution_count DESC,
                 u.full_name
-            {limit}
-            """
+            {limit} 
+            {offset};
+                        """
         , as_dict=True)
-    for count, data in enumerate(users):
-        data["sr"] = count+1
+    for count, data in enumerate(users, 1):
+        data["sr"] = count+start
+        
+
     if filters:
         users_ = []
         if filters.get("hr_range"):
@@ -553,7 +555,7 @@ def search_users_(filters=None, raw=None):
                 users_.append(user)
         users = users_
         if not filters:
-            users = users[0:10]
+            users = users[0:page_length]
     return users
 
 @frappe.whitelist()
