@@ -513,7 +513,7 @@ def search_users_(filters=None, raw=None, page_length=10, start=0):
             GROUP BY
                 u.name
             ORDER BY
-                contribution_count DESC,
+                hours_invested DESC,
                 u.full_name
             {limit} 
             {offset};
