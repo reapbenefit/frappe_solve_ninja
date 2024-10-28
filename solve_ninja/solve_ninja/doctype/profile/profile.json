@@ -1,0 +1,126 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:user",
+ "creation": "2024-10-23 23:37:57.280194",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "verified",
+  "verified_by",
+  "column_break_kc0cl",
+  "focus_area",
+  "section_break_hzvkp",
+  "headline",
+  "profile_badges",
+  "column_break_yh3dm",
+  "age",
+  "city",
+  "state",
+  "wa_id",
+  "org_id"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "verified",
+   "fieldtype": "Check",
+   "label": "Verified"
+  },
+  {
+   "fieldname": "verified_by",
+   "fieldtype": "Data",
+   "label": "Verified By"
+  },
+  {
+   "fieldname": "column_break_kc0cl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "focus_area",
+   "fieldtype": "Data",
+   "label": "Focus Area"
+  },
+  {
+   "fieldname": "section_break_hzvkp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "headline",
+   "fieldtype": "Small Text",
+   "label": "Headline"
+  },
+  {
+   "fieldname": "profile_badges",
+   "fieldtype": "Small Text",
+   "label": "Profile Badges"
+  },
+  {
+   "fieldname": "column_break_yh3dm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "age",
+   "fieldtype": "Int",
+   "label": "Age"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "label": "City",
+   "options": "Samaaja Cities"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Select",
+   "label": "State",
+   "options": "\nAndaman and Nicobar Islands\nAndhra Pradesh\nArunachal Pradesh\nAssam\nBihar\nChandigarh\nChhattisgarh\nDadra and Nagar Haveli and Daman and Diu\nDelhi\nGoa\nGujarat\nHaryana\nHimachal Pradesh\nJammu and Kashmir\nJharkhand\nKarnataka\nKerala\nLadakh\nLakshadweep Islands\nMadhya Pradesh\nMaharashtra\nManipur\nMeghalaya\nMizoram\nNagaland\nOdisha\nOther Territory\nPondicherry\nPunjab\nRajasthan\nSikkim\nTamil Nadu\nTelangana\nTripura\nUttar Pradesh\nUttarakhand\nWest Bengal"
+  },
+  {
+   "fieldname": "wa_id",
+   "fieldtype": "Data",
+   "label": "Whatsapp ID"
+  },
+  {
+   "fieldname": "org_id",
+   "fieldtype": "Link",
+   "label": "User Organization",
+   "options": "User Organization"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-10-23 23:37:57.280194",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
