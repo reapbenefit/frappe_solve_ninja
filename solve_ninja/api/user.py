@@ -78,6 +78,7 @@ def get_ninjas(verified=False, page_length=None, start=0):
 			User.user_image.as_("user_image"),
 			User.verified_by.as_("verified_by"),
 			User.username.as_("username"),
+			User.headline.as_("focus_area"),
 			Count(Events.name).as_("action_count"),
 			Sum(Events.hours_invested).as_("hours_invested"),
 		)
@@ -102,8 +103,6 @@ def get_ninjas(verified=False, page_length=None, start=0):
 	result = query.run(as_dict=True)
 	
 	for row in result:
-		interested = user_interested_in(row.name)
-		row.focus_area = ", ".join(interested)
 		row.user_profile = frappe.utils.get_url(f"/user-profile/{row.username}")
 	return result
 
@@ -134,6 +133,18 @@ def get_user_badges(user, badge_type=None):
 	return result
 
 def user_interested_in(user):
-	user_event_details_category = frappe.db.sql("""select e.category as category, count(*) from `tabEvents` e where e.user = %s group by 1 order by 2 desc limit 3""", user,as_dict=True)
+	user_event_details_category = frappe.db.sql("""SELECT 
+			e.category AS category, 
+			COUNT(*) 
+		FROM 
+			`tabEvents` e 
+		WHERE 
+			e.user = %s 
+			AND e.category IS NOT NULL 
+		GROUP BY 
+			e.category 
+		ORDER BY 
+			COUNT(*) DESC 
+		LIMIT 3""", user,as_dict=True)
 
 	return [d['category'] for d in user_event_details_category]

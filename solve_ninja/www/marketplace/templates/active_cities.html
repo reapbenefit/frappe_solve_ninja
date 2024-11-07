@@ -7,9 +7,9 @@
                 <div class="ac_list_item">
                     {% for city in city_wise_data %}
                         {{ frappe.render_template('www/marketplace/templates/city_bar.html', {
-                            "city": city.state,
+                            "city": city.city,
                             "progress": city.percentage,
-                            "count": city.user_count
+                            "count": city.action_count
                         }) }}
                     {% endfor %}
                     <canvas id="myChart" style="display: none;"></canvas>

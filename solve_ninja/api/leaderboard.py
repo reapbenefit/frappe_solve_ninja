@@ -35,7 +35,7 @@ def get_city_wise_action_count(page_length=10):
 			Location.city.as_("city")
 		)
 		.where(
-			Location.city.isnotnull()
+			(Location.city.isnotnull()) & (Location.city.notin(["NULL"]))
 		)
 		.groupby(
 			Location.city
