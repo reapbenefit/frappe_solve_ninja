@@ -77,7 +77,6 @@ var get_users = function(filters={}) {
         freeze_message: "...Searcing Users",
         callback: function(result) {
             let lb_rows = $('.lb_row').length
-            console.log(result)
             let html = '';
             if (result.message.length > 0) {
                 if (lb_rows < 1) {
@@ -187,7 +186,6 @@ var get_city_wise_action_count = function() {
         method: "solve_ninja.api.leaderboard.get_city_wise_action_count",
         callback: function(result) {
             if (result.message?.length) {
-                console.log(result.message)
                 let labels = result.message.map(obj => obj.city);
                 let data = result.message.map(obj => obj.action_count);
                 const ctx = document.getElementById('myChart').getContext('2d');
@@ -249,13 +247,10 @@ var get_city_wise_action_count = function() {
 }
 
 if (window.matchMedia('(max-width: 1023px)').matches) {
-    console.log('(max-width: 1023px)')
     frappe.flags.page_length = 6;
 } else if (window.matchMedia('(max-width: 1241px)').matches){
-    console.log('(max-width: 1241px)')
     frappe.flags.page_length = 8;
 } else {
-    console.log('else')
     frappe.flags.page_length = 10;
 }
 frappe.flags.start = 0;
