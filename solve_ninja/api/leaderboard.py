@@ -56,6 +56,39 @@ def get_city_wise_action_count(page_length=10):
 	return result
 
 @frappe.whitelist(allow_guest=True)
+def get_city_wise_action_count_user_based(page_length=10):
+	Events = frappe.qb.DocType("Events")
+	User = frappe.qb.DocType("User")
+
+	query = (
+		frappe.qb.from_(User)
+		.left_join(Events)
+		.on(Events.user == User.name)
+		.select(
+			Count(User.name).as_("action_count"),
+			User.city.as_("city")
+		)
+		.where(
+			User.city.isnotnull()
+		)
+		.groupby(
+			User.city
+		).orderby(
+			Count(User.name), order=frappe.qb.desc
+		).limit(page_length)
+	)
+
+	# Run the query with debug enabled
+	result = query.run(as_dict=True)
+
+	total_actions = [row.action_count for row in result]
+	total_actions = sum(total_actions)
+	for row in result:
+		row.percentage = frappe.utils.cint((row.action_count/total_actions) * 100)
+
+	return result
+
+@frappe.whitelist(allow_guest=True)
 def get_state_wise_user_count(page_length=10):
 	# Events = frappe.qb.DocType("Events")
 	# Location = frappe.qb.DocType("Location")
