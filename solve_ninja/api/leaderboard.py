@@ -6,7 +6,7 @@ states_of_india = [
     "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
     "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
     "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-    "Uttar Pradesh", "Uttarakhand", "West Bengal"
+    "Uttar Pradesh", "Uttarakhand", "West Bengal", ""
 ]
 
 def get_active_ninja_count():
@@ -70,7 +70,7 @@ def get_city_wise_action_count_user_based(page_length=10):
 
 	query = (
 		frappe.qb.from_(User)
-		.left_join(Events)
+		.join(Events)
 		.on(Events.user == User.name)
 		.select(
 			Count(User.name).as_("action_count"),
