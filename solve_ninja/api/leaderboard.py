@@ -1,6 +1,14 @@
 import frappe
 from frappe.query_builder.functions import Count, Sum
 
+states_of_india = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
+    "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
+    "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
+    "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+    "Uttar Pradesh", "Uttarakhand", "West Bengal"
+]
+
 def get_active_ninja_count():
 	return frappe.db.count("User", {"enabled": 1})
 
@@ -69,7 +77,7 @@ def get_city_wise_action_count_user_based(page_length=10):
 			User.city.as_("city")
 		)
 		.where(
-			User.city.isnotnull()
+			(User.city.isnotnull()) & (User.city.notin(states_of_india))
 		)
 		.groupby(
 			User.city
