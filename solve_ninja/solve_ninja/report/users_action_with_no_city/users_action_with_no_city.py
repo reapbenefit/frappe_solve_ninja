@@ -15,7 +15,7 @@ def execute(filters=None):
 			"fieldname": "user",
 			"fieldtype": "Link",
 			"options": "User",
-			"width": 180,
+			"width": 250,
 		},
 		{
 			"label": "Total Action",
