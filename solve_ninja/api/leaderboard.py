@@ -77,13 +77,18 @@ def get_city_wise_action_count_user_based(page_length=10):
 			User.city.as_("city")
 		)
 		.where(
-			(User.city.isnotnull()) & (User.city.notin(states_of_india))
+			(User.city.isnotnull()) & 
+			(User.city.notin(states_of_india)) &
+			(Events.name.isnotnull())  # Ensures the user has actions
 		)
-		.groupby(
-			User.city
-		).orderby(
-			Count(User.name), order=frappe.qb.desc
-		).limit(page_length)
+		.groupby(User.city)
+		.having(
+			Count(Events.name) > 0  # Filters users with at least one action
+		)
+		.orderby(
+			Count(Events.name), order=frappe.qb.desc
+		)
+		.limit(page_length)
 	)
 
 	# Run the query with debug enabled

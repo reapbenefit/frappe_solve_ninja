@@ -69,8 +69,6 @@ def get_ninjas(verified=False, page_length=None, start=0):
 
 	query = (
 		frappe.qb.from_(User)
-		.join(Events)
-		.on(Events.user == User.name)
 		.select(
 			User.full_name.as_("full_name"),
 			User.name.as_("name"),
@@ -79,15 +77,11 @@ def get_ninjas(verified=False, page_length=None, start=0):
 			User.verified_by.as_("verified_by"),
 			User.username.as_("username"),
 			User.headline.as_("focus_area"),
-			Count(Events.name).as_("action_count"),
-			Sum(Events.hours_invested).as_("hours_invested"),
 		)
 		.where(
 			User.name.notin(["solveninja@reapbenefit.org", "gautamp@reapbenefit.org"])
 		)
-		.groupby(
-			User.name
-		).orderby(
+		.orderby(
 			User.creation, order=frappe.qb.asc
 		)
 	)
