@@ -68,7 +68,7 @@ var get_users = function() {
                     html += "</a></div>"
                     $(".vn_content").append(html)
                 });
-                frappe.flags.start += $('.vn_box').length
+                frappe.flags.start = $('.vn_box').length
             }
             else {
                 $(".vn_all").hide()
