@@ -1,5 +1,5 @@
 import frappe
-from frappe.query_builder.functions import Count, Sum
+from frappe.query_builder.functions import Count, Sum, Max
 
 states_of_india = [
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
@@ -73,22 +73,20 @@ def get_city_wise_action_count_user_based(page_length=10):
 		.join(Events)
 		.on(Events.user == User.name)
 		.select(
-			Count(User.name).as_("action_count"),
-			User.city.as_("city")
+			User.city.as_("city"),
+			Count(User.name).as_("action_count"),  # Total number of users in the city
+			Max(User.name).as_("example_user")  # Representative user per city
 		)
 		.where(
-			(User.city.isnotnull()) & 
-			(User.city.notin(states_of_india)) &
-			(Events.name.isnotnull())  # Ensures the user has actions
+			(User.city.isnotnull()) &  # Ensure city is not null
+			(User.city.notin(states_of_india)) &  # Exclude cities in the list
+			(Events.name.isnotnull())  # Ensure events exist for the user
 		)
-		.groupby(User.city)
-		.having(
-			Count(Events.name) > 0  # Filters users with at least one action
-		)
+		.groupby(User.city)  # Group by city
 		.orderby(
-			Count(Events.name), order=frappe.qb.desc
+			Count(User.name), order=frappe.qb.desc  # Order cities alphabetically
 		)
-		.limit(page_length)
+		.limit(page_length)  # Pagination limit
 	)
 
 	# Run the query with debug enabled
