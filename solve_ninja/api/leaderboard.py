@@ -1,5 +1,6 @@
 import frappe
-from frappe.query_builder.functions import Count, Sum, Max
+from frappe.query_builder.functions import Count, Sum
+from frappe import qb
 
 states_of_india = [
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
@@ -68,29 +69,35 @@ def get_city_wise_action_count_user_based(page_length=10):
 	Events = frappe.qb.DocType("Events")
 	User = frappe.qb.DocType("User")
 
-	query = (
+	user_with_events = (
 		frappe.qb.from_(User)
-		.join(Events)
-		.on(Events.user == User.name)
-		.select(
-			User.city.as_("city"),
-			Count(User.name).as_("action_count"),  # Total number of users in the city
-			Max(User.name).as_("example_user")  # Representative user per city
-		)
+		.join(Events).on(Events.user == User.name)  # assuming 'user' field in Events points to User's 'name'
+		.select(User.name)  # selecting the desired fields
 		.where(
 			(User.city.isnotnull()) &  # Ensure city is not null
 			(User.city.notin(states_of_india)) &  # Exclude cities in the list
 			(Events.name.isnotnull())  # Ensure events exist for the user
 		)
-		.groupby(User.city)  # Group by city
+	)
+	user_with_events = user_with_events.run(as_dict=True)
+	users = list(set([user.name for user in user_with_events]))
+
+	# Query to get the number of users grouped by city, with conditions on a list of usernames
+	user_count_by_city = (
+		qb.from_(User)
+		.select(User.city, Count(User.name).as_("action_count"))  # count users per city
+		.where(
+			User.name.isin(users)  # filter by a list of usernames
+		)
+		.groupby(User.city)  # group by user city
 		.orderby(
 			Count(User.name), order=frappe.qb.desc  # Order cities alphabetically
 		)
-		.limit(page_length)  # Pagination limit
+		.limit(page_length)  # limit to 10 results
 	)
 
-	# Run the query with debug enabled
-	result = query.run(as_dict=True)
+	# Execute the query and fetch the results
+	result = user_count_by_city.run(as_dict=True)
 
 	total_actions = [row.action_count for row in result]
 	total_actions = sum(total_actions)
