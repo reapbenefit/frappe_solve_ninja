@@ -1,0 +1,86 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:user",
+ "creation": "2025-02-10 00:10:49.097641",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "rank",
+  "column_break_3h5n7",
+  "contributions",
+  "hours_invested"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "unique": 1
+  },
+  {
+   "fieldname": "rank",
+   "fieldtype": "Int",
+   "label": "Rank"
+  },
+  {
+   "fieldname": "column_break_3h5n7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contributions",
+   "fieldtype": "Int",
+   "label": "Contributions"
+  },
+  {
+   "fieldname": "hours_invested",
+   "fieldtype": "Float",
+   "label": "Hours Invested"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Events",
+   "link_fieldname": "user"
+  }
+ ],
+ "modified": "2025-02-10 00:35:25.708552",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Ninja Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "select": 1,
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "user"
+}
