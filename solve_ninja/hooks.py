@@ -114,13 +114,13 @@ role_home_page = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
+scheduler_events = {
 #	"all": [
 #		"solve_ninja.tasks.all"
 #	],
-#	"daily": [
-#		"solve_ninja.tasks.daily"
-#	],
+	"daily": [
+		"solve_ninja.api.leaderboard.update_user_rank"
+	],
 #	"hourly": [
 #		"solve_ninja.tasks.hourly"
 #	],
@@ -130,7 +130,7 @@ role_home_page = {
 #	"monthly": [
 #		"solve_ninja.tasks.monthly"
 #	],
-# }
+}
 
 # Testing
 # -------
