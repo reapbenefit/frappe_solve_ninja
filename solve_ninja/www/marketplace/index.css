@@ -599,17 +599,11 @@ p.vnb_focus span:first-child{
     font-weight: 700;
     color: #2B4754;
 }
-.cities_filter{
-    margin: 15px 0 20px;
-}
-.cities_filter .hours-select{
-    min-height: 30px;
-}
 .ac_content{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 10px 0 0;
+    margin: 30px 0 0;
 }
 .ac_list{
     width: 70%;

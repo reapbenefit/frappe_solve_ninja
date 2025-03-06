@@ -1,14 +1,11 @@
 frappe.ready(function() {
-		get_users(get_filters())
+		get_users()
 		$("#search").click(()=>{
 			get_users(get_filters())
 		})
 		$("#clear").click(()=>{
 			clear_filters()
 			get_users()
-		})
-		$("#rank-based-on").change(()=>{
-			get_users(get_filters())
 		})
 		$("#ninja").keyup(function(event) {
 			if (event.keyCode === 13) {
@@ -37,7 +34,6 @@ var get_filters = function() {
 			"organization": $("#organization").val(),
 			"city": $("#city").val(),
 			"hr_range": $("#hr-range").val(),
-			"recent_rank_based_on": $("#rank-based-on").val(),
 		}
 };
 
@@ -45,7 +41,6 @@ var clear_filters = function() {
 	$("#ninja").val("")
 	$("#organization").val("")
 	$("#city").val("")
-	$("#rank-based-on").val("")
 	$("#hr-range").val("")
 }
 var get_users = function(filters={}) {
@@ -62,7 +57,7 @@ var get_users = function(filters={}) {
 		}
 
 		frappe.call({
-				method: "solve_ninja.api.leaderboard.search_users_",
+				method: "solve_ninja.api.common.search_users_",
 				args: {
 						"filters": filters
 				},
@@ -71,13 +66,11 @@ var get_users = function(filters={}) {
 				callback: function(result) {
 					let html = '';
 						if (result.message.length > 0) {
-							let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? "<th>Recent Rank</th>" : "" 
 							html = `<div class="container">
 								<table class="table table-striped" style="text-align: center">
 									<thead>
 										<tr>
-											<th>Overall Rank</th>
-											${rrh}
+											<th>Rank</th>
 											<th class="text-left">Name</th>
 											<th class="text-left">City</th>
 											<th class="text-right">Hours</th>
@@ -86,22 +79,20 @@ var get_users = function(filters={}) {
 									</thead>
 									<tbody>`
 								result.message.forEach(leader => {
-									let rank = leader.rank ? leader.rank : "";
-									if (rank){
-										if(rank_img[rank]) {
-											rank = `<img src="${rank_img[rank]}" style="height: 42px" />`;
+									let sr = leader.sr ? leader.sr : "";
+									if (sr){
+										if(rank_img[sr]) {
+											sr = `<img src="${rank_img[sr]}" style="height: 42px" />`;
 										}
 									}
 									let city = leader.city ? leader.city : "";
-									let rr = leader.recent_rank ? leader.recent_rank : leader.rank;
-									let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? `<td>${rr}</td>` : "" 
+
 									html += `<tr>
 									<td>
 										<div>
-											<span class="name-rank">${rank}</span>
+											<span class="name-rank">${sr}</span>
 										</div>
 									</td>
-									${rrh}
 									<td class="text-left" style="vertical-align: middle">
 										<a href="/user-profile/${leader.username}" class="name-rank">${leader.full_name}</a>
 									</td>
@@ -125,6 +116,13 @@ var get_users = function(filters={}) {
 							</div>`
 							$("#Ranktable").html(html)
 						}
+
+						
+						// if (!result || result.exc || !result.message || result.message.exc) {
+								
+						// } else {
+						//     console.log(r.message)
+						// }
 				}
 		});
 }

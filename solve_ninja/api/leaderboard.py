@@ -1,19 +1,13 @@
 import frappe
-import json
-from frappe.utils import cint, flt, now_datetime
+from frappe.query_builder.functions import Count, Sum
 from frappe import qb
-from frappe.query_builder import DocType, Order
-from frappe.query_builder.functions import Coalesce, Sum, Count
-from datetime import timedelta
-
-
 
 states_of_india = [
-	"Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
-	"Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
-	"Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
-	"Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-	"Uttar Pradesh", "Uttarakhand", "West Bengal", ""
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
+    "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
+    "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
+    "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+    "Uttar Pradesh", "Uttarakhand", "West Bengal", ""
 ]
 
 def get_active_ninja_count():
@@ -71,55 +65,44 @@ def get_city_wise_action_count(page_length=10):
 	return result
 
 @frappe.whitelist(allow_guest=True)
-def get_city_wise_action_count_user_based(page_length=10, recent_rank_based_on=None):
+def get_city_wise_action_count_user_based(page_length=10):
 	Events = frappe.qb.DocType("Events")
 	User = frappe.qb.DocType("User")
 
-	# Base Query
 	user_with_events = (
 		frappe.qb.from_(User)
-		.join(Events).on(Events.user == User.name)  # Ensure 'user' field in Events points to User's 'name'
-		.select(User.name)
+		.join(Events).on(Events.user == User.name)  # assuming 'user' field in Events points to User's 'name'
+		.select(User.name)  # selecting the desired fields
 		.where(
 			(User.city.isnotnull()) &  # Ensure city is not null
 			(User.city.notin(states_of_india)) &  # Exclude cities in the list
 			(Events.name.isnotnull())  # Ensure events exist for the user
 		)
 	)
-
-	# Apply filters if present
-	if recent_rank_based_on:
-		if recent_rank_based_on == "Last 15 Days":
-			user_with_events = user_with_events.where(Events.creation >= frappe.utils.add_days(frappe.utils.nowdate(), -15))
-		elif recent_rank_based_on == "Last Month":
-			user_with_events = user_with_events.where(Events.creation >= frappe.utils.add_days(frappe.utils.nowdate(), -30))
-
-	# Execute Query
 	user_with_events = user_with_events.run(as_dict=True)
 	users = list(set([user.name for user in user_with_events]))
-	result = []
-	if users:
-		# Query to get the number of users grouped by city, with conditions on a list of usernames
-		user_count_by_city = (
-			qb.from_(User)
-			.select(User.city, Count(User.name).as_("action_count"))  # count users per city
-			.where(
-				User.name.isin(users)  # filter by a list of usernames
-			)
-			.groupby(User.city)  # group by user city
-			.orderby(
-				Count(User.name), order=frappe.qb.desc  # Order cities alphabetically
-			)
-			.limit(page_length)  # limit to 10 results
+
+	# Query to get the number of users grouped by city, with conditions on a list of usernames
+	user_count_by_city = (
+		qb.from_(User)
+		.select(User.city, Count(User.name).as_("action_count"))  # count users per city
+		.where(
+			User.name.isin(users)  # filter by a list of usernames
 		)
+		.groupby(User.city)  # group by user city
+		.orderby(
+			Count(User.name), order=frappe.qb.desc  # Order cities alphabetically
+		)
+		.limit(page_length)  # limit to 10 results
+	)
 
-		# Execute the query and fetch the results
-		result = user_count_by_city.run(as_dict=True)
+	# Execute the query and fetch the results
+	result = user_count_by_city.run(as_dict=True)
 
-		total_actions = [row.action_count for row in result]
-		total_actions = sum(total_actions)
-		for row in result:
-			row.percentage = frappe.utils.cint((row.action_count/total_actions) * 100)
+	total_actions = [row.action_count for row in result]
+	total_actions = sum(total_actions)
+	for row in result:
+		row.percentage = frappe.utils.cint((row.action_count/total_actions) * 100)
 
 	return result
 
@@ -166,192 +149,3 @@ def get_state_wise_user_count(page_length=10):
 		row.percentage = frappe.utils.cint((row.user_count/total_users) * 100)
 
 	return result
-
-def update_user_rank():
-	## Define Tables
-	User = DocType("User")
-	Events = DocType("Events")
-
-	# Query
-	query = (
-		frappe.qb.from_(User)
-		.left_join(Events)  # Ensuring users without events are included
-		.on(User.name == Events.user)
-		.where(User.enabled == 1)  # Only enabled users
-		.select(
-			User.name,
-			User.username,
-			User.city,
-			Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),  # Fixing SUM
-			User.org_id,
-			User.user_image,
-			User.location,
-			User.full_name,
-			Count(Events.user).as_("contribution_count"),  # Counting contributions
-		)
-		.groupby(User.name)  # Grouping by user
-		.orderby(Coalesce(Sum(Events.hours_invested), 0), order=frappe.qb.desc)  # Fixing ORDER
-		.orderby(User.full_name)  # Secondary sorting
-	)
-
-	# Run Query
-	users = query.run(as_dict=True)
-
-	# Assign Rank Dynamically
-	for count, data in enumerate(users, 1):
-		user = get_ninja_profile(data["name"])
-
-		# Bulk Update Instead of Multiple `.db_set()`
-		user.update({
-			"rank": count,
-			"contributions": data["contribution_count"],
-			"hours_invested": data["hours_invested"]
-		})
-		user.save(ignore_permissions=True)  # Save after batch update to reduce DB calls
-
-def get_ninja_profile(user):
-	if frappe.db.exists("Ninja Profile", user):
-		return frappe.get_doc("Ninja Profile", user)
-
-	# Handle potential race condition with try-except
-	try:
-		return frappe.get_doc({
-			"doctype": "Ninja Profile",
-			"user": user
-		}).insert(ignore_permissions=True)
-	except frappe.DuplicateEntryError:
-		return frappe.get_doc("Ninja Profile", user)  # Fetch again if already inserted
-
-@frappe.whitelist(allow_guest=True)
-def search_users_(filters=None, raw=False, page_length=10, start=0):
-	start = cint(start)
-	page_length = cint(page_length)
-	
-	filters = json.loads(filters) if filters else {}
-
-	# Define Doctypes
-	User = DocType("User")
-	Events = DocType("Events")
-	NinjaProfile = DocType("Ninja Profile")
-
-	# Check if recent rank filtering is needed
-	recent_rank_based_on = filters.get("recent_rank_based_on")
-
-	# Define Query Time Range (If Needed)
-	time_condition = None
-	if recent_rank_based_on == "Last 15 Days":
-		time_condition = now_datetime() - timedelta(days=15)
-	elif recent_rank_based_on == "Last Month":
-		time_condition = now_datetime() - timedelta(days=30)
-
-	# Base Query: Always Fetch Rank from `Ninja Profile`
-	query = (
-		frappe.qb.from_(User)
-		.left_join(NinjaProfile).on(User.name == NinjaProfile.name)
-		.select(
-			User.name,
-			User.username,
-			User.city,
-			Coalesce(NinjaProfile.rank, 9999).as_("rank"),  # Always get rank from Ninja Profile
-			User.org_id,
-			User.user_image,
-			User.location,
-			User.full_name,
-		)
-	)
-
-	# If `recent_rank_based_on` is set, use Events table for contribution data
-	if recent_rank_based_on:
-		query = (
-			query.join(Events).on(User.name == Events.user)
-			.select(
-				Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),
-				Coalesce(Count(Events.user), 0).as_("contribution_count"),
-				Sum(Events.hours_invested).as_("recent_rank")  # ✅ FIXED: Use rank() as a window function
-			)
-			.groupby(
-				User.name, User.username, User.city, User.org_id, User.user_image, 
-				User.location, User.full_name, NinjaProfile.rank
-			)
-			.orderby(Sum(Events.hours_invested), order=Order.desc)
-			.orderby(User.full_name, order=Order.asc)
-		)
-		
-		if time_condition:
-			query = query.where(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
-
-	else:
-		# When `recent_rank_based_on` is not set, use Ninja Profile
-		query = (
-			query.select(
-				Coalesce(NinjaProfile.hours_invested, 0).as_("hours_invested"),
-				Coalesce(NinjaProfile.contributions, 0).as_("contribution_count"),
-			)
-			.orderby(Coalesce(NinjaProfile.rank, 9999).as_("rank"), order=Order.asc)
-			.orderby(User.full_name, order=Order.asc)
-		)
-
-	# Apply Filters Dynamically
-	if filters.get("organization"):
-		query = query.where(User.org_id == filters["organization"])
-	
-	if filters.get("city"):
-		query = query.where(User.city == filters["city"])
-
-	# Apply Pagination
-	if not raw:
-		query = query.limit(page_length).offset(start)
-
-	# Execute Query
-	users = query.run(as_dict=True)
-
-	# Assign Serial Numbers (Pagination)
-	if recent_rank_based_on:
-		for count, data in enumerate(users, start + 1):
-			data["recent_rank"] = count
-
-	# Apply `hr_range` Filter in Python (If Needed)
-	if filters.get("hr_range"):
-		users = filter_by_hour_range(users, filters["hr_range"])
-
-	# Apply Additional Text-Based Filters in Python
-	users = filter_users(users, filters)
-	frappe.errprint(users)
-	return users
-
-
-### **🔹 Filter Users by `hr_range`**
-def filter_by_hour_range(users, hr_range):
-	filtered_users = []
-	
-	if "-" in hr_range:
-		min_hr, max_hr = map(flt, hr_range.split("-"))
-		filtered_users = [user for user in users if min_hr < flt(user["hours_invested"]) <= max_hr]
-	
-	elif "+" in hr_range:
-		min_hr = flt(hr_range.replace("+", ""))
-		filtered_users = [user for user in users if flt(user["hours_invested"]) > min_hr]
-
-	return filtered_users
-
-
-### **🔹 Apply Filters on Users**
-def filter_users(users, filters):
-	filtered_users = []
-	
-	for user in users:
-		add_user = True
-
-		if filters.get("ninja") and filters["ninja"].lower() not in user["full_name"].lower():
-			add_user = False
-
-		if filters.get("organization") and user["org_id"] != filters["organization"]:
-			add_user = False
-
-		if filters.get("city") and user["city"] != filters["city"]:
-			add_user = False
-
-		if add_user:
-			filtered_users.append(user)
-
-	return filtered_users
