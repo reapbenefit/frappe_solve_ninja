@@ -27,7 +27,7 @@ def get_context(context):
 		else:
 			data['initials'] = name_list[0][0].upper() + name_list[1][0].upper()
 		
-		data["profile_link"] = "/user-profile/"+data.get("username")
+		data["profile_link"] = "/user-profile/"+data.username
 		
 		
 		user_badges = frappe.db.get_all('User badge', filters={'user':data['name']},fields=['badge'])

@@ -522,12 +522,7 @@ def search_users_(filters=None, raw=None, page_length=10, start=0):
     for count, data in enumerate(users, 1):
         data["sr"] = count+start
         
-    # users_recent_rank = get_ninja_recent_rank(filters.get("recent_rank_based_on")) if filters else get_ninja_recent_rank(limit=limit, offset=offset)
-    if filters and filters.get("recent_rank_based_on"):
-        users_recent_rank = get_ninja_recent_rank(filters.get("recent_rank_based_on"))
-        users = merge_users(users_recent_rank, users, "name")
-    # else:
-    #     users = merge_users(users, users_recent_rank, "name")
+
     if filters:
         users_ = []
         if filters.get("hr_range"):
@@ -535,7 +530,7 @@ def search_users_(filters=None, raw=None, page_length=10, start=0):
                 rng = filters.get("hr_range").split("-")
                 
                 for user in users:
-                    if flt(user.get("hours_invested")) > flt(rng[0]) and flt(user.get("hours_invested")) <= flt(rng[1]):
+                    if flt(user.hours_invested) > flt(rng[0]) and flt(user.hours_invested) <= flt(rng[1]):
                         users_.append(user)
             elif "+" in filters.get("hr_range"):
                 hr_range = filters.get("hr_range").replace("+", "")
@@ -547,19 +542,19 @@ def search_users_(filters=None, raw=None, page_length=10, start=0):
         for user in users:
             add_user = True
             if filters.get("ninja"):
-                if filters.get("ninja").lower() not in user.get("full_name").lower():
+                if filters.get("ninja").lower() not in user.full_name.lower():
                     add_user = False
 
             if filters.get("organization") and user.org_id != filters.get("organization"):
                 add_user = False
 
-            if filters.get("city") and user.get("city") != filters.get("city"):
+            if filters.get("city") and user.city != filters.get("city"):
                 add_user = False
 
             if add_user:
                 users_.append(user)
         users = users_
-        if not filters or filters.get("recent_rank_based_on"):
+        if not filters:
             users = users[0:page_length]
     return users
 
@@ -595,76 +590,3 @@ def download_profile(user=None):
             frappe.throw("Unable to download Profile")
             
     return True
-
-def get_ninja_recent_rank(recent_rank_based_on=None):
-    # if not recent_rank_based_on or recent_rank_based_on in ["Overall"]:
-    #     return []
-    
-    conditions = ""
-    if recent_rank_based_on == "Last 15 Days":
-        conditions = " AND e.creation >= CURRENT_TIMESTAMP - INTERVAL '200 days'"
-    elif recent_rank_based_on == "Last Month":
-        conditions = " AND e.creation >= CURRENT_TIMESTAMP - INTERVAL '400 days'"
-
-    users = frappe.db.sql(f"""
-            SELECT
-                u.name,
-                u.username,
-                u.city,
-                COALESCE(SUM(NULLIF(e.hours_invested, 0)), 0) AS hours_invested,
-                u.org_id,
-                u.user_image,
-                u.location,
-                u.full_name,
-                COUNT(e.user) AS contribution_count
-            FROM
-                `tabUser` u
-            JOIN
-                `tabEvents` e ON u.name = e.user
-            WHERE
-                u.enabled = 1
-                {conditions}
-            GROUP BY
-                u.name
-            ORDER BY
-                hours_invested DESC,
-                u.full_name
-        """, as_dict=True)
-
-    for count, data in enumerate(users, 1):
-        data["recent_rank"] = count
-    
-    return users
-
-def merge_users(list1, list2, key):
-    """
-    Merge two lists of dictionaries based on a common key.
-
-    Args:
-        list1 (list): The first list of dictionaries.
-        list2 (list): The second list of dictionaries.
-        key (str): The key to merge the dictionaries on.
-
-    Returns:
-        list: A list of merged dictionaries.
-    """
-    merged_data = {}
-
-    # Process the first list
-    for entry in list1:
-        key_value = entry[key]
-        if key_value not in merged_data:
-            merged_data[key_value] = {}
-        for k, v in entry.items():
-            merged_data[key_value][k] = v
-
-    # Process the second list
-    for entry in list2:
-        key_value = entry[key]
-        if key_value in merged_data:
-            for k, v in entry.items():
-                merged_data[key_value][k] = v
-
-    # Convert the merged dictionary back to a list of dictionaries
-    return list(merged_data.values())
-

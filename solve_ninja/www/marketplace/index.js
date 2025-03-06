@@ -1,19 +1,11 @@
 frappe.ready(function() {
     // get_verified_users()
-    get_users(get_filters())
-    get_city_wise_action_count_user_based()
+    get_users()
+    get_city_wise_action_count()
     $("#search").click(()=>{
         frappe.flags.start = 0;
         $(".lb_content").empty()
         get_users(get_filters())
-    })
-    $("#rank-based-on").change(()=>{
-        frappe.flags.start = 0;
-        $(".lb_content").empty()
-        get_users(get_filters())
-    })
-    $("#rank-based-on-city").change(()=>{
-        get_city_wise_action_count_user_based()
     })
     $("#clear").click(()=>{
         $(".lb_content").empty()
@@ -51,7 +43,6 @@ var get_filters = function() {
         "organization": $("#organization").val(),
         "city": $("#city").val(),
         "hr_range": $("#hr-range").val(),
-        "recent_rank_based_on": $("#rank-based-on").val(),
     }
 };
 
@@ -76,7 +67,7 @@ var get_users = function(filters={}) {
         filters["organization"] = urlParams.get("org")
     }
     frappe.call({
-        method: "solve_ninja.api.leaderboard.search_users_",
+        method: "solve_ninja.api.common.search_users_",
         args: {
                 "filters": filters,
                 "page_length": frappe.flags.page_length,
@@ -88,11 +79,9 @@ var get_users = function(filters={}) {
             let lb_rows = $('.lb_row').length
             let html = '';
             if (result.message.length > 0) {
-                let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? "<div class='lb_col col_rank'>Recent Rank</div>" : "" 
                 if (lb_rows < 1) {
                     html = `<div class="lb_row row_header">
-                        <div class="lb_col col_rank">Overall Rank</div>
-                        ${rrh}
+                        <div class="lb_col col_rank">Rank</div>
                         <div class="lb_col col_name">Name</div>
                         <div class="lb_col col_city">City</div>
                         <div class="lb_col col_hours">Hours</div>
@@ -107,19 +96,16 @@ var get_users = function(filters={}) {
                 //             <div class="lb_col col_actions">Actions</div>
                 //         </div>`
                 result.message.forEach(leader => {
-                    let rank = leader.rank ? leader.rank : "";
-                    if (rank){
-                        if(rank_img[rank]) {
-                            rank = `<img src="${rank_img[rank]}" />`;
+                    let sr = leader.sr ? leader.sr : "";
+                    if (sr){
+                        if(rank_img[sr]) {
+                            sr = `<img src="${rank_img[sr]}" />`;
                         }
                     }
                     let city = leader.city ? leader.city : "";
-                    let rr = leader.recent_rank ? leader.recent_rank : leader.rank;
-                    let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? `<div class="lb_col col_rank">${rr}</div>` : "" 
                     html += `
                         <div class="lb_row lb_row_result">
-                            <div class="lb_col col_rank">${rank}</div>
-                            ${rrh}
+                            <div class="lb_col col_rank">${sr}</div>
                             <div class="lb_col col_name"><a href="/user-profile/${leader.username}">${leader.full_name}</a></div>
                             <div class="lb_col col_city">${city}</div>
                             <div class="lb_col col_hours">${leader.hours_invested}</div>
@@ -143,40 +129,6 @@ var get_users = function(filters={}) {
         }
     });
 }
-
-var get_city_wise_action_count_user_based = function() {
-    frappe.call({
-        method: "solve_ninja.api.leaderboard.get_city_wise_action_count_user_based",
-        args: {
-            "recent_rank_based_on": $("#rank-based-on-city").val(),
-        },
-        callback: function(result) {
-            let html = '';
-
-            if (result.message && result.message.length > 0) {
-                result.message.forEach(r => {
-                    html += `
-                        <div class="ac_item_box">
-                            <strong>${r.city}</strong>
-                            <div class="progress_bar">
-                                <div class="progress" style="width: ${r.percentage}%"></div>
-                                <span>${r.action_count}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                html = "<p>No data available</p>";
-            }
-
-            $("#ac_list_item").html(html);
-        },
-        error: function(err) {
-            console.error("API call failed:", err);
-            $("#ac_list_item").html("<p>Failed to load data</p>");
-        }
-    });
-};
 
 var get_verified_users = function() {
     frappe.call({
