@@ -4,15 +4,14 @@
         <div class="ac_content">
             <div class="ac_list">
                 <div class="ac_sub_title">Our most active ninjas come from these cities</div>
-                <div class="ac_list_item">
-                    {% for city in city_wise_data %}
-                        {{ frappe.render_template('www/marketplace/templates/city_bar.html', {
-                            "city": city.city,
-                            "progress": city.percentage,
-                            "count": city.action_count
-                        }) }}
-                    {% endfor %}
-                    <canvas id="myChart" style="display: none;"></canvas>
+                <div class="cities_filter">
+                    <select class="hours-select" name="rank-based-on-city" id="rank-based-on-city">
+                        <option value="Overall">Overall</option>
+                        <option value="Last Month">Last Month</option>
+                        <option value="Last 15 Days" selected="selected">Last 15 Days</option>
+                    </select>
+                </div>
+                <div class="ac_list_item" id="ac_list_item">
                 </div>
             </div>
             <div class="ac_inner_cta">
