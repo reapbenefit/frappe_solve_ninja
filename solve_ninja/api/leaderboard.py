@@ -229,6 +229,10 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 	
 	filters = json.loads(filters) if filters else {}
 
+	if filters.get("hr_range") or filters.get("city") or filters.get("organization") or filters.get("ninja"):
+		raw = True
+		start = 0
+
 	# Define Doctypes
 	User = DocType("User")
 	Events = DocType("Events")
@@ -252,7 +256,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 			User.name,
 			User.username,
 			User.city,
-			Coalesce(NinjaProfile.rank, 9999).as_("rank"),  # Always get rank from Ninja Profile
+			Coalesce(NinjaProfile.rank, 99999).as_("rank"),  # Always get rank from Ninja Profile
 			User.org_id,
 			User.user_image,
 			User.location,
@@ -287,7 +291,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 				Coalesce(NinjaProfile.hours_invested, 0).as_("hours_invested"),
 				Coalesce(NinjaProfile.contributions, 0).as_("contribution_count"),
 			)
-			.orderby(Coalesce(NinjaProfile.rank, 9999).as_("rank"), order=Order.asc)
+			.orderby(Coalesce(NinjaProfile.rank, 99999).as_("rank"), order=Order.asc)
 			.orderby(User.full_name, order=Order.asc)
 		)
 
