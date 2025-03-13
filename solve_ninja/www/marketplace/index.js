@@ -1,22 +1,24 @@
 frappe.ready(function() {
     // get_verified_users()
-    get_users(get_filters())
+    
+    reset_limit_and_start()
     get_city_wise_action_count_user_based()
+    get_users(get_filters())
     $("#search").click(()=>{
-        frappe.flags.start = 0;
-        $(".lb_content").empty()
+        reset_limit_and_start()
+        // $(".lb_content").empty()
         get_users(get_filters())
     })
     $("#rank-based-on").change(()=>{
-        frappe.flags.start = 0;
-        $(".lb_content").empty()
+        reset_limit_and_start()
+        // $(".lb_content").empty()
         get_users(get_filters())
     })
     $("#rank-based-on-city").change(()=>{
         get_city_wise_action_count_user_based()
     })
     $("#clear").click(()=>{
-        $(".lb_content").empty()
+        reset_limit_and_start()
         clear_filters()
         get_users()
     })
@@ -26,7 +28,7 @@ frappe.ready(function() {
         }
     });
     $("#btn_load_more").click(()=>{ 
-        get_users()
+        get_users(get_filters())
     })
     $(".contribute-button").click(()=>{
         if (navigator.doNotTrack != 1 && !window.is_404) {
@@ -45,7 +47,7 @@ frappe.ready(function() {
 });
 
 var get_filters = function() {
-    $("#btn_load_more").hide()
+    // $("#btn_load_more").hide()
     return {
         "ninja": $("#ninja").val(),
         "organization": $("#organization").val(),
@@ -79,33 +81,26 @@ var get_users = function(filters={}) {
         method: "solve_ninja.api.leaderboard.search_users_",
         args: {
                 "filters": filters,
-                "page_length": frappe.flags.page_length,
-                "start": frappe.flags.start,
+                "page_length": frappe.flags.leader_page_length,
+                "start": frappe.flags.leader_start,
         },
         freeze: true,
         freeze_message: "...Searcing Users",
         callback: function(result) {
-            let lb_rows = $('.lb_row').length
             let html = '';
             if (result.message.length > 0) {
-                let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? "<div class='lb_col col_rank'>Recent Rank</div>" : "" 
-                if (lb_rows < 1) {
-                    html = `<div class="lb_row row_header">
-                        <div class="lb_col col_rank">Overall Rank</div>
-                        ${rrh}
-                        <div class="lb_col col_name">Name</div>
-                        <div class="lb_col col_city">City</div>
-                        <div class="lb_col col_hours">Hours</div>
-                        <div class="lb_col col_actions">Actions</div>
-                    </div>`
-                }
-                // html = `<div class="lb_row row_header">
-                //             <div class="lb_col col_rank">Rank</div>
-                //             <div class="lb_col col_name">Name</div>
-                //             <div class="lb_col col_city">City</div>
-                //             <div class="lb_col col_hours">Hours</div>
-                //             <div class="lb_col col_actions">Actions</div>
-                //         </div>`
+                $("#btn_load_more").show()
+                // let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? "<div class='lb_col col_rank'>Recent Rank</div>" : "" 
+                // if (lb_rows < 1) {
+                //     html = `<div class="lb_row row_header">
+                //         <div class="lb_col col_rank">Overall Rank</div>
+                //         ${rrh}
+                //         <div class="lb_col col_name">Name</div>
+                //         <div class="lb_col col_city">City</div>
+                //         <div class="lb_col col_hours">Hours</div>
+                //         <div class="lb_col col_actions">Actions</div>
+                //     </div>`
+                // }
                 result.message.forEach(leader => {
                     let rank = leader.rank ? leader.rank : "";
                     if (rank){
@@ -116,7 +111,7 @@ var get_users = function(filters={}) {
                     let city = leader.city ? leader.city : "";
                     let rr = leader.recent_rank ? leader.recent_rank : leader.rank;
                     let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? `<div class="lb_col col_rank">${rr}</div>` : "" 
-                    html += `
+                    html = `
                         <div class="lb_row lb_row_result">
                             <div class="lb_col col_rank">${rank}</div>
                             ${rrh}
@@ -126,20 +121,26 @@ var get_users = function(filters={}) {
                             <div class="lb_col col_actions">${leader.contribution_count}</div>
                         </div>
                     `
+                    $(".lb_content").append(html)
                 });
-                lb_rows = $('.lb_row').length
-                frappe.flags.start = lb_rows == 0 ? frappe.flags.page_length : lb_rows;
+                // lb_rows = $('.lb_row').length
+                frappe.flags.leader_page_length = 20
+                frappe.flags.leader_start = $('.lb_row_result').length
             }
             
-            else {
+            else if(frappe.flags.leader_start == 0) {
                 html=`<div class="container">
                     <div class="no-record">
                         No Record Found
                     </div>
                 </div>`
+                $(".lb_content").html(html)
+                $("#btn_load_more").hide()
             }
-
-            $(".lb_content").append(html)
+            else {
+                $("#btn_load_more").hide()
+            }
+            // $(".lb_content").append(html)
         }
     });
 }
@@ -294,11 +295,32 @@ var get_city_wise_action_count = function() {
     });
 }
 
-if (window.matchMedia('(max-width: 1023px)').matches) {
-    frappe.flags.page_length = 6;
-} else if (window.matchMedia('(max-width: 1241px)').matches){
-    frappe.flags.page_length = 8;
-} else {
-    frappe.flags.page_length = 10;
+var setup_leaderboad_html = function(filters={}) {
+	let html = '';
+	let rrh = ["Last Month", "Last 15 Days"].includes(filters.recent_rank_based_on) ? "<div class='lb_col col_rank'>Recent Rank</div>" : "" 
+	html = `<div class="lb_row row_header">
+        <div class="lb_col col_rank">Overall Rank</div>
+        ${rrh}
+        <div class="lb_col col_name">Name</div>
+        <div class="lb_col col_city">City</div>
+        <div class="lb_col col_hours">Hours</div>
+        <div class="lb_col col_actions">Actions</div>
+    </div>`
+    $(".lb_content").html(html)
+	// $("#Ranktable").html(html)
 }
-frappe.flags.start = 0;
+
+// if (window.matchMedia('(max-width: 1023px)').matches) {
+//     frappe.flags.page_length = 6;
+// } else if (window.matchMedia('(max-width: 1241px)').matches){
+//     frappe.flags.page_length = 8;
+// } else {
+//     frappe.flags.page_length = 10;
+// }
+// frappe.flags.start = 0;
+
+var reset_limit_and_start = function(){
+    setup_leaderboad_html(get_filters())
+	frappe.flags.leader_page_length = 10
+	frappe.flags.leader_start = 0
+}
