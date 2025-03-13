@@ -3,7 +3,7 @@ import json
 from frappe.utils import cint, flt, now_datetime
 from frappe import qb
 from frappe.query_builder import DocType, Order
-from frappe.query_builder.functions import Coalesce, Sum, Count
+from frappe.query_builder.functions import Coalesce, Sum, Count, Lower
 from datetime import timedelta
 
 
@@ -229,9 +229,9 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 	
 	filters = json.loads(filters) if filters else {}
 
-	if filters.get("hr_range") or filters.get("city") or filters.get("organization") or filters.get("ninja"):
-		raw = True
-		start = 0
+	# if filters.get("hr_range") or filters.get("city") or filters.get("organization") or filters.get("ninja"):
+	# 	raw = True
+	# 	start = 0
 
 	# Define Doctypes
 	User = DocType("User")
@@ -251,7 +251,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 	# Base Query: Always Fetch Rank from `Ninja Profile`
 	query = (
 		frappe.qb.from_(User)
-		.left_join(NinjaProfile).on(User.name == NinjaProfile.name)
+		.join(NinjaProfile).on(User.name == NinjaProfile.name)
 		.select(
 			User.name,
 			User.username,
@@ -283,6 +283,16 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 		
 		if time_condition:
 			query = query.where(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
+		
+		# Apply `hr_range` Filter in Python (If Needed)
+		if filters.get("hr_range"):
+			if "-" in filters.get("hr_range"):
+				min_hr, max_hr = map(flt, filters.get("hr_range").split("-"))
+				query = query.having(Coalesce(Sum(Events.hours_invested), 0).between(min_hr, max_hr))
+			
+			elif "+" in filters.get("hr_range"):
+				min_hr = flt(filters.get("hr_range").replace("+", ""))
+				query = query.having(Coalesce(Sum(Events.hours_invested), 0) > min_hr)
 
 	else:
 		# When `recent_rank_based_on` is not set, use Ninja Profile
@@ -294,6 +304,15 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 			.orderby(Coalesce(NinjaProfile.rank, 99999).as_("rank"), order=Order.asc)
 			.orderby(User.full_name, order=Order.asc)
 		)
+		# Apply `hr_range` Filter in Python (If Needed)
+		if filters.get("hr_range"):
+			if "-" in filters.get("hr_range"):
+				min_hr, max_hr = map(flt, filters.get("hr_range").split("-"))
+				query = query.where(NinjaProfile.hours_invested.between(min_hr, max_hr))
+			
+			elif "+" in filters.get("hr_range"):
+				min_hr = flt(filters.get("hr_range").replace("+", ""))
+				query = query.where(NinjaProfile.hours_invested > min_hr)
 
 	# Apply Filters Dynamically
 	if filters.get("organization"):
@@ -302,6 +321,9 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 	if filters.get("city"):
 		query = query.where(User.city == filters["city"])
 
+	if filters.get("ninja"):
+		full_name_filter = f"%{filters['ninja'].lower()}%"
+		query = query.where(Lower(User.full_name).like(full_name_filter))
 	# Apply Pagination
 	if not raw:
 		query = query.limit(page_length).offset(start)
@@ -315,12 +337,12 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 			data["recent_rank"] = count
 
 	# Apply `hr_range` Filter in Python (If Needed)
-	if filters.get("hr_range"):
-		users = filter_by_hour_range(users, filters["hr_range"])
+	# if filters.get("hr_range"):
+	# 	users = filter_by_hour_range(users, filters["hr_range"])
 
 	# Apply Additional Text-Based Filters in Python
-	users = filter_users(users, filters)
-	frappe.errprint(users)
+	# users = filter_users(users, filters)
+	# frappe.errprint(users)
 	return users
 
 
