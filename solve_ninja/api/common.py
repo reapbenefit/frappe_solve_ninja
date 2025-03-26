@@ -268,7 +268,7 @@ def reset_password():
     return custom_response(message,data,status_code,error)
 
 def update_subcategory(doc, method):
-    if not doc.subcategory:
+    if not doc.subcategory and doc.category:
         subcategory = frappe.db.exists("Event Sub Category", doc.category)
         if not subcategory:
             subcategory = frappe.get_doc({
