@@ -43,7 +43,7 @@ def get_context(context):
 			badge_doc = frappe.get_doc('Badge',user_badge.badge)
 			badge_tags= badge_doc.get_tags()
 	
-			if badge_tags[0] == 'persona':
+			if badge_tags and badge_tags[0] == 'persona':
 				if persona_counts == 0 :
 					persona_counts = persona_counts+1
 					persona['name']  = badge_doc.title
