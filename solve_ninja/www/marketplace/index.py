@@ -10,7 +10,7 @@ no_cache = 1
 
 def get_context(context):
 	context.orgs = frappe.get_all("User Organization", pluck="name")
-	context.cities = frappe.get_all("Samaaja Cities", pluck="name")
+	context.cities = frappe.get_all("Samaaja Cities", pluck="name", order_by="name")
 	context.whatsapp_bot_url = frappe.db.get_single_value("Solve Ninja Settings", "whatsapp_bot_url")
 	context.total_actions = frappe.db.count("Events")
 	context.total_invested_hours = cint(get_total_invested_hours())

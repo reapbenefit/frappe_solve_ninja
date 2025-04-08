@@ -15,7 +15,7 @@ def get_context(context):
 	if len(leaderboard_data) > 10:
 		leaderboard_data = leaderboard_data[:10]
 	context.orgs = frappe.get_all("User Organization", pluck="name")
-	context.cities = frappe.get_all("Samaaja Cities", pluck="name")
+	context.cities = frappe.get_all("Samaaja Cities", pluck="name", order_by="name")
 	# add count & default user image
 	for count, data in enumerate(leaderboard_data):
 		data["sr"] = count+1
