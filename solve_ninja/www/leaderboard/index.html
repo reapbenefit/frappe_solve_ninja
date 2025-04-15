@@ -2,19 +2,14 @@
 
 {% block title %}{{ _('Solve Ninja - Leaderboard') }}{% endblock %}
 {% block script %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>{% include "www/leaderboard/index.js" %}</script>
 {% endblock %}
 {% block content %}
-{% include 'www/leaderboard/templates/hero.html' %}
-{{ frappe.render_template('www/leaderboard/templates/summary_section.html', {"total_solve_ninjas": total_solve_ninjas, "total_actions_taken": total_actions_taken, "total_hours_invested": total_hours_invested}) }}
-<div class="container">
-    <div class="title-text">Top 10 Solve Ninjas</div>
-</div>
-{{ frappe.render_template('www/leaderboard/templates/filters.html', {"orgs": orgs, "cities": cities, "show_org_filter": False}) }}
-<div id ="Ranktable"></div>
-<div class="vn_all">
-    <button class="main_btn" id="btn_load_more">Load More</button>
-</div>
-{% include 'www/leaderboard/templates/footer.html' %}
+{% include 'www/templates/banner.html' %}
+{% include 'www/leaderboard/templates/verified_ninja_section.html' %}
+{% include 'www/leaderboard/templates/leaderboard_section.html' %}
+{% include 'www/leaderboard/templates/active_cities.html' %}
+
 
 {% endblock %}
