@@ -1,0 +1,44 @@
+<div class="container">
+        <table class="table table-striped" style="text-align: center">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Recent Rank</th>
+          <th>Persona</th>
+          <th class="text-left">Name</th>
+          <th class="text-left">City</th>
+          <th class="text-right">Hours</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% $.each(users_data, (leader) => { %}
+        <tr>
+          <td>
+            <div>
+              {% if leader.sr == 1%}
+              <img src="files/rank-1.png" style="height: 42px" />
+              {% elif leader.sr==2%}
+              <img src="files/rank-2.png" style="height: 42px" />
+              {% elif leader.sr==3%}
+              <img src="files/rank-3.png" style="height: 42px" />
+              {%else%}
+              <span class="name-rank">{{leader.sr}}</span>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            <img src="{{leader.persona.image}}" style="height: 42px" />
+          </td>
+          <td class="text-left" style="vertical-align: middle">
+            <a href="{{leader.profile_link}}" class="name-rank">{{leader.full_name}}</a>
+          </td>
+  
+          <td class="text-left" style="vertical-align: middle">{% if leader.city %}{{leader.city}} {% endif %}</td>
+          <td class="text-right" style="vertical-align: middle">{{leader.hours_invested}}</td>
+          <td class="text-right" style="vertical-align: middle">{{leader.contribution_count}}</td>
+        </tr>
+        {% }); %}
+      </tbody>
+    </table>
+</div>

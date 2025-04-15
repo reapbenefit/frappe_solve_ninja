@@ -1,0 +1,39 @@
+<div class="container">
+    <div class="filter-bar">
+        <select class="hours-select" name="rank-based-on" id="rank-based-on">
+            <option value="Overall">Overall</option>
+            <option value="Last Month">Last Month</option>
+            <option value="Last 15 Days" selected="selected">Last 15 Days</option>
+        </select>
+        <input type="search" class="searchbox" placeholder="Search Ninja" id ="ninja" />
+        {% if show_org_filter %}
+            <select class="org-select" name="organization" id="organization">
+                <option value="">Organization</option>
+                {% for org in orgs %}
+                <option value="{{ org }}">{{ org }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
+        <div class="city_hours_wrapper">
+            <select class="city-select" name="city" id="city">
+                <option value="">City</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+            <select class="hours-select" name="hr-range" id="hr-range">
+                <option value="">Hours</option>
+                <option value="0-30">0-30</option>
+                <option value="30-100">30-100</option>
+                <option value="100-200">100-200</option>
+                <option value="200-300">200-300</option>
+                <option value="300-400">300-400</option>
+                <option value="400+">400+</option>
+            </select>
+        </div>
+        <div class="filter-btn">
+            <button class="btn_fill" type="button" id="search">Filter</button>
+            <button class="btn_outline" type="button" id="clear">Clear</button>
+        </div>
+    </div>
+</div>
