@@ -38,7 +38,7 @@ def add_event():
         event_doc.description = event_data.get("description")
         event_doc.url = event_data.get("attachment")
         event_doc.source = event_data.get("source")
-        event_doc.hours_invested = event_data.get("hours_invested")
+        event_doc.hours_invested = frappe.utils.flt(event_data.get("hours_invested"))
         event_doc.latitude = event_data.get("latitude")
         event_doc.longitude = event_data.get("longitude")
         event_doc.insert(ignore_permissions=True)
