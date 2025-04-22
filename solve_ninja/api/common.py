@@ -160,7 +160,7 @@ def add_user():
     try:
         logger.info(frappe.request.data)
         user_data = json.loads(frappe.request.data)
-        mobile = user_data.get("mobile")
+        mobile = validate_and_normalize_mobile(user_data.get("mobile"))
         user_doc = frappe.get_doc({'doctype': 'User','mobile':mobile})
         user_doc.email=mobile+"@solveninja.org"
         user_doc.mobile_no=mobile
@@ -200,6 +200,14 @@ def add_user():
     logger.info('ENDS - adding a new user ------------')
     return custom_response(message,data,status_code,error)
 
+def validate_and_normalize_mobile(mobile):
+    if not mobile or len(mobile) not in [10, 12] or not mobile.isdigit():
+        frappe.throw("Mobile number must be either 10 or 12 digits and numeric.")
+
+    if len(mobile) == 10:
+        mobile = "91" + mobile
+
+    return mobile
 @frappe.whitelist(allow_guest=True)
 def fetch_profile():
     logger.info('STARTS - fetch profile ------------')
