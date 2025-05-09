@@ -208,6 +208,7 @@ def validate_and_normalize_mobile(mobile):
         mobile = "91" + mobile
 
     return mobile
+
 @frappe.whitelist(allow_guest=True)
 def fetch_profile():
     logger.info('STARTS - fetch profile ------------')
@@ -228,6 +229,7 @@ def fetch_profile():
                 data=user_profile_link
             else:
                 message='User not found with mobile no '+mobile_no
+                status_code=400
         else:
             message='Mobile no is mandatory'
             status_code=400
@@ -238,8 +240,6 @@ def fetch_profile():
         error=True
     logger.info('ENDS - fetch profile ------------')
     return custom_response(message,data,status_code,error)
-
-
 
 @frappe.whitelist(allow_guest=True)
 def reset_password():
