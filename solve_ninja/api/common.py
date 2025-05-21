@@ -182,10 +182,14 @@ def add_user():
     try:
         user_data = json.loads(frappe.request.data)
 
-        # Check mandatory fields
+        # Ensure required fields are present
         validate_required_fields(user_data, ["mobile", "first_name", "pincode"])
 
+        # Normalize and validate mobile number
         mobile = validate_and_normalize_mobile(user_data.get("mobile"))
+
+        # Validate pincode format
+        validate_pincode(user_data.get("pincode"))
 
         # Check if user already exists
         if frappe.db.exists("User", {"mobile_no": mobile}):
@@ -218,6 +222,7 @@ def add_user():
     except Exception as e:
         logger.error(f"Error occurred while registering user with mobile - {mobile}")
         logger.error(e, exc_info=True)
+        frappe.log_error(frappe.get_traceback(), "Add User Error")
         message = str(e)
         status_code = 500
         error = True
@@ -233,6 +238,20 @@ def validate_required_fields(user_data, required_fields):
     for field in required_fields:
         if not user_data.get(field):
             frappe.throw(f"{field.replace('_', ' ').title()} is mandatory.")
+
+def validate_pincode(pincode):
+    """
+    Validates that the pincode is a 6-digit numeric value.
+    Works for both string and integer inputs.
+    """
+    if pincode is None:
+        frappe.throw("Pincode is required.")
+
+    # Convert to string for uniform validation
+    pincode_str = str(pincode).strip()
+
+    if not pincode_str.isdigit() or len(pincode_str) != 6:
+        frappe.throw("Pincode must be a 6-digit number.")
 
 def validate_and_normalize_mobile(mobile):
     if not mobile or len(mobile) not in [10, 12] or not mobile.isdigit():
@@ -822,4 +841,39 @@ def update_ninja_profile(user, user_data):
     """
     if user_data.get("wa_id") and frappe.db.exists("Ninja Profile", user):
         frappe.db.set_value("Ninja Profile", user, "wa_id", user_data.get("wa_id"))
-        
+
+@frappe.whitelist()
+def get_action_count():
+    """
+    Public endpoint to fetch the number of events associated with a user based on their mobile number.
+    Supports GET request with ?mobile=<number>
+    """
+    message = 'success'
+    data = {}
+    status_code = 200
+    error = False
+
+    try:
+        mobile_no = frappe.form_dict.get("mobile")
+
+        if not mobile_no:
+            frappe.throw("Mobile number is mandatory.")
+
+        mobile_no = validate_and_normalize_mobile(mobile_no)
+
+        user_doc = frappe.db.get_all('User', filters={'mobile_no': mobile_no}, fields=['name'])
+        if user_doc:
+            user_id = user_doc[0].name
+            action_count = frappe.db.count('Events', filters={'user': user_id})
+            data = {"action_count": action_count}
+        else:
+            message = f'User not found with mobile no {mobile_no}'
+            status_code = 400
+
+    except Exception as e:
+        frappe.log_error(title="get_action_count failed", message=frappe.get_traceback())
+        message = str(e)
+        status_code = 500
+        error = True
+
+    return custom_response(message, data, status_code, error)
