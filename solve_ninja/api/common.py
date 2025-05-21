@@ -746,14 +746,12 @@ def build_user_doc(user_data, mobile):
         'wa_id': user_data.get("wa_id"),
         'gender': user_data.get("gender"),
         'age': user_data.get("age"),
-        'state': user_data.get("state"),
         'birth_date': frappe.utils.getdate(user_data.get("dob")) if user_data.get("dob") else None,
         'new_password': mobile
     })
 
     assign_org(user_doc, user_data.get("org_id"))
     assign_language(user_doc, user_data.get("language"))
-    assign_city(user_doc, user_data.get("district"))
 
     return user_doc
 
