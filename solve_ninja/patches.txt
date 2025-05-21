@@ -1,0 +1,7 @@
+[pre_model_sync]
+
+[post_model_sync]
+solve_ninja.patches.update_wa_id_in_ninja_profile
+solve_ninja.patches.update_user_bio_from_headline
+solve_ninja.patches.create_user_metadata_for_existing_users
+solve_ninja.patches.update_event_type_and_sub_type_in_events

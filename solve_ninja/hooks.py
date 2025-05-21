@@ -188,15 +188,19 @@ scheduler_events = {
 # ]
 doc_events = {
     "Events": {
-       "on_update": "solve_ninja.api.common.update_subcategory",
-    #    "after_insert": [
-	# 		"solve_ninja.doc_events.energy_point_rule.process_energy_points",
-	# 	],
+       "on_update": "solve_ninja.doc_events.events.update_subcategory",
+       "after_insert": [
+			"solve_ninja.doc_events.events.after_insert",
+		],
+    },
+    "User": {
+       "after_insert": "solve_ninja.doc_events.user.after_insert",
+        "on_trash": "solve_ninja.doc_events.user.on_trash"
     },
     "Organization":{
         
         "before_save":"solve_ninja.api.common.update_organization_id_case"
-    }
+    },
 }
 
 has_permission = {

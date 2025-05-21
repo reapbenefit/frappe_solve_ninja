@@ -12,7 +12,17 @@
   "rank",
   "column_break_3h5n7",
   "contributions",
-  "hours_invested"
+  "hours_invested",
+  "column_break_qvm9s",
+  "wa_id",
+  "last_active_date_bot",
+  "action_section",
+  "last_action",
+  "last_action_date",
+  "column_break_ll50x",
+  "last_action_type",
+  "last_action_sub_type",
+  "last_action_category"
  ],
  "fields": [
   {
@@ -40,6 +50,59 @@
    "fieldname": "hours_invested",
    "fieldtype": "Float",
    "label": "Hours Invested"
+  },
+  {
+   "fieldname": "column_break_qvm9s",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_active_date_bot",
+   "fieldtype": "Date",
+   "label": "Last Active Date Bot"
+  },
+  {
+   "fieldname": "action_section",
+   "fieldtype": "Section Break",
+   "label": "Action"
+  },
+  {
+   "fieldname": "last_action",
+   "fieldtype": "Link",
+   "label": "Last Action",
+   "options": "Events"
+  },
+  {
+   "fieldname": "last_action_date",
+   "fieldtype": "Datetime",
+   "label": "Last Action Date"
+  },
+  {
+   "fetch_from": "last_action.type",
+   "fieldname": "last_action_type",
+   "fieldtype": "Link",
+   "label": "Last Action Type",
+   "options": "Event Type"
+  },
+  {
+   "fieldname": "last_action_category",
+   "fieldtype": "Link",
+   "label": "Last Action Category",
+   "options": "Event Category"
+  },
+  {
+   "fieldname": "last_action_sub_type",
+   "fieldtype": "Link",
+   "label": "Last Action Sub Type",
+   "options": "Event Type"
+  },
+  {
+   "fieldname": "column_break_ll50x",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "wa_id",
+   "fieldtype": "Data",
+   "label": "WhatsApp ID"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -49,7 +112,7 @@
    "link_fieldname": "user"
   }
  ],
- "modified": "2025-02-10 00:35:25.708552",
+ "modified": "2025-05-20 09:40:54.625918",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Ninja Profile",

@@ -22,17 +22,29 @@ INFERENCE_URL = "https://api.dhruva.ai4bharat.org/services/inference"
 
 @frappe.whitelist(allow_guest=True)
 def add_event():
-    logger.info('STARTS - adding a new event ------------')
-    message='event added successfully'
-    data=''
-    status_code=200
-    error=False
+    """
+    Public API to add a new event entry.
+    Expects JSON with fields like: title, mobile, type, category, subcategory, description,
+    attachment (URL), source, hours_invested, latitude, longitude.
+    """
+    logger.info("START - Adding a new event")
+    message = "Event added successfully"
+    status_code = 200
+    error = False
+    data = ""
+
     try:
         event_data = json.loads(frappe.request.data)
-        logger.info(frappe.request.data)
-        event_doc = frappe.get_doc({'doctype': 'Events', 'title':event_data.get("title")})
-        event_doc.user = event_data.get("mobile")+"@solveninja.org"
+        logger.info(f"Request Data: {event_data}")
+
+        event_doc = frappe.get_doc({
+            "doctype": "Events",
+            "title": event_data.get("title")
+        })
+
+        event_doc.user = f"{event_data.get('mobile')}@solveninja.org"
         event_doc.type = event_data.get("type")
+        event_doc.type = event_data.get("sub_type")
         event_doc.category = event_data.get("category")
         event_doc.subcategory = event_data.get("subcategory")
         event_doc.description = event_data.get("description")
@@ -41,16 +53,22 @@ def add_event():
         event_doc.hours_invested = frappe.utils.flt(event_data.get("hours_invested"))
         event_doc.latitude = event_data.get("latitude")
         event_doc.longitude = event_data.get("longitude")
+
         event_doc.insert(ignore_permissions=True)
-        logger.info('ENDS - adding a new event ------------')
-        return custom_response('', 200)
+
+        logger.info("END - Event added successfully")
+        return custom_response(message, data, status_code, error)
+
     except Exception as e:
-        frappe.log_error()
-        logger.error(e, exc_info=True)
-        message=str(e)
-        status_code=500
-        error=True
-    return custom_response(message,data,status_code,error)
+        frappe.log_error(frappe.get_traceback(), "Add Event Error")
+        logger.error("Error while adding event", exc_info=True)
+
+        message = str(e)
+        status_code = 500
+        error = True
+
+    return custom_response(message, data, status_code, error)
+
 
 @frappe.whitelist()
 def highlight_event(username, event_id):
@@ -151,54 +169,70 @@ def search_users():
 
 @frappe.whitelist(allow_guest=True)
 def add_user():
+    """
+    Public endpoint to add a new user using mobile number and optional metadata.
+    """
     logger.info('STARTS - adding a new user ------------')
-    message='user added successfully'
-    data=''
-    status_code=200
-    error=False
-    mobile=''
-    try:
-        logger.info(frappe.request.data)
-        user_data = json.loads(frappe.request.data)
-        mobile = validate_and_normalize_mobile(user_data.get("mobile"))
-        user_doc = frappe.get_doc({'doctype': 'User','mobile':mobile})
-        user_doc.email=mobile+"@solveninja.org"
-        user_doc.mobile_no=mobile
-        user_doc.first_name=user_data.get("first_name")
-        user_doc.wa_id=user_data.get("wa_id")
-        org_docs = frappe.get_all('User Organization',filters={'org_id':str(user_data.get("org_id")).upper()},fields=['name'])
-        if len(org_docs) > 0:
-            user_doc.org_id=org_docs[0].name
-        else:
-            logger.error(f'Organization id - {user_data.get("org_id")} was not found while registering user with mobile - {mobile}')
-        user_doc.gender=user_data.get("gender")
-        language_docs = frappe.get_all('Language',filters={'language_code':user_data.get("language")},fields=['name'])
-        if len(language_docs) > 0:
-            user_doc.language=language_docs[0].name
-        else:
-            logger.error(f'Language code - {user_data.get("language")} was not found while registering user with mobile - {mobile}')
-        user_doc.age=user_data.get("age")
-        user_doc.state =user_data.get("state")
-        city_exists = frappe.get_all('Samaaja Cities',filters={'city_name':user_data.get("district")})
-        if city_exists:
-            user_doc.city_name =user_data.get("district")
-        else:
-            new_city_doc = frappe.get_doc({'doctype':'Samaaja Cities'})
-            new_city_doc.city_name=user_data.get("district")
-            new_city_doc.insert()
-            user_doc.city_name =user_data.get("district")
+    message = 'User added successfully'
+    status_code = 200
+    error = False
+    data = ''
+    mobile = ''
 
-        user_doc.new_password = mobile
+    try:
+        user_data = json.loads(frappe.request.data)
+
+        # Check mandatory fields
+        validate_required_fields(user_data, ["mobile", "first_name", "pincode"])
+
+        mobile = validate_and_normalize_mobile(user_data.get("mobile"))
+
+        # Check if user already exists
+        if frappe.db.exists("User", {"mobile_no": mobile}):
+            frappe.throw(f"User with mobile number {mobile} already exists.", frappe.DuplicateEntryError)
+
+        user_doc = build_user_doc(user_data, mobile)
         user_doc.insert(ignore_permissions=True)
-        data = 'https://solveninja.org/user-profile/'+user_doc.username
+
+        # Enqueue metadata update in background
+        frappe.enqueue(
+            "solve_ninja.api.common.update_user_metadata",
+            user=user_doc.name,
+            user_data=user_data,
+            queue='default',
+            job_name=f"Update metadata for {user_doc.name}",
+            now=False
+        )
+
+        # Enqueue ninja profile update in background
+        frappe.enqueue(
+            "solve_ninja.api.common.update_ninja_profile",
+            user=user_doc.name,
+            user_data=user_data,
+            queue='default',
+            job_name=f"Update ninja profile for {user_doc.name}",
+            now=False
+        )
+        data = f"https://solveninja.org/user-profile/{user_doc.username}"
+
     except Exception as e:
-        logger.error(f'Error occured while registering user ith mobile - {mobile}')
+        logger.error(f"Error occurred while registering user with mobile - {mobile}")
         logger.error(e, exc_info=True)
-        message=str(e)
-        status_code=500
-        error=True
+        message = str(e)
+        status_code = 500
+        error = True
+
     logger.info('ENDS - adding a new user ------------')
-    return custom_response(message,data,status_code,error)
+    return custom_response(message, data, status_code, error)
+
+def validate_required_fields(user_data, required_fields):
+    """
+    Validates presence of required fields in user_data.
+    Raises frappe.throw if any are missing.
+    """
+    for field in required_fields:
+        if not user_data.get(field):
+            frappe.throw(f"{field.replace('_', ' ').title()} is mandatory.")
 
 def validate_and_normalize_mobile(mobile):
     if not mobile or len(mobile) not in [10, 12] or not mobile.isdigit():
@@ -274,16 +308,6 @@ def reset_password():
         data=-1
     logger.info('ENDS - reset password ------------')
     return custom_response(message,data,status_code,error)
-
-def update_subcategory(doc, method):
-    if not doc.subcategory and doc.category:
-        subcategory = frappe.db.exists("Event Sub Category", doc.category)
-        if not subcategory:
-            subcategory = frappe.get_doc({
-                "doctype": "Event Sub Category",
-                "subcategory": doc.category
-            }).insert(ignore_permissions=True)
-            doc.subcategory = doc.category
 
 """ 
 Author - Ankit Saxena
@@ -676,3 +700,128 @@ def merge_users(list1, list2, key):
     # Convert the merged dictionary back to a list of dictionaries
     return list(merged_data.values())
 
+@frappe.whitelist(allow_guest=True)
+def fetch_data_gov_in(pincode):
+    """
+    Fetch data from data.gov.in API using pincode.
+    
+    Args:
+        pincode (str): The pincode to filter the data on.
+    
+    Returns:
+        dict: Parsed JSON response from the API.
+    """
+    if not pincode:
+        frappe.throw("Pincode is required")
+
+    api_key = frappe.conf.get("data_gov_api_key")
+    if not api_key:
+        frappe.throw("API Key not found in site config")
+
+    url = "https://api.data.gov.in/resource/5c2f62fe-5afa-4119-a499-fec9d604d5bd"
+    params = {
+        "api-key": api_key,
+        "format": "json",
+        "filters[pincode]": pincode
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        frappe.throw(f"Error fetching data: {e}")
+
+def build_user_doc(user_data, mobile):
+    """
+    Creates and returns a new User Doc with provided user_data and mobile.
+    Also handles org, language, and city validation.
+    """
+    user_doc = frappe.get_doc({
+        'doctype': 'User',
+        'mobile': mobile,
+        'email': f"{mobile}@solveninja.org",
+        'mobile_no': mobile,
+        'first_name': user_data.get("first_name"),
+        'wa_id': user_data.get("wa_id"),
+        'gender': user_data.get("gender"),
+        'age': user_data.get("age"),
+        'state': user_data.get("state"),
+        'birth_date': frappe.utils.getdate(user_data.get("dob")) if user_data.get("dob") else None,
+        'new_password': mobile
+    })
+
+    assign_org(user_doc, user_data.get("org_id"))
+    assign_language(user_doc, user_data.get("language"))
+    assign_city(user_doc, user_data.get("district"))
+
+    return user_doc
+
+def assign_org(user_doc, org_id):
+    if not org_id:
+        return
+
+    org_id = str(org_id).upper()
+    org_docs = frappe.get_all('User Organization', filters={'org_id': org_id}, fields=['name'])
+    if org_docs:
+        user_doc.org_id = org_docs[0].name
+    else:
+        logger.warning(f"Organization ID '{org_id}' not found while registering user {user_doc.mobile}")
+
+def assign_language(user_doc, language_code):
+    if not language_code:
+        return
+
+    language_docs = frappe.get_all('Language', filters={'language_code': language_code}, fields=['name'])
+    if language_docs:
+        user_doc.language = language_docs[0].name
+    else:
+        logger.warning(f"Language code '{language_code}' not found while registering user {user_doc.mobile}")
+
+def assign_city(user_doc, district):
+    if not district:
+        return
+
+    city_exists = frappe.get_all('Samaaja Cities', filters={'city_name': district})
+    if city_exists:
+        user_doc.city_name = district
+    else:
+        frappe.get_doc({
+            'doctype': 'Samaaja Cities',
+            'city_name': district
+        }).insert(ignore_permissions=True)
+        user_doc.city_name = district
+
+def update_user_metadata(user, user_data):
+    """
+    Updates or creates User Metadata record with pincode if available.
+    """
+    if not user_data.get("pincode"):
+        return
+
+    location_date = fetch_data_gov_in(user_data.get("pincode"))
+    # Check if metadata already exists
+    if frappe.db.exists("User Metadata", user):
+        user_metadata = frappe.get_doc("User Metadata", user)
+        user_metadata.pincode = user_data.get("pincode")
+        if location_date.get("records"):
+            city = location_date.get("records")[0]["district"].title()
+            state = location_date.get("records")[0]["statename"].title()
+            city_exists = frappe.get_all('Samaaja Cities', filters={'city_name': city})
+            if not city_exists:
+                frappe.get_doc({
+                    'doctype': 'Samaaja Cities',
+                    'city_name': city
+                }).insert(ignore_permissions=True)
+        
+            user_metadata.city = city
+            user_metadata.state = state
+        user_metadata.save(ignore_permissions=True)
+    
+def update_ninja_profile(user, user_data):
+    """
+    Updates Ninja Profile record with wa_id if available.
+    """
+    if user_data.get("wa_id") and frappe.db.exists("Ninja Profile", user):
+        frappe.db.set_value("Ninja Profile", user, "wa_id", user_data.get("wa_id"))
+        
