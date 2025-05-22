@@ -860,15 +860,10 @@ def get_action_count():
             frappe.throw("Mobile number is mandatory.")
 
         mobile_no = validate_and_normalize_mobile(mobile_no)
-
-        user_doc = frappe.db.get_all('User', filters={'mobile_no': mobile_no}, fields=['name'])
-        if user_doc:
-            user_id = user_doc[0].name
-            action_count = frappe.db.count('Events', filters={'user': user_id})
-            data = {"action_count": action_count}
-        else:
-            message = f'User not found with mobile no {mobile_no}'
-            status_code = 400
+        user = f"{mobile_no}@solveninja.org"
+        
+        action_count = frappe.db.count('Events', filters={'user': user})
+        data = {"action_count": action_count}
 
     except Exception as e:
         frappe.log_error(title="get_action_count failed", message=frappe.get_traceback())
