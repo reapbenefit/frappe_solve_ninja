@@ -39,11 +39,8 @@ def update_action_detail_in_ninja_profile(doc):
         # Set latest action metadata
         ninja_profile.last_action = doc.name
         ninja_profile.last_action_date = doc.creation
-        ninja_profile.last_action_type = (
-            frappe.db.get_value("Event Type", doc.type, "parent_event_type")
-            if doc.type else None
-        )
-        ninja_profile.last_action_sub_type = doc.type
+        ninja_profile.last_action_type = doc.type
+        ninja_profile.last_action_sub_type = doc.sub_type
         ninja_profile.last_action_category = doc.category
 
         # Save with ignore_permission in case it's triggered from background or guest

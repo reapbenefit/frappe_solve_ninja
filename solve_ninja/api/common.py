@@ -821,6 +821,7 @@ def update_user_metadata(user, user_data):
     if frappe.db.exists("User Metadata", user):
         user_metadata = frappe.get_doc("User Metadata", user)
         user_metadata.pincode = user_data.get("pincode")
+        user_metadata.org_id = user_data.get("org_id")
         if location_date.get("records"):
             city = location_date.get("records")[0]["district"].title()
             state = location_date.get("records")[0]["statename"].title()
