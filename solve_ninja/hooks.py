@@ -201,6 +201,9 @@ doc_events = {
         
         "before_save":"solve_ninja.api.common.update_organization_id_case"
     },
+    "User Metadata": {
+        "validate": "solve_ninja.doc_events.user_metadata.on_save"
+    }
 }
 
 has_permission = {

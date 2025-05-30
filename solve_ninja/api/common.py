@@ -198,16 +198,6 @@ def add_user():
         user_doc = build_user_doc(user_data, mobile)
         user_doc.insert(ignore_permissions=True)
 
-        # Enqueue metadata update in background
-        frappe.enqueue(
-            "solve_ninja.api.common.update_user_metadata",
-            user=user_doc.name,
-            user_data=user_data,
-            queue='default',
-            job_name=f"Update metadata for {user_doc.name}",
-            now=False
-        )
-
         # Enqueue ninja profile update in background
         frappe.enqueue(
             "solve_ninja.api.common.update_ninja_profile",
@@ -809,32 +799,32 @@ def assign_city(user_doc, district):
         }).insert(ignore_permissions=True)
         user_doc.city_name = district
 
-def update_user_metadata(user, user_data):
-    """
-    Updates or creates User Metadata record with pincode if available.
-    """
-    if not user_data.get("pincode"):
-        return
+# def update_user_metadata(user, user_data):
+#     """
+#     Updates or creates User Metadata record with pincode if available.
+#     """
+#     if not user_data.get("pincode"):
+#         return
 
-    location_date = fetch_data_gov_in(user_data.get("pincode"))
-    # Check if metadata already exists
-    if frappe.db.exists("User Metadata", user):
-        user_metadata = frappe.get_doc("User Metadata", user)
-        user_metadata.pincode = user_data.get("pincode")
-        user_metadata.org_id = user_data.get("org_id")
-        if location_date.get("records"):
-            city = location_date.get("records")[0]["district"].title()
-            state = location_date.get("records")[0]["statename"].title()
-            city_exists = frappe.get_all('Samaaja Cities', filters={'city_name': city})
-            if not city_exists:
-                frappe.get_doc({
-                    'doctype': 'Samaaja Cities',
-                    'city_name': city
-                }).insert(ignore_permissions=True)
+#     location_date = fetch_data_gov_in(user_data.get("pincode"))
+#     # Check if metadata already exists
+#     if frappe.db.exists("User Metadata", user):
+#         user_metadata = frappe.get_doc("User Metadata", user)
+#         user_metadata.pincode = user_data.get("pincode")
+#         user_metadata.org_id = user_data.get("org_id")
+#         if location_date.get("records"):
+#             city = location_date.get("records")[0]["district"].title()
+#             state = location_date.get("records")[0]["statename"].title()
+#             city_exists = frappe.get_all('Samaaja Cities', filters={'city_name': city})
+#             if not city_exists:
+#                 frappe.get_doc({
+#                     'doctype': 'Samaaja Cities',
+#                     'city_name': city
+#                 }).insert(ignore_permissions=True)
         
-            user_metadata.city = city
-            user_metadata.state = state
-        user_metadata.save(ignore_permissions=True)
+#             user_metadata.city = city
+#             user_metadata.state = state
+#         user_metadata.save(ignore_permissions=True)
     
 def update_ninja_profile(user, user_data):
     """
