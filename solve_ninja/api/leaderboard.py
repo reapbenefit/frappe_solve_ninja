@@ -249,6 +249,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 		time_condition = now_datetime() - timedelta(days=30)
 
 	# Base Query: Always Fetch Rank from `Ninja Profile`
+	user_count = frappe.db.count("User", {"enabled": 1})
 	query = (
 		frappe.qb.from_(User)
 		.join(NinjaProfile).on(User.name == NinjaProfile.name)
@@ -256,7 +257,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 			User.name,
 			User.username,
 			User.city,
-			Coalesce(NinjaProfile.rank, 99999).as_("rank"),  # Always get rank from Ninja Profile
+			Coalesce(NinjaProfile.rank, user_count).as_("rank"),  # Always get rank from Ninja Profile
 			User.org_id,
 			User.user_image,
 			User.location,
@@ -314,6 +315,9 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 				min_hr = flt(filters.get("hr_range").replace("+", ""))
 				query = query.where(NinjaProfile.hours_invested > min_hr)
 
+	query = query.where(User.enabled == 1)
+	query = query.where(NinjaProfile.rank != 0)
+	
 	# Apply Filters Dynamically
 	if filters.get("organization"):
 		query = query.where(User.org_id == filters["organization"])
