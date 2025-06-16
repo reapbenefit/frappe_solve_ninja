@@ -20,7 +20,7 @@ API_KEY = "HeMflsqk-2yJu3Q5mDn9-C_LIasjTXF72n5qpae1GOQu-8Oe0i_Loc4wl3iJSBt-"
 INFERENCE_URL = "https://api.dhruva.ai4bharat.org/services/inference"
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_event():
     """
     Public API to add a new event entry.
@@ -36,6 +36,10 @@ def add_event():
     try:
         event_data = json.loads(frappe.request.data)
         logger.info(f"Request Data: {event_data}")
+
+        # Check required field: sub_type
+        if not event_data.get("sub_type"):
+            raise ValueError("Missing required field: sub_type")
 
         event_doc = frappe.get_doc({
             "doctype": "Events",
@@ -68,6 +72,7 @@ def add_event():
         error = True
 
     return custom_response(message, data, status_code, error)
+
 
 
 @frappe.whitelist()
@@ -103,7 +108,7 @@ def highlight_event(username, event_id):
     return custom_response(message,data,status_code,error)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def search_users():
     logger.info('STARTS - searching users ------------')
     message='search completed successfully'
@@ -167,7 +172,7 @@ def search_users():
     logger.info('ENDS - searching a new user ------------')
     return custom_response(message,data,status_code,error)
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def add_user():
     """
     Public endpoint to add a new user using mobile number and optional metadata.
@@ -252,7 +257,7 @@ def validate_and_normalize_mobile(mobile):
 
     return mobile
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def fetch_profile():
     logger.info('STARTS - fetch profile ------------')
     message='success'
@@ -284,7 +289,7 @@ def fetch_profile():
     logger.info('ENDS - fetch profile ------------')
     return custom_response(message,data,status_code,error)
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def reset_password():
     logger.info('STARTS - reset password ------------')
     message='password changed successfully'
@@ -709,7 +714,7 @@ def merge_users(list1, list2, key):
     # Convert the merged dictionary back to a list of dictionaries
     return list(merged_data.values())
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def fetch_data_gov_in(pincode):
     """
     Fetch data from data.gov.in API using pincode.
