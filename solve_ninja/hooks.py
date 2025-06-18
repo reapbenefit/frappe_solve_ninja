@@ -46,6 +46,11 @@ role_home_page = {
 	"All": "/user-profile/me"
 }
 
+website_route_rules = [
+    {"from_route": "/user-profile/<username>", "to_route": "user-profile"},
+    {"from_route": "/campaign/<slug>", "to_route": "campaign"},
+]
+
 # Generators
 # ----------
 
@@ -121,6 +126,9 @@ scheduler_events = {
 	"daily": [
 		"solve_ninja.api.leaderboard.update_user_rank"
 	],
+    "daily_long": [
+        "solve_ninja.doc_events.events.process_manualupload_events"
+    ]
 #	"hourly": [
 #		"solve_ninja.tasks.hourly"
 #	],
@@ -188,10 +196,15 @@ scheduler_events = {
 # ]
 doc_events = {
     "Events": {
-       "on_update": "solve_ninja.doc_events.events.update_subcategory",
-       "after_insert": [
+        "on_update": [
+            "solve_ninja.doc_events.events.update_subcategory",
+            "solve_ninja.doc_events.events.update_ninja_profile_hook",
+        ],
+        "after_insert": [
 			"solve_ninja.doc_events.events.after_insert",
+            "solve_ninja.doc_events.events.update_ninja_profile_hook",
 		],
+        "on_trash": "solve_ninja.doc_events.events.update_ninja_profile_hook",
     },
     "User": {
        "after_insert": "solve_ninja.doc_events.user.after_insert",
@@ -203,6 +216,9 @@ doc_events = {
     },
     "User Metadata": {
         "validate": "solve_ninja.doc_events.user_metadata.on_save"
+    },
+    "Energy Point Log": {
+        "after_insert": "solve_ninja.doc_events.energy_point_log.handle_energy_point_log"
     }
 }
 

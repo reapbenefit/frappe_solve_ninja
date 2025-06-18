@@ -17,8 +17,8 @@
  "list_columns": [],
  "login_required": 1,
  "max_attachment_size": 0,
- "modified": "2024-07-16 22:23:35.336808",
- "modified_by": "hello@anupamvs.dev",
+ "modified": "2025-06-09 09:04:24.371352",
+ "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "request-expert-recommendations",
  "owner": "hello@anupamvs.dev",
@@ -32,6 +32,19 @@
  "web_form_fields": [
   {
    "allow_read_on_all_link_options": 0,
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "hidden": 0,
+   "label": "User",
+   "max_length": 0,
+   "max_value": 0,
+   "options": "User",
+   "read_only": 0,
+   "reqd": 1,
+   "show_in_filter": 0
+  },
+  {
+   "allow_read_on_all_link_options": 0,
    "fieldname": "reviewer_name",
    "fieldtype": "Data",
    "hidden": 0,
@@ -39,31 +52,7 @@
    "max_length": 0,
    "max_value": 0,
    "read_only": 0,
-   "reqd": 0,
-   "show_in_filter": 0
-  },
-  {
-   "allow_read_on_all_link_options": 0,
-   "fieldname": "desigantion",
-   "fieldtype": "Data",
-   "hidden": 0,
-   "label": "Desigantion",
-   "max_length": 0,
-   "max_value": 0,
-   "read_only": 0,
-   "reqd": 0,
-   "show_in_filter": 0
-  },
-  {
-   "allow_read_on_all_link_options": 0,
-   "fieldname": "organisation",
-   "fieldtype": "Data",
-   "hidden": 0,
-   "label": "Organisation",
-   "max_length": 0,
-   "max_value": 0,
-   "read_only": 0,
-   "reqd": 0,
+   "reqd": 1,
    "show_in_filter": 0
   },
   {
@@ -75,6 +64,30 @@
    "max_length": 0,
    "max_value": 0,
    "options": "Email",
+   "read_only": 0,
+   "reqd": 1,
+   "show_in_filter": 0
+  },
+  {
+   "allow_read_on_all_link_options": 0,
+   "fieldname": "desigantion",
+   "fieldtype": "Data",
+   "hidden": 0,
+   "label": "Desigantion",
+   "max_length": 0,
+   "max_value": 0,
+   "read_only": 0,
+   "reqd": 1,
+   "show_in_filter": 0
+  },
+  {
+   "allow_read_on_all_link_options": 0,
+   "fieldname": "organisation",
+   "fieldtype": "Data",
+   "hidden": 0,
+   "label": "Organisation",
+   "max_length": 0,
+   "max_value": 0,
    "read_only": 0,
    "reqd": 1,
    "show_in_filter": 0
