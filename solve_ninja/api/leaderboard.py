@@ -168,59 +168,25 @@ def get_state_wise_user_count(page_length=10):
 	return result
 
 def update_user_rank():
-	## Define Tables
-	User = DocType("User")
-	Events = DocType("Events")
+    """
+    Fetch all Ninja Profile records with hours_invested > 0.0,
+    ordered by hours_invested descending, and update each record's rank.
+    """
+    profiles = frappe.get_all(
+        "Ninja Profile",
+        fields=["name", "hours_invested"],
+        filters={"hours_invested": [">", 0.0]},
+        order_by="hours_invested desc"
+    )
 
-	# Query
-	query = (
-		frappe.qb.from_(User)
-		.left_join(Events)  # Ensuring users without events are included
-		.on(User.name == Events.user)
-		.where(User.enabled == 1)  # Only enabled users
-		.select(
-			User.name,
-			User.username,
-			User.city,
-			Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),  # Fixing SUM
-			User.org_id,
-			User.user_image,
-			User.location,
-			User.full_name,
-			Count(Events.user).as_("contribution_count"),  # Counting contributions
-		)
-		.groupby(User.name)  # Grouping by user
-		.orderby(Coalesce(Sum(Events.hours_invested), 0), order=frappe.qb.desc)  # Fixing ORDER
-		.orderby(User.full_name)  # Secondary sorting
-	)
-
-	# Run Query
-	users = query.run(as_dict=True)
-
-	# Assign Rank Dynamically
-	for count, data in enumerate(users, 1):
-		user = get_ninja_profile(data["name"])
-
-		# Bulk Update Instead of Multiple `.db_set()`
-		user.update({
-			"rank": count,
-			"contributions": data["contribution_count"],
-			"hours_invested": data["hours_invested"]
-		})
-		user.save(ignore_permissions=True)  # Save after batch update to reduce DB calls
-
-def get_ninja_profile(user):
-	if frappe.db.exists("Ninja Profile", user):
-		return frappe.get_doc("Ninja Profile", user)
-
-	# Handle potential race condition with try-except
-	try:
-		return frappe.get_doc({
-			"doctype": "Ninja Profile",
-			"user": user
-		}).insert(ignore_permissions=True)
-	except frappe.DuplicateEntryError:
-		return frappe.get_doc("Ninja Profile", user)  # Fetch again if already inserted
+    for rank, p in enumerate(profiles, start=1):
+        frappe.db.set_value(
+            "Ninja Profile",
+            p.name,
+            "rank",
+            rank,
+            update_modified=False
+        )
 
 @frappe.whitelist(allow_guest=True)
 def search_users_(filters=None, raw=False, page_length=10, start=0):
