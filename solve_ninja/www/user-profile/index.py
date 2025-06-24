@@ -92,7 +92,7 @@ def get_context(context):
 	# Reviews
 	context.current_user.reviews = frappe.get_all(
 		"User Review",
-		filters={"user": context.current_user.name, "status": "Accepted"},
+		filters={"user": context.current_user.name},
 		fields=["review_title", "reviewer_name", "desigantion", "comment", "organisation"]
 	)
 
