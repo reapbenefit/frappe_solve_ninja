@@ -7,19 +7,52 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "whatsapp_bot_url"
+  "whatsapp_bot_url",
+  "badge_notification_section",
+  "default_badge_template",
+  "column_break_jhzhp",
+  "badge_notification_channel",
+  "badge_webhook_url"
  ],
  "fields": [
   {
    "fieldname": "whatsapp_bot_url",
    "fieldtype": "Data",
    "label": "WhatsApp Bot Url"
+  },
+  {
+   "fieldname": "badge_notification_section",
+   "fieldtype": "Section Break",
+   "label": "Badge Notification"
+  },
+  {
+   "fieldname": "default_badge_template",
+   "fieldtype": "Link",
+   "label": "Default Badge Template",
+   "options": "Badge Template"
+  },
+  {
+   "fieldname": "column_break_jhzhp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "badge_notification_channel",
+   "fieldtype": "Select",
+   "label": "Badge Notification Channel",
+   "options": "Webhook"
+  },
+  {
+   "description": "Webhook to notify when badge is assigned",
+   "fieldname": "badge_webhook_url",
+   "fieldtype": "Data",
+   "label": "Badge Webhook URL",
+   "options": "URL"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-04-26 12:46:51.343388",
+ "modified": "2025-06-15 00:39:27.814914",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Ninja Settings",
