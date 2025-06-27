@@ -44,9 +44,9 @@
                 <!--<div class="report_user show_mob">
                     <a href="/report-user">Report the user</a>
                 </div>-->
-                <div class="ctas_wrapper show_mob">
-                    <a  href="/record-actions/new" target="_new"><button class="btn btn_fill">Add Action</button></a> 
+                <div class="ctas_wrapper show_mob"> 
                     {% if frappe.session.user == current_user.name or current_user.is_system_manager %}
+                        <a  href="/record-actions/new" target="_new"><button class="btn btn_fill">Add Action</button></a>
                         <a class="btn btn_outline" href="https://wa.me/+918095500118?text=mentor" target="_blank">Contact Mentor</a>
                         <a class="btn btn_outline" href="/request-expert-recommendations/new?user={{current_user.name}}" target="_blank">Request Review</a>
                         <a class="btn btn_outline download-btn" href="#" onClick="download_profile('{{current_user.name}}')">Download Profile</a>
@@ -227,8 +227,8 @@
                 </div>
                 
                 <div class="ctas_wrapper">
-                    <a  href="/record-actions/new" target="_new"><button class="btn btn_fill">Add Action</button></a>
                     {% if frappe.session.user == current_user.name or current_user.is_system_manager %}
+                        <a  href="/record-actions/new" target="_new"><button class="btn btn_fill">Add Action</button></a>
                         <a class="btn btn_outline" href="https://wa.me/+918095500118?text=mentor" target="_blank">Contact Mentor</a>
                         <a class="btn btn_outline" href="/request-expert-recommendations/new?user={{current_user.name}}" target="_blank">Request Review</a>
                         <a class="btn btn_outline download-btn" href="#" onClick="download_profile('{{current_user.name}}')">Download Profile</a>
