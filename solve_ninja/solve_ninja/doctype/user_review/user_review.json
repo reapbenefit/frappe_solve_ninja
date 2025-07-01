@@ -16,7 +16,7 @@
   "column_break_n7ihn",
   "email",
   "reviewer_name",
-  "desigantion",
+  "designation",
   "organisation",
   "section_break_gd9ic",
   "comment"
@@ -76,11 +76,6 @@
    "label": "Reviewer Name"
   },
   {
-   "fieldname": "desigantion",
-   "fieldtype": "Data",
-   "label": "Desigantion"
-  },
-  {
    "fieldname": "organisation",
    "fieldtype": "Data",
    "label": "Organisation"
@@ -93,10 +88,15 @@
    "fieldname": "comment",
    "fieldtype": "Small Text",
    "label": "Comment"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
   }
  ],
  "links": [],
- "modified": "2025-06-27 16:03:49.394986",
+ "modified": "2025-07-01 02:34:00.166248",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "User Review",

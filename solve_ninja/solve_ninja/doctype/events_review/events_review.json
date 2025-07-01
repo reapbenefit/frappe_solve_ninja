@@ -15,7 +15,7 @@
   "rating",
   "column_break_n7ihn",
   "reviewer_name",
-  "desigantion",
+  "designation",
   "organisation",
   "email",
   "section_break_gd9ic",
@@ -70,11 +70,6 @@
    "label": "Reviewer Name"
   },
   {
-   "fieldname": "desigantion",
-   "fieldtype": "Data",
-   "label": "Desigantion"
-  },
-  {
    "fieldname": "organisation",
    "fieldtype": "Data",
    "label": "Organisation"
@@ -93,10 +88,15 @@
    "fieldname": "comment",
    "fieldtype": "Small Text",
    "label": "Comment"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
   }
  ],
  "links": [],
- "modified": "2025-06-27 16:03:21.214122",
+ "modified": "2025-07-01 02:34:11.422565",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Events Review",
