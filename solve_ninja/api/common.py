@@ -855,7 +855,7 @@ def get_action_count():
         mobile_no = validate_and_normalize_mobile(mobile_no)
         user = f"{mobile_no}@solveninja.org"
         
-        action_count = frappe.db.count('Events', filters={'user': user})
+        action_count = frappe.db.get_value('Ninja Profile', user, "contributions")
         data = {"action_count": action_count}
 
     except Exception as e:
