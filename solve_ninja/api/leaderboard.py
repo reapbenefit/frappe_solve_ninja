@@ -351,3 +351,32 @@ def filter_users(users, filters):
 			filtered_users.append(user)
 
 	return filtered_users
+
+def get_campaigns(page_length=10, start=0):
+	start = cint(start)
+	page_length = cint(page_length)
+
+	CampaignTemplate = DocType("Campaign Template")
+	User = DocType("User")
+	CampaignPetition = DocType("Campaign Petition")
+	
+	query = (
+		frappe.qb.from_(User)
+		.join(CampaignTemplate)
+		.on(CampaignTemplate.owner == User.name)
+		.left_join(CampaignPetition)
+		.on(CampaignPetition.campaign == CampaignTemplate.name)
+		.select(
+			User.full_name,
+			CampaignTemplate.title,
+			CampaignTemplate.route,
+			CampaignTemplate.published,
+			CampaignTemplate.accept_petitions,
+			CampaignTemplate.header_logo,
+			Count(CampaignPetition.name).as_("petition_count"),
+		)
+		.where(CampaignTemplate.published == 1)
+		.groupby(User.full_name, CampaignTemplate.name)
+	)
+	results = query.run(as_dict=True)
+	return results

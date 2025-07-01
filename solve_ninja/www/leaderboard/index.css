@@ -359,6 +359,15 @@ p.vnb_focus span:first-child{
     font-size: 18px;
     width: 200px;
 }
+.email_campaigns .vn_box .img_wrapper{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.email_campaigns p.vnb_focus{
+    flex-direction: row;
+    margin-top: 8px;
+}
 @media only screen and (max-width: 1241px) {
     .vn_header{
         flex-direction: column;

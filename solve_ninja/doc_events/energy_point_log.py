@@ -9,12 +9,17 @@ def handle_energy_point_log(doc, method):
             energy_point_log=doc,
             now=False  # run in background
         )
-    
+
 def send_badge_notification(energy_point_log):
+    solve_ninja_settings = frappe.get_single("Solve Ninja Settings")
+    if energy_point_log.reference_doctype != "Events" or not solve_ninja_settings.enable_badge_notification:
+        # Skip if not an event or notifications are disabled
+        return
     try:
         doc = frappe.get_doc("Energy Point Log", energy_point_log.name) if isinstance(energy_point_log, dict) else energy_point_log
         user = frappe.get_doc("User", doc.user)
-        ninja_profile = frappe.get_doc("Ninja Profile", doc.user)
+        event = frappe.get_doc("Events", doc.reference_name)
+        ninja_profile = frappe.get_doc("Ninja Profile", doc.user, for_update=False)
         user_metadata = frappe.get_doc("User Metadata", doc.user)
         badge = frappe.get_doc("Badge", doc.badge)
         user_badge = frappe.get_doc("User badge", {"user": doc.user, "badge": doc.badge})
@@ -24,11 +29,10 @@ def send_badge_notification(energy_point_log):
         if badge.template:
             badge_template = frappe.get_doc("Badge Template", badge.template)
         else:
-            default_template = frappe.db.get_single_value("Solve Ninja Settings", "default_badge_template")
-            if default_template:
-                badge_template = frappe.get_doc("Badge Template", default_template)
+            # Fallback to default badge template if no specific template is set
+            badge_template = frappe.get_doc("Badge Template", solve_ninja_settings.default_badge_template)
 
-        if not badge_template or not badge_template.message:
+        if not badge_template or not badge_template.parameters_json:
             frappe.log_error("No valid badge template found", "Badge Notification Error")
             return
 
@@ -39,37 +43,76 @@ def send_badge_notification(energy_point_log):
             "user_metadata": user_metadata,
             "badge": badge,
             "user_badge": user_badge,
-            "energy_point_log": doc
+            "energy_point_log": doc,
+            "event": event,
         }
 
-        message = frappe.render_template(badge_template.message, context)
+        # Glific-specific logic only
+        if badge_template.template_id and solve_ninja_settings.glific_api_url:
+            try:
+                rendered_params = frappe.render_template(badge_template.parameters_json or "[]", context)
+                parameters = frappe.parse_json(rendered_params)
 
-        # Channel logic
-        channel = frappe.db.get_single_value("Solve Ninja Settings", "badge_notification_channel")
-
-        if channel == "Webhook":
-            webhook_url = frappe.db.get_single_value("Solve Ninja Settings", "badge_webhook_url")
-            if webhook_url:
-                frappe.enqueue(
-                    "solve_ninja.doc_events.energy_point_log.send_custom_webhook",
-                    doc=user,
-                    webhook_url=webhook_url,
-                    data={
-                        "message": message,
-                        "user": user.name,
-                        "badge": badge.name,
-                        "points": doc.points
+                payload = {
+                    "query": """
+                        mutation sendHsmMessage($templateId: ID!, $receiverId: ID!, $parameters: [String]) {
+                            sendHsmMessage(templateId: $templateId, receiverId: $receiverId, parameters: $parameters) {
+                                message {
+                                    id
+                                    body
+                                    isHsm
+                                }
+                                errors {
+                                    key
+                                    message
+                                }
+                            }
+                        }
+                    """,
+                    "variables": {
+                        "templateId": int(badge_template.name),
+                        "receiverId": user.mobile_no,
+                        "parameters": parameters
                     }
-                )
+                }
+                headers = {
+                    "Authorization": f"Bearer {solve_ninja_settings.get_password('glific_auth_token')}",
+                    "Content-Type": "application/json"
+                }
 
-        # Extend for Slack / WhatsApp if needed
+                send_glific_message(energy_point_log, solve_ninja_settings.glific_api_url, headers, payload)
+
+            except Exception:
+                frappe.log_error(frappe.get_traceback(), "Glific Badge Notification Error")
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Badge Notification Error")
 
-def send_custom_webhook(doc, webhook_url, data):
+def send_glific_message(doc, url, headers, data):
+    response = None
+    error = None
     try:
-        response = requests.post(webhook_url, json=data, timeout=10)
+        response = requests.post(url, headers=headers, json=data, timeout=10)
         response.raise_for_status()
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Custom Webhook Failed")
+    except Exception:
+        error = frappe.get_traceback()
+        frappe.log_error(error, "Glific Message Send Error")
+    finally:
+        log_glific_integration_request(doc, url, headers, data, response.json() if response else None, error)
+
+
+def log_glific_integration_request(doc, url, headers, data, response, error=None):
+    frappe.get_doc({
+        "doctype": "Integration Request",
+        "integration_request_service": "Glific HSM",
+        "is_remote_request": 1,
+        "url": url,
+        "request_headers": frappe.as_json(headers),
+        "data": frappe.as_json(data),
+        "output": frappe.as_json(response) if response else "",
+        "error": frappe.as_json(error) if error else "",
+        "status": "Completed" if response and not error else "Failed",
+        "reference_doctype": doc.doctype,
+        "reference_docname": doc.name,
+        "request_description": "Send WhatsApp HSM message via Glific",
+    }).insert(ignore_permissions=True)

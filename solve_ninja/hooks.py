@@ -48,7 +48,7 @@ role_home_page = {
 
 website_route_rules = [
     {"from_route": "/user-profile/<username>", "to_route": "user-profile"},
-    {"from_route": "/campaign/<slug>", "to_route": "campaign"},
+    {"from_route": "/campaign/<route>", "to_route": "campaign"},
 ]
 
 # Generators
@@ -123,11 +123,9 @@ scheduler_events = {
 #	"all": [
 #		"solve_ninja.tasks.all"
 #	],
-	"daily": [
-		"solve_ninja.api.leaderboard.update_user_rank"
-	],
     "daily_long": [
-        "solve_ninja.doc_events.events.process_manualupload_events"
+        "solve_ninja.doc_events.events.process_manualupload_events",
+        "solve_ninja.api.leaderboard.update_user_rank"
     ]
 #	"hourly": [
 #		"solve_ninja.tasks.hourly"

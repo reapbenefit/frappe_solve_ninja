@@ -54,7 +54,7 @@ def get_context(context):
 	context.current_user.highlighted_action = {'title': '', 'description': ''}
 	for action in context.current_user.actions:
 		action.creation = frappe.utils.pretty_date(action.creation)
-		action.review_exists = frappe.db.exists("Events Review", {"events": action.event_id})
+		action.review_exists = frappe.db.exists("Events Review", {"events": action.event_id, "status": "Accepted"})
 		if action.review_exists:
 			action.review = frappe.get_doc("Events Review", action.review_exists)
 		if action.highlight == '1':
