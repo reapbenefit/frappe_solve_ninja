@@ -29,24 +29,28 @@
                                 {% endfor %}
                             </ul>
                         </div>
-                        <div class="ce_update">
-                            <h3>Update</h3>
-                            {% for u in updates %}
-                            <div class="ce_update_item">
-                                <small>{{ frappe.format(u.date, "Date") }}</small>
-                                <p>{{ u.description }}</p>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        <div class="ce_partners">
-                            <h3>Campaign Partners:</h3>
-                            <p>{{ campaign.partner_names or '' }}</p>
-                            <div class="ce_partners_img">
-                                {% for p in partners %}
-                                <img src="{{ p.logo }}" alt="{{ p.name }}">
+                        {% if updates %}
+                            <div class="ce_update">
+                                <h3>Update</h3>
+                                {% for u in updates %}
+                                <div class="ce_update_item">
+                                    <small>{{ frappe.format(u.date, "Date") }}</small>
+                                    <p>{{ u.description }}</p>
+                                </div>
                                 {% endfor %}
                             </div>
-                        </div>
+                        {% endif %}
+                        {% if partners %}
+                            <div class="ce_partners">
+                                <h3>Campaign Partners:</h3>
+                                <p>{{ campaign.partner_names or '' }}</p>
+                                <div class="ce_partners_img">
+                                    {% for p in partners %}
+                                    <img src="{{ p.logo }}" alt="{{ p.name }}">
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -106,9 +110,11 @@
                 </div>
             </div>
 
-            <div class="ce_body_writeup">
-                {{ campaign.additional_info | safe }}
-            </div>
+            {% if campaign.additional_info %}
+                <div class="ce_body_writeup">
+                    {{ campaign.additional_info }}
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
