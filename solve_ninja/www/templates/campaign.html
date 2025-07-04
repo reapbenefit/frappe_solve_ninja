@@ -1,5 +1,5 @@
 <div class="vn_box">
-    {% if campaign.published %}
+    {% if campaign.accept_petitions %}
     <a href="{{ campaign.route }}" target="_blank">
     {% else %}
     <div>
@@ -29,7 +29,7 @@
                 </p>
             </div>
         </div>
-    {% if campaign.published %}
+    {% if campaign.accept_petitions %}
     </a>
     {% else %}
     </div>
