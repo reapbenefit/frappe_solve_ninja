@@ -1,23 +1,27 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:template_name",
+ "autoname": "field:template_id",
  "creation": "2025-06-15 00:33:07.989784",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "template_id",
   "template_name",
   "active",
-  "message"
+  "column_break_vr1gm",
+  "channel",
+  "section_break_isn1d",
+  "parameters_json"
  ],
  "fields": [
   {
    "fieldname": "template_name",
    "fieldtype": "Data",
    "label": "Template Name",
-   "unique": 1
+   "reqd": 1
   },
   {
    "default": "1",
@@ -27,14 +31,37 @@
    "label": "Active"
   },
   {
-   "fieldname": "message",
+   "fieldname": "template_id",
+   "fieldtype": "Data",
+   "label": "Template ID",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "parameters_json",
    "fieldtype": "Code",
-   "label": "Message"
+   "label": "Parameters JSON",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_vr1gm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "label": "Channel",
+   "options": "Glific",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_isn1d",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-15 00:33:55.888892",
+ "modified": "2025-07-08 08:50:47.556803",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Badge Template",
@@ -56,5 +83,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "template_name"
 }

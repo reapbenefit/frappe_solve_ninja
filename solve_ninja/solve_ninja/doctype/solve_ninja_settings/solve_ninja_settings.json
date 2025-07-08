@@ -8,11 +8,11 @@
  "engine": "InnoDB",
  "field_order": [
   "whatsapp_bot_url",
-  "badge_notification_section",
+  "whatsapp__glific_settings_section",
   "default_badge_template",
-  "column_break_jhzhp",
-  "badge_notification_channel",
-  "badge_webhook_url"
+  "channel",
+  "column_break_jbyf0",
+  "enable_badge_notification"
  ],
  "fields": [
   {
@@ -21,38 +21,37 @@
    "label": "WhatsApp Bot Url"
   },
   {
-   "fieldname": "badge_notification_section",
+   "default": "0",
+   "fieldname": "enable_badge_notification",
+   "fieldtype": "Check",
+   "label": "Enable Badge Notification"
+  },
+  {
+   "fieldname": "whatsapp__glific_settings_section",
    "fieldtype": "Section Break",
    "label": "Badge Notification"
   },
   {
-   "fieldname": "default_badge_template",
-   "fieldtype": "Link",
-   "label": "Default Badge Template",
-   "options": "Badge Template"
-  },
-  {
-   "fieldname": "column_break_jhzhp",
+   "fieldname": "column_break_jbyf0",
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "badge_notification_channel",
-   "fieldtype": "Select",
-   "label": "Badge Notification Channel",
-   "options": "Webhook"
+   "fieldname": "default_badge_template",
+   "fieldtype": "Link",
+   "label": "Default Template",
+   "options": "Badge Template"
   },
   {
-   "description": "Webhook to notify when badge is assigned",
-   "fieldname": "badge_webhook_url",
-   "fieldtype": "Data",
-   "label": "Badge Webhook URL",
-   "options": "URL"
+   "fieldname": "channel",
+   "fieldtype": "Select",
+   "label": "Channel",
+   "options": "Glific"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-06-15 00:39:27.814914",
+ "modified": "2025-07-08 08:52:47.556075",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Ninja Settings",

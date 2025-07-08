@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-02 14:25:52.426910",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "api_url",
+  "token_expiry_time",
+  "column_break_ejdau",
+  "access_token",
+  "renewal_token",
+  "column_break_ldsth",
+  "phone",
+  "password"
+ ],
+ "fields": [
+  {
+   "fieldname": "api_url",
+   "fieldtype": "Data",
+   "label": "API Base URL",
+   "options": "URL"
+  },
+  {
+   "fieldname": "column_break_ejdau",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_ldsth",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password"
+  },
+  {
+   "fieldname": "token_expiry_time",
+   "fieldtype": "Data",
+   "label": "Token Expiry Time",
+   "read_only": 1
+  },
+  {
+   "fieldname": "access_token",
+   "fieldtype": "Small Text",
+   "label": "Access Token",
+   "read_only": 1
+  },
+  {
+   "fieldname": "renewal_token",
+   "fieldtype": "Data",
+   "label": "Renewal Token",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-07-04 02:02:17.730768",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Glific Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

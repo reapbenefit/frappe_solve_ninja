@@ -1,5 +1,7 @@
 import frappe
 import requests
+import json
+from solve_ninja.utils import validate_and_normalize_mobile
 
 def handle_energy_point_log(doc, method):
     if doc.type == "Auto" and doc.badge and doc.user:
@@ -47,43 +49,24 @@ def send_badge_notification(energy_point_log):
             "event": event,
         }
 
-        # Glific-specific logic only
-        if badge_template.template_id and solve_ninja_settings.glific_api_url:
-            try:
-                rendered_params = frappe.render_template(badge_template.parameters_json or "[]", context)
-                parameters = frappe.parse_json(rendered_params)
-
-                payload = {
-                    "query": """
-                        mutation sendHsmMessage($templateId: ID!, $receiverId: ID!, $parameters: [String]) {
-                            sendHsmMessage(templateId: $templateId, receiverId: $receiverId, parameters: $parameters) {
-                                message {
-                                    id
-                                    body
-                                    isHsm
-                                }
-                                errors {
-                                    key
-                                    message
-                                }
-                            }
-                        }
-                    """,
-                    "variables": {
-                        "templateId": int(badge_template.name),
-                        "receiverId": user.mobile_no,
-                        "parameters": parameters
-                    }
-                }
-                headers = {
-                    "Authorization": f"Bearer {solve_ninja_settings.get_password('glific_auth_token')}",
-                    "Content-Type": "application/json"
-                }
-
-                send_glific_message(energy_point_log, solve_ninja_settings.glific_api_url, headers, payload)
-
-            except Exception:
-                frappe.log_error(frappe.get_traceback(), "Glific Badge Notification Error")
+        if solve_ninja_settings.channel == "Glific" and user.mobile_no:
+            glific_settings = frappe.get_doc("Glific Settings")
+            if not ninja_profile.wa_id:
+                mobile_no = validate_and_normalize_mobile(user.mobile_no)
+                response = glific_settings.get_contact_by_phone(mobile_no)
+                contact_id = (
+                    response
+                    .get('data', {})
+                    .get('contactByPhone', {})
+                    .get('contact', {})
+                    .get('id')
+                )
+                if contact_id:
+                    ninja_profile.db_set("wa_id", contact_id, commit=True)
+                    ninja_profile.reload()
+            if ninja_profile.wa_id:
+                parameters = json.loads(frappe.render_template(badge_template.parameters_json, context))
+                glific_settings.send_hsm_message(ninja_profile.wa_id, badge_template.template_id, parameters)
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Badge Notification Error")
