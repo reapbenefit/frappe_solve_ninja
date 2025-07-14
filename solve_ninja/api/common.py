@@ -303,22 +303,16 @@ def fetch_full_profile():
     logger.info('STARTS - fetch full profile ------------')
     message='success'
     data = {
-        "link": "",
-        "full_name": "",
-        "gender": "",
-        "dob": "",
-        "pin_code": ""
     }
     status_code=200
     error=False
     try:
-       
         user_data = json.loads(frappe.request.data)
         mobile_no=user_data.get("mobile")
         user_profile_link='https://solveninja.org/user-profile/'
 
         if mobile_no:
-            user_doc = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['username'])
+            user_doc = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['username','full_name','gender','birth_date','name'])
             if len(user_doc) > 0 :
                 user_profile_link = user_profile_link + user_doc[0].username
                 
@@ -330,12 +324,13 @@ def fetch_full_profile():
                 if user_doc[0].gender:
                     data["gender"] = user_doc[0].gender
 
-                if user_doc[0].gender:
+                if user_doc[0].birth_date:
                     data["dob"] = user_doc[0].birth_date
 
                 if frappe.db.exists("User Metadata", user_doc[0].name):
                     user_meta_data = frappe.get_doc("User Metadata", user_doc[0].name)
-                    data["pin_code"] = user_meta_data.pincode
+                    if user_meta_data.pincode:
+                        data["pin_code"] = user_meta_data.pincode
             else:
                 message='User not found with mobile no '+mobile_no
                 status_code=400
