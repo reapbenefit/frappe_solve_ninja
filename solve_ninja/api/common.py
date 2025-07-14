@@ -299,6 +299,58 @@ def fetch_profile():
     return custom_response(message,data,status_code,error)
 
 @frappe.whitelist()
+def fetch_full_profile():
+    logger.info('STARTS - fetch full profile ------------')
+    message='success'
+    data = {
+        "link": "",
+        "full_name": "",
+        "gender": "",
+        "dob": "",
+        "pin_code": ""
+    }
+    status_code=200
+    error=False
+    try:
+       
+        user_data = json.loads(frappe.request.data)
+        mobile_no=user_data.get("mobile")
+        user_profile_link='https://solveninja.org/user-profile/'
+
+        if mobile_no:
+            user_doc = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['username'])
+            if len(user_doc) > 0 :
+                user_profile_link = user_profile_link + user_doc[0].username
+                
+                data["link"] = user_profile_link
+
+                if user_doc[0].full_name:
+                    data["full_name"] = user_doc[0].full_name
+
+                if user_doc[0].gender:
+                    data["gender"] = user_doc[0].gender
+
+                if user_doc[0].gender:
+                    data["dob"] = user_doc[0].birth_date
+
+                if frappe.db.exists("User Metadata", user_doc[0].name):
+                    user_meta_data = frappe.get_doc("User Metadata", user_doc[0].name)
+                    data["pin_code"] = user_meta_data.pincode
+            else:
+                message='User not found with mobile no '+mobile_no
+                status_code=400
+        else:
+            message='Mobile no is mandatory'
+            status_code=400
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        message=str(e)
+        status_code=500
+        error=True
+    logger.info('ENDS - fetch full profile ------------')
+    return custom_response(message,data,status_code,error)
+
+@frappe.whitelist()
 def reset_password():
     logger.info('STARTS - reset password ------------')
     message='password changed successfully'
