@@ -72,11 +72,11 @@ def get_ninjas(verified=False, page_length=None, start=0):
 		.select(
 			User.full_name.as_("full_name"),
 			User.name.as_("name"),
-			User.city.as_("city"),
+			#User.city.as_("city"),
 			User.user_image.as_("user_image"),
-			User.verified_by.as_("verified_by"),
+			#User.verified_by.as_("verified_by"),
 			User.username.as_("username"),
-			User.headline.as_("focus_area"),
+			#User.headline.as_("focus_area"),
 		)
 		.where(
 			User.name.notin(["solveninja@reapbenefit.org", "gautamp@reapbenefit.org"])
@@ -85,8 +85,8 @@ def get_ninjas(verified=False, page_length=None, start=0):
 			User.creation, order=frappe.qb.asc
 		)
 	)
-	if verified:
-		query = query.where((User.verified_by.isnotnull()) & (User.verified_by != ''))
+	#if verified:
+	#	query = query.where((User.verified_by.isnotnull()) & (User.verified_by != ''))
 	
 	if page_length:
 		query = query.limit(page_length)

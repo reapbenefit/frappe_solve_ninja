@@ -73,16 +73,16 @@ def get_city_wise_action_count(page_length=10):
 @frappe.whitelist(allow_guest=True)
 def get_city_wise_action_count_user_based(page_length=10, recent_rank_based_on=None):
 	Events = frappe.qb.DocType("Events")
-	User = frappe.qb.DocType("User")
+	UserMetadata = frappe.qb.DocType("User Metadata")
 
 	# Base Query
 	user_with_events = (
-		frappe.qb.from_(User)
-		.join(Events).on(Events.user == User.name)  # Ensure 'user' field in Events points to User's 'name'
-		.select(User.name)
+		frappe.qb.from_(UserMetadata)
+		.join(Events).on(Events.user == UserMetadata.name)  # Ensure 'user' field in Events points to User's 'name'
+		.select(UserMetadata.name)
 		.where(
-			(User.city.isnotnull()) &  # Ensure city is not null
-			(User.city.notin(states_of_india)) &  # Exclude cities in the list
+			(UserMetadata.city.isnotnull()) &  # Ensure city is not null
+			(UserMetadata.city.notin(states_of_india)) &  # Exclude cities in the list
 			(Events.name.isnotnull())  # Ensure events exist for the user
 		)
 	)
@@ -101,14 +101,14 @@ def get_city_wise_action_count_user_based(page_length=10, recent_rank_based_on=N
 	if users:
 		# Query to get the number of users grouped by city, with conditions on a list of usernames
 		user_count_by_city = (
-			qb.from_(User)
-			.select(User.city, Count(User.name).as_("action_count"))  # count users per city
+			qb.from_(UserMetadata)
+			.select(UserMetadata.city, Count(UserMetadata.name).as_("action_count"))  # count users per city
 			.where(
-				User.name.isin(users)  # filter by a list of usernames
+				UserMetadata.name.isin(users)  # filter by a list of usernames
 			)
-			.groupby(User.city)  # group by user city
+			.groupby(UserMetadata.city)  # group by user city
 			.orderby(
-				Count(User.name), order=frappe.qb.desc  # Order cities alphabetically
+				Count(UserMetadata.name), order=frappe.qb.desc  # Order cities alphabetically
 			)
 			.limit(page_length)  # limit to 10 results
 		)

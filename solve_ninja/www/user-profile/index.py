@@ -107,13 +107,13 @@ def get_context(context):
 		LIMIT 3
 	""", context.current_user.name, as_dict=True)
 
-	for cat in categories:
+	""" for cat in categories:
 		if cat.category:
 			cat_doc = frappe.get_doc('Event Category', cat.category)
 			superheroes.append({
 				'name': cat_doc.name,
 				'image': cat_doc.icon
-			})
+			}) """
 
 	context.current_user.superheroes = superheroes
 
