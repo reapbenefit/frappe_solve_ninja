@@ -49,6 +49,8 @@ role_home_page = {
 website_route_rules = [
     {"from_route": "/user-profile/<username>", "to_route": "user-profile"},
     {"from_route": "/campaign/<route>", "to_route": "campaign"},
+    {"from_route": "/opportunity/<opportunity>", "to_route": "opportunity"},
+    {"from_route": "/application-for-opportunity/<opportunity>", "to_route": "application-for-opportunity"},
 ]
 
 # Generators
@@ -201,6 +203,7 @@ doc_events = {
         "after_insert": [
 			"solve_ninja.doc_events.events.after_insert",
             "solve_ninja.doc_events.events.update_ninja_profile_hook",
+            "solve_ninja.doc_events.energy_point_log.send_badge_notification_after_insert",
 		],
         "on_trash": "solve_ninja.doc_events.events.update_ninja_profile_hook",
     },
@@ -215,9 +218,9 @@ doc_events = {
     "User Metadata": {
         "validate": "solve_ninja.doc_events.user_metadata.on_save"
     },
-    "Energy Point Log": {
-        "after_insert": "solve_ninja.doc_events.energy_point_log.handle_energy_point_log"
-    }
+    # "Energy Point Log": {
+    #     "after_insert": "solve_ninja.doc_events.energy_point_log.handle_energy_point_log"
+    # }
 }
 
 has_permission = {
