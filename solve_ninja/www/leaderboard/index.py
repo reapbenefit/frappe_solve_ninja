@@ -2,7 +2,7 @@ import frappe
 from frappe.utils import cint
 from solve_ninja.api.common import search_users_
 from solve_ninja.api.user import get_ninjas
-from solve_ninja.api.leaderboard import get_city_wise_action_count, get_active_ninja_count, get_total_invested_hours, get_city_wise_action_count_user_based, get_campaigns
+from solve_ninja.api.leaderboard import get_city_wise_action_count, get_active_ninja_count, get_total_invested_hours, get_city_wise_action_count_user_based, get_campaigns, get_opportunities
 
 
 sitemap = 1
@@ -17,4 +17,5 @@ def get_context(context):
 	context.active_ninja_count = get_active_ninja_count()
 	context.verified_users = get_ninjas(verified=True, page_length=10, start=0)
 	context.campaigns = get_campaigns(page_length=10, start=0)
+	context.opportunities = get_opportunities(page_length=10, start=0)
 	context.city_wise_data = get_city_wise_action_count_user_based(page_length=10)

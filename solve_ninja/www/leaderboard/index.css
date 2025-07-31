@@ -256,7 +256,7 @@ h1, h2, h3, h4, h5, h6{
 .vn_content{
     margin: 40px -24px 0;
     display: flex;
-    justify-content: center;
+    justify-content: left;
     flex-wrap: wrap;
 }
 .vn_box{
