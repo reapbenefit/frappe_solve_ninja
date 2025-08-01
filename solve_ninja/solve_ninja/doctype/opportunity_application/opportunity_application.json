@@ -19,7 +19,8 @@
   "resume",
   "opp_description",
   "eligibility_criteria",
-  "reviewer_email"
+  "reviewer_email",
+  "amended_from"
  ],
  "fields": [
   {
@@ -93,12 +94,23 @@
    "fieldtype": "Data",
    "label": "Reviewer Email",
    "options": "Email"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Opportunity Application",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-08-01 21:16:23.134023",
+ "modified": "2025-08-01 21:21:33.502635",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Opportunity Application",
@@ -125,6 +137,7 @@
    "report": 1,
    "role": "Solve Ninja",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],
