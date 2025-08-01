@@ -18,7 +18,8 @@
   "generic",
   "resume",
   "opp_description",
-  "eligibility_criteria"
+  "eligibility_criteria",
+  "reviewer_email"
  ],
  "fields": [
   {
@@ -86,12 +87,18 @@
    "fieldname": "eligibility_criteria",
    "fieldtype": "Text",
    "label": "Eligibility Criteria"
+  },
+  {
+   "fieldname": "reviewer_email",
+   "fieldtype": "Data",
+   "label": "Reviewer Email",
+   "options": "Email"
   }
  ],
  "in_create": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-01 14:55:53.069252",
+ "modified": "2025-08-01 18:29:52.260257",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Opportunity Application",
