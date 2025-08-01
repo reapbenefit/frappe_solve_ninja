@@ -1,0 +1,115 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-18 21:33:29.922679",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "opportunity",
+  "full_name",
+  "email",
+  "mentor_help",
+  "speaker_topic",
+  "fund_brief",
+  "pitch_doc",
+  "speaker_doc",
+  "generic",
+  "resume",
+  "opp_description",
+  "eligibility_criteria"
+ ],
+ "fields": [
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Opportunity",
+   "options": "Opportunity Template",
+   "reqd": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Email",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mentor_help",
+   "fieldtype": "Text",
+   "label": "What Help do you need from Mentor"
+  },
+  {
+   "fieldname": "speaker_topic",
+   "fieldtype": "Text",
+   "label": "Speaker Topic"
+  },
+  {
+   "fieldname": "fund_brief",
+   "fieldtype": "Text Editor",
+   "label": "Brief Description of Idea for which Fund support is needed"
+  },
+  {
+   "fieldname": "pitch_doc",
+   "fieldtype": "Attach",
+   "label": "Pitch Document"
+  },
+  {
+   "fieldname": "speaker_doc",
+   "fieldtype": "Attach",
+   "label": "Speaker Presentation"
+  },
+  {
+   "fieldname": "generic",
+   "fieldtype": "Text Editor",
+   "label": "Share with us why you would be great candidate for this opportunity?"
+  },
+  {
+   "fieldname": "resume",
+   "fieldtype": "Attach",
+   "label": "Resume"
+  },
+  {
+   "fieldname": "opp_description",
+   "fieldtype": "Text",
+   "label": "Opportunity Description"
+  },
+  {
+   "fieldname": "eligibility_criteria",
+   "fieldtype": "Text",
+   "label": "Eligibility Criteria"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-01 14:55:53.069252",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Opportunity Application",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
