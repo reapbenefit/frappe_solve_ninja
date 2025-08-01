@@ -12,6 +12,27 @@ import psutil
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 
+
+def get_language_code(language):
+    language_map = {
+        "English": "en",
+        "Punjabi": "pa",
+        "Marathi": "mr",
+        "Hindi": "hi",
+        "Kannada": "kn",
+        "Assamese": "as",
+        "Bengali": "bn",
+        "Telugu": "te"
+    }
+
+    if language not in language_map:
+        frappe.log_error(f"Language '{language}' is not recognized.")
+        logger.error(f"Language '{language}' is not recognized.")
+        frappe.throw(f"Language '{language}' is not recognized.")
+
+    return language_map[language]
+
+
 @frappe.whitelist()
 def sync_metadata_from_bigquery():
     logger.info("🔄 sync_metadata_from_bigquery started")
@@ -37,12 +58,25 @@ def sync_metadata_from_bigquery():
             SELECT 
                 m.contact_phone,
                 m.inserted_at AS last_active_date,
-                c.id AS whatsapp_id
+                c.id AS whatsapp_id,
+                c.language AS language,
+                -- Extract values from c.fields using filtered UNNEST
+                cf1.value AS preferred_name,
+                cf2.value AS gender,
+                cf3.value AS pincode,
+                cf4.value AS year_of_birth
+
             FROM `glific-301906.918095500118.messages` m
             LEFT JOIN `glific-301906.918095500118.contacts` c
                 ON m.contact_phone = c.phone
+
+            -- Unnest and filter for each field
+            LEFT JOIN UNNEST(c.fields) AS cf1 ON cf1.label = 'preferred_name'
+            LEFT JOIN UNNEST(c.fields) AS cf2 ON cf2.label = 'Gender'
+            LEFT JOIN UNNEST(c.fields) AS cf3 ON cf3.label = 'pincode'
+            LEFT JOIN UNNEST(c.fields) AS cf4 ON cf4.label = 'year_of_birth'
+
             WHERE m.flow = 'inbound'
-            {filter_clause}
         ) x
         GROUP BY contact_phone
     """
@@ -65,7 +99,7 @@ def sync_metadata_from_bigquery():
 
         client = bigquery.Client()
         results = client.query(query, job_config=job_config).result()
-        updates = [(row["contact_phone"], row["last_active_date"], row["whatsapp_id"]) for row in results]
+        updates = [(row["contact_phone"], row["last_active_date"], row["whatsapp_id"], row["preferred_name"], row["gender"], row["pincode"], row["year_of_birth"], row["language"]) for row in results]
 
         logger.info(f"✅ Total rows from BigQuery: {len(updates)}")
 
@@ -74,7 +108,7 @@ def sync_metadata_from_bigquery():
         start_time = time.time()
         process = psutil.Process()
 
-        for i, (contact_phone, last_active_date, whatsapp_id) in enumerate(updates, start=1):
+        for i, (contact_phone, last_active_date, whatsapp_id, preferred_name,gender,pincode,year_of_birth,language) in enumerate(updates, start=1):
             email = contact_phone + "@solveninja.org"
             profiles = frappe.get_all(
                 "Ninja Profile",
@@ -87,12 +121,42 @@ def sync_metadata_from_bigquery():
                 not_found += 1
                 continue
 
-            doc = frappe.get_doc("Ninja Profile", profiles[0]["name"])
-            doc.last_active_date_bot = last_active_date
-            doc.wa_id = whatsapp_id
-            doc.save(ignore_permissions=True)
+            ninja_profile_doc = frappe.get_doc("Ninja Profile", profiles[0]["name"])
+            ninja_profile_doc.last_active_date_bot = last_active_date
+            ninja_profile_doc.wa_id = whatsapp_id
+            ninja_profile_doc.save(ignore_permissions=True)
+
+            user_doc = frappe.get_doc("User",email )
+            if preferred_name is not None:
+                user_doc.first_name = preferred_name
+            if gender is not None:
+                gender_exists = frappe.get_all('Gender', filters={'gender': gender})
+                if not gender_exists:
+                    frappe.get_doc({
+                        'doctype': 'Gender',
+                        'gender': gender
+                    }).insert(ignore_permissions=True)
+                user_doc.gender = gender
+
+            if language is not None:
+                user_doc.language = get_language_code(language)
+
+            user_doc.save(ignore_permissions=True)
+
+            user_metadata_doc = frappe.get_doc("User Metadata",email )
+            if pincode is not None:
+                user_metadata_doc.pincode = pincode
+            
+
+            if year_of_birth is not None:
+                user_metadata_doc.year_of_birth = int(year_of_birth)
+
+            user_metadata_doc.save(ignore_permissions=True)
+
             frappe.db.commit()
+
             updated += 1
+            
             #logger.info(f"📝 Updated profile for {email}")
             percent_complete = int((i / total) * 100)
             if percent_complete >= next_log_percent:
