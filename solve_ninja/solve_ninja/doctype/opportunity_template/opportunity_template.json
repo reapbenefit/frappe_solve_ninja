@@ -93,10 +93,8 @@
    "reqd": 1
   }
  ],
- "has_web_view": 1,
- "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-01 14:55:42.107132",
+ "modified": "2025-08-01 16:31:09.974918",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Opportunity Template",
