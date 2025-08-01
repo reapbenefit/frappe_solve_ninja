@@ -1,0 +1,123 @@
+{
+ "actions": [],
+ "allow_guest_to_view": 1,
+ "allow_rename": 1,
+ "autoname": "field:title",
+ "creation": "2025-07-18 21:09:00.827903",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "route",
+  "opp_type",
+  "column_break_paebb",
+  "published",
+  "accept_applications",
+  "header_logo",
+  "deadline",
+  "section_break_zkjlh",
+  "opp_description",
+  "eligibility_criteria"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Opportunity Header",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Route",
+   "unique": 1
+  },
+  {
+   "fieldname": "opp_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Opportunity Type",
+   "length": 50,
+   "options": "Opportunity Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_paebb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "published",
+   "fieldtype": "Check",
+   "label": "Published"
+  },
+  {
+   "default": "0",
+   "fieldname": "accept_applications",
+   "fieldtype": "Check",
+   "label": "Accept Applications"
+  },
+  {
+   "fieldname": "header_logo",
+   "fieldtype": "Attach Image",
+   "label": "Header Logo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "deadline",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Application Deadline",
+   "length": 50,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_zkjlh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "opp_description",
+   "fieldtype": "Text",
+   "label": "Opportunity Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "eligibility_criteria",
+   "fieldtype": "Text",
+   "label": "Eligibility Criteria",
+   "reqd": 1
+  }
+ ],
+ "has_web_view": 1,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-01 14:55:42.107132",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Opportunity Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title"
+}
