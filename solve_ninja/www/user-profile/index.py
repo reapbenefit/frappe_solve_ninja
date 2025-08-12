@@ -6,7 +6,7 @@ no_cache = 1
 def get_context(context):
 	context.no_cache = 1
 	context.current_user = None
-
+	context.add_action_url = frappe.get_hooks("add_action_url")[-1] if frappe.get_hooks("add_action_url") else "/record-actions/new"
 	username = frappe.form_dict.username or frappe.local.form_dict.get("username")
 
 	try:
