@@ -6,7 +6,7 @@ no_cache = 1
 def get_context(context):
 	context.no_cache = 1
 	context.current_user = None
-
+	context.add_action_url = frappe.conf.get("add_action_url") or "/record-actions/new"
 	username = frappe.form_dict.username or frappe.local.form_dict.get("username")
 
 	try:
