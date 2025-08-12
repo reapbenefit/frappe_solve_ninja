@@ -226,5 +226,3 @@ doc_events = {
 has_permission = {
     "Events": "solve_ninja.api.common.has_permission"
 }
-
-add_action_url = "https://solveninja.vercel.app"
