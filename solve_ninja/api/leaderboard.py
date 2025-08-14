@@ -203,6 +203,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 	User = DocType("User")
 	Events = DocType("Events")
 	NinjaProfile = DocType("Ninja Profile")
+	UserMetadata = DocType("User Metadata")
 
 	# Check if recent rank filtering is needed
 	recent_rank_based_on = filters.get("recent_rank_based_on")
@@ -219,11 +220,12 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 	query = (
 		frappe.qb.from_(User)
 		.join(NinjaProfile).on(User.name == NinjaProfile.name)
+		.join(UserMetadata).on(User.name == UserMetadata.name)
 		.select(
 			User.name,
 			User.username,
-			User.city,
-			Coalesce(NinjaProfile.rank, user_count).as_("rank"),  # Always get rank from Ninja Profile
+			UserMetadata.city,
+			Coalesce(NinjaProfile.rank, user_count).as_("rank"),
 			User.org_id,
 			User.user_image,
 			User.location,
@@ -238,7 +240,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 			.select(
 				Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),
 				Coalesce(Count(Events.user), 0).as_("contribution_count"),
-				Sum(Events.hours_invested).as_("recent_rank")  # ✅ FIXED: Use rank() as a window function
+				Sum(Events.hours_invested).as_("recent_rank")
 			)
 			.groupby(
 				User.name, User.username, User.city, User.org_id, User.user_image, 
