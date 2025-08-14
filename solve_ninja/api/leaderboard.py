@@ -243,7 +243,7 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 				Sum(Events.hours_invested).as_("recent_rank")
 			)
 			.groupby(
-				User.name, User.username, User.city, User.org_id, User.user_image, 
+				User.name, User.username, UserMetadata.city, User.org_id, User.user_image, 
 				User.location, User.full_name, NinjaProfile.rank
 			)
 			.orderby(Sum(Events.hours_invested), order=Order.desc)
