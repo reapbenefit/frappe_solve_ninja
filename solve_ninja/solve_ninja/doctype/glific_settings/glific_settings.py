@@ -179,6 +179,27 @@ class GlificSettings(Document):
         }
         return self._api_graphql_post_with_reauth(payload)
 
+    def resume_glific_flow(self,flowId,contactId,result):
+        payload = {
+                "query": """
+                    mutation resumeContactFlow($flowId: ID!, $contactId: ID!, $result: Json!) {
+                        resumeContactFlow(flowId: $flowId, contactId: $contactId, result: $result) {
+                            success
+                            errors {
+                                key
+                                message
+                            }
+                        }
+                    }
+                """,
+                "variables": {
+                "flowId": flowId,
+                "contactId": contactId,
+                "result": json.dumps(result)
+                }
+        }
+        return self._api_graphql_post_with_reauth(payload)
+    
     def get_contact_by_phone(self, phone):
         """
         Fetch contact details from Glific using phone number.
