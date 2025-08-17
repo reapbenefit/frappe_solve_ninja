@@ -7,6 +7,8 @@ from frappe.utils.file_manager import save_file
 import mimetypes
 import requests
 from urllib.parse import urlparse
+import asyncio
+from sarvamai import AsyncSarvamAI
 
 
 SARVAM_API_KEY = "sk_5namj6hd_Yd5PzB3LBpfo6ksd1ZJMxMtE"
@@ -96,6 +98,7 @@ def upload_and_transcribe_sarvam():
 
 @frappe.whitelist()
 def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None):
+# async def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None):
     """
     Upload via upload_file() and create a Sarvam Batch STT job (saarika only).
     Returns job_id for polling.
@@ -110,6 +113,8 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
 
     client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
+    file_doc = save_audio_from_url(audio_url, is_private=1)
+    file_url = file_doc.get_full_path()
     allowed = {"saarika:v1", "saarika:v2", "saarika:v2.5", "saarika:flash"}
     model = (model or "saarika:v2.5").strip()
     if model not in allowed:
@@ -121,13 +126,13 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
         "with_timestamps": bool(int(with_timestamps)),
         "with_diarization": bool(int(with_diarization)),
         "num_speakers": int(num_speakers) if num_speakers else None,
-        "audio_url": audio_url
     }
 
     job = client.speech_to_text_job.create_job(**request_payload)
 
-    # job.upload_files([audio_url])
+    job.upload_files([file_url])
     job.start()
+    final_status = job.wait_until_complete()
 
     job_id = getattr(job, "job_id", None) or getattr(job, "request_id", None)
     if not job_id:
@@ -143,18 +148,46 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
         "external_service": "Sarvam",
         "external_job_id": job_id,
         "status": "Queued",
-        "request_json": json.dumps(request_payload, indent=2),
-        "response_json": {},
+        "request_json": json.dumps(request_payload, indent=2)
     }).insert(ignore_permissions=True)
 
-    # save_audio_from_url(audio_url, attach_to_doctype=tj.doctype, attach_to_name=tj.name, is_private=1)
+    file_doc.attached_to_doctype = "Transcript Job"
+    file_doc.attached_to_name = tj.name
+    file_doc.save()
+    if job.is_failed():
+        tj.status = "Failed"
+        tj.save()
+        return
 
-    return {
-        "job_id": job_id,
-        "file_url": file_url,
-        "model": model,
-        "message": "Job created. Poll with get_sarvam_job_status()."
-    }
+    private_dir = frappe.get_site_path("private", "files", f"sarvam_job_{job_id}")
+    os.makedirs(private_dir, exist_ok=True)
+
+    job.download_outputs(output_dir=str(private_dir))
+    out = {}
+    json_files = [f for f in os.listdir(private_dir) if f.lower().endswith(".json")]
+    json_content = None
+
+    if json_files:
+        json_path = os.path.join(private_dir, json_files[0])
+        try:
+            with io.open(json_path, "r", encoding="utf-8", errors="ignore") as fh:
+                json_content = json.load(fh)
+        except Exception:
+            with io.open(json_path, "r", encoding="utf-8", errors="ignore") as fh:
+                json_content = fh.read()
+
+    out["json_output"] = json_content
+    out["saved_folder"] = private_dir
+    out["saved_json_file"] = json_files[0] if json_files else None
+    tj.respomse_json = json.dumps(out, indent=2)
+    tj.save()
+    frappe.db.commit()
+    # return {
+    #     "job_id": job_id,
+    #     "file_url": file_url,
+    #     "model": model,
+    #     "message": "Job created. Poll with get_sarvam_job_status()."
+    # }
 
 
 @frappe.whitelist(allow_guest=True)
@@ -198,6 +231,13 @@ def get_sarvam_job_status(job_id: str):
     out["saved_folder"] = private_dir
     out["saved_json_file"] = json_files[0] if json_files else None
 
+    transcribe_job = frappe.db.exists("Transcript Job", {"external_job_id": job_id})
+    if transcribe_job:
+        tj = frappe.get_doc("Transcript Job", transcribe_job)
+        tj.status = job_status.job_state
+        tj.response_json = json.dumps(out, indent=2)
+        tj.save()
+    
     return out
 
 def save_audio_from_url(audio_url: str, attach_to_doctype: str=None, attach_to_name: str=None, is_private: int=1):
@@ -235,7 +275,4 @@ def save_audio_from_url(audio_url: str, attach_to_doctype: str=None, attach_to_n
         decode=False
     )
 
-    # 5) Compute absolute path on disk
-    file_path = file_doc.get_full_path()
-
-    return file_doc, file_path
+    return file_doc
