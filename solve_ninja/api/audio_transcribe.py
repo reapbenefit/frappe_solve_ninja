@@ -96,7 +96,7 @@ def upload_and_transcribe_sarvam():
         return {"error": str(e)}
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None):
 # async def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None):
     """
@@ -181,13 +181,13 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
     out["saved_json_file"] = json_files[0] if json_files else None
     tj.respomse_json = json.dumps(out, indent=2)
     tj.save()
-    frappe.db.commit()
-    # return {
-    #     "job_id": job_id,
-    #     "file_url": file_url,
-    #     "model": model,
-    #     "message": "Job created. Poll with get_sarvam_job_status()."
-    # }
+
+    return {
+        "job_id": job_id,
+        "file_url": file_url,
+        "model": model,
+        "output": out
+    }
 
 
 @frappe.whitelist(allow_guest=True)
