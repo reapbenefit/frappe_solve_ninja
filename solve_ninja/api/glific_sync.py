@@ -76,7 +76,7 @@ def sync_metadata_from_bigquery():
             LEFT JOIN UNNEST(c.fields) AS cf3 ON cf3.label = 'pincode'
             LEFT JOIN UNNEST(c.fields) AS cf4 ON cf4.label = 'year_of_birth'
 
-            WHERE m.flow = 'inbound'
+            WHERE m.flow = 'inbound' {filter_clause}
         ) x
         GROUP BY contact_phone
     """
@@ -86,15 +86,22 @@ def sync_metadata_from_bigquery():
         query_params = []
 
         if last_successful_run:
-            logger.info("📌 Applying filter by last_successful_run timestamp")
-            filter_clause = "AND TIMESTAMP(m.inserted_at) > @last_run"
+            logger.info("📌 Applying filter by last_successful_run datetime (IST wall-clock)")
+
+            # Drop timezone info because BigQuery DATETIME has no timezone
+            if last_successful_run.tzinfo:
+                last_successful_run = last_successful_run.replace(tzinfo=None)
+            logger.info(f"🕒 last_successful_run (Python, naive): {last_successful_run!r}")
+
+            filter_clause = "AND m.inserted_at > @last_run"
             query_params.append(
-                bigquery.ScalarQueryParameter("last_run", "TIMESTAMP", last_successful_run)
+                bigquery.ScalarQueryParameter("last_run", "DATETIME", last_successful_run)
             )
         else:
-            logger.info("⚠️ No last_successful_run timestamp found, skipping filter")
+            logger.info("⚠️ No last_successful_run datetime found, skipping filter")
 
         query = query_base.format(filter_clause=filter_clause)
+    
         job_config = bigquery.QueryJobConfig(query_parameters=query_params) if query_params else None
 
         client = bigquery.Client()
@@ -110,6 +117,7 @@ def sync_metadata_from_bigquery():
 
         for i, (contact_phone, last_active_date, whatsapp_id, preferred_name,gender,pincode,year_of_birth,language) in enumerate(updates, start=1):
             email = contact_phone + "@solveninja.org"
+           
             profiles = frappe.get_all(
                 "Ninja Profile",
                 filters={"user": email},
@@ -126,10 +134,16 @@ def sync_metadata_from_bigquery():
             ninja_profile_doc.wa_id = whatsapp_id
             ninja_profile_doc.save(ignore_permissions=True)
 
-            user_doc = frappe.get_doc("User",email )
-            if preferred_name is not None:
-                user_doc.first_name = preferred_name
-            if gender is not None:
+
+            """ try:
+                user_doc = frappe.get_doc("User",email )
+            except Exception as e:
+                not_found += 1
+                continue
+            if preferred_name is not None and preferred_name.strip() != "":
+                user_doc.first_name = preferred_name.strip()[:140]
+
+            if gender is not None and gender.strip() != "":
                 gender_exists = frappe.get_all('Gender', filters={'gender': gender})
                 if not gender_exists:
                     frappe.get_doc({
@@ -138,12 +152,12 @@ def sync_metadata_from_bigquery():
                     }).insert(ignore_permissions=True)
                 user_doc.gender = gender
 
-            if language is not None:
+            if language is not None and language.strip() != "":
                 user_doc.language = get_language_code(language)
 
-            user_doc.save(ignore_permissions=True)
+            user_doc.save(ignore_permissions=True) """
 
-            user_metadata_doc = frappe.get_doc("User Metadata",email )
+            """ user_metadata_doc = frappe.get_doc("User Metadata",email )
             if pincode is not None:
                 user_metadata_doc.pincode = pincode
             
@@ -151,7 +165,7 @@ def sync_metadata_from_bigquery():
             if year_of_birth is not None:
                 user_metadata_doc.year_of_birth = int(year_of_birth)
 
-            user_metadata_doc.save(ignore_permissions=True)
+            user_metadata_doc.save(ignore_permissions=True) """
 
             frappe.db.commit()
 
