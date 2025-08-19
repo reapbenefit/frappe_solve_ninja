@@ -180,7 +180,7 @@ class GlificSettings(Document):
         return self._api_graphql_post_with_reauth(payload)
 
     def resume_glific_flow(self,flow_id,contact_id,result):
-        
+        logger.info(f"Resuming Glific flow with flow_id: {flow_id}, contact_id: {contact_id}, result: {result}")
         payload = {
                 "query": """
                     mutation resumeContactFlow($flowId: ID!, $contactId: ID!, $result: Json!) {

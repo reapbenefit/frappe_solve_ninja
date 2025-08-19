@@ -97,7 +97,7 @@ def upload_and_transcribe_sarvam():
 
 
 @frappe.whitelist(allow_guest=True)
-def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None):
+def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None,callback_function=None, callback_kwargs=None):
 # async def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None):
     """
     Upload via upload_file() and create a Sarvam Batch STT job (saarika only).
@@ -110,7 +110,7 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
 
     # if not os.path.exists(file_path):
     #     return {"error": "File save failed"}
-
+    
     client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
     file_doc = save_audio_from_url(audio_url, is_private=1)
@@ -122,7 +122,7 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
 
     request_payload = {
         "model": model,
-        "language_code": "unknown",
+        "language_code": "en-IN",
         "with_timestamps": bool(int(with_timestamps)),
         "with_diarization": bool(int(with_diarization)),
         "num_speakers": int(num_speakers) if num_speakers else None,
@@ -182,13 +182,17 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
     tj.respomse_json = json.dumps(out, indent=2)
     tj.save()
 
-    return {
-        "job_id": job_id,
-        "file_url": file_url,
-        "model": model,
-        "output": out
-    }
 
+    if callback_function and callback_kwargs:
+        # If callback function is provided, call it with the result
+        callback_kwargs = json.loads(callback_kwargs) if isinstance(callback_kwargs, str) else callback_kwargs
+        callback_kwargs["text"] = json_content.get("transcript", "")
+
+        # Use enqueue to run the callback asynchronously
+        frappe.enqueue(
+            callback_function,
+            **callback_kwargs
+        )
 
 @frappe.whitelist(allow_guest=True)
 def get_sarvam_job_status(job_id: str):
