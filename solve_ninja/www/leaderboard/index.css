@@ -1,3 +1,21 @@
+@font-face {
+    font-family: 'SolveNinja1';
+    /* Choose a name for your font */
+    src: url('/assets/solve_ninja/fonts/Oswald-VariableFont_wght.ttf') format('truetype');
+    /* Adjust path */
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SolveNinja2';
+    /* Choose a name for your font */
+    src: url('/assets/solve_ninja/fonts/fonnts.com-ProximaNova-Black.otf') format('opentype');
+    /* Adjust path */
+    font-weight: normal;
+    font-style: normal;
+}
+
 .navbar-brand img {
     max-height: 50px;
 }
@@ -76,7 +94,7 @@ h6 {
 
 .banner_wrapper {
     width: 100%;
-    background-image: url('../../public/images/leaderboard_banner_bg.png');
+    background-image: url('./assets/solve_ninja/images/leaderboard_banner_bg.png');
     /* background-image: linear-gradient(0deg,
             hsl(199deg 32% 25%) 0%,
             hsl(194deg 44% 26%) 11%,
@@ -88,7 +106,8 @@ h6 {
             hsl(164deg 63% 35%) 78%,
             hsl(153deg 47% 42%) 89%,
             hsl(137deg 35% 49%) 100%); */
-
+    background-color: rgb(37 37 37 / 60%);
+    background-blend-mode: lighten;
 }
 
 .banner_content_wrapper {
@@ -107,6 +126,7 @@ h6 {
     font-family: Tahoma, sans-serif;
     margin: 0 0 15px;
     text-align: center;
+    text-shadow: 5px 5px 1px black;
 }
 
 .banner_content_wrapper h2 {
@@ -153,9 +173,9 @@ h6 {
 
 .bcb_divider {
     margin: 0 50px;
-    width: 1px;
-    height: 50px;
-    background-color: #BAE4D0;
+    width: 3px;
+    height: 80px;
+    background-color: #FFFFFF;
 }
 
 .b_cta {
@@ -243,8 +263,8 @@ h6 {
 
 .verified_ninjas {
     width: 100%;
-    max-width: 1290px;
-    padding: 100px 24px;
+    /* max-width: 1290px; */
+    padding: 20px 24px;
     margin: 0 auto;
     box-sizing: border-box;
 }
@@ -270,37 +290,6 @@ h6 {
     margin: 10px 0 0;
 }
 
-.vn_stats {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 0 60px;
-}
-
-.vn_stats_wrapper {
-    display: flex;
-    align-items: flex-end;
-}
-
-.vn_stats_wrapper svg {
-    height: 54px;
-}
-
-.vn_stats .stats_box {
-    display: flex;
-    flex-direction: column;
-    margin: 0 0 0 10px;
-}
-
-.vn_stats .stats_box strong {
-    font-size: 32px;
-    line-height: 38px;
-    color: #2B4754;
-}
-
-.vn_stats .stats_box span {
-    color: #8e918f;
-}
 
 .vn_sb_divider {
     margin: 0 30px;
@@ -878,3 +867,292 @@ p.vnb_focus span:first-child {
         text-align: center;
     }
 }
+
+/* Leaderboard CSS Changes */
+.leader-board-banner-head {
+    font-family: 'SolveNinja1', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px;
+}
+
+.orange-color {
+    color: #fbb040 !important;
+}
+
+.sub-heading {
+    font-family: 'SolveNinja2', sans-serif !important;
+    letter-spacing: 0px;
+    font-weight: 400 !important;
+    font-size: 32px !important;
+}
+
+.white-color {
+    color: #ffffff !important;
+}
+
+.banner-text {
+    font-family: 'SolveNinja2', sans-serif !important;
+}
+
+.banner-tail {
+    background-color: #f4a62a;
+    /* yellow/orange */
+    color: #0b3c3f;
+    /* dark teal text */
+    font-weight: bold;
+    font-size: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.banner-tail span {
+    margin: 0 15px;
+}
+
+.divider {
+    width: 4px;
+    height: 40px;
+    background-color: white;
+}
+
+.verified_ninjas_stats {
+    width: 100%;
+    max-width: 1290px;
+    padding: 40px 24px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.vn_stats {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 0 10px;
+}
+
+.vn_stats_wrapper {
+    display: flex;
+    align-items: flex-end;
+}
+
+.vn_stats_wrapper svg {
+    height: 54px;
+}
+
+.vn_stats .stats_box {
+    display: flex;
+    flex-direction: column;
+    margin: 0 0 0 10px;
+}
+
+.vn_stats .stats_box strong {
+    font-size: 32px;
+    line-height: 38px;
+    color: #2B4754;
+}
+
+.vn_stats .stats_box span {
+    color: #8e918f;
+}
+
+/* Opportunities banner */
+.opportunitties_banner {
+    background-image: url(./assets/solve_ninja/images/leaderboard_banner_bg.png);
+    color: #fff;
+    text-align: center;
+    padding: 30px 20px;
+    background-position: center;
+    background-size: cover;
+    max-width: 85%;
+    margin: 0 auto;
+    margin-top: 20px;
+    background-color: rgb(81 77 77 / 60%);
+    background-blend-mode: lighten;
+    min-height: 300px;
+}
+
+.opportunitties_banner-tail {
+    text-align: center;
+    padding: 10px 20px;
+    background-position: center;
+    background-size: cover;
+    max-width: 85%;
+    margin: 0 auto;
+    z-index: 10001;
+    position: relative;
+}
+
+.opportunitties_banner-tail span {
+    font-family: 'SolveNinja1', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 40px;
+}
+
+.opportunitties_banner h1 {
+    font-family: 'SolveNinja1', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0;
+    color: #fff;
+    letter-spacing: 4px;
+
+}
+
+.header-live-badge {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- LIVE badge --- */
+.live-badge {
+    display: flex;
+    /* align-items: center; */
+    border-radius: 25px;
+    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    margin-left: 10px;
+}
+
+.live-left {
+    background: #fff;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.live-dot {
+    width: 10px;
+    height: 10px;
+    background: red;
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: blink 1s infinite;
+}
+
+.live-right {
+    background: red;
+    color: #fff;
+    padding: 4px 11px;
+    text-transform: uppercase;
+    border-radius: 0 25px 25px 0px;
+}
+
+@keyframes blink {
+
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+
+    25%,
+    75% {
+        opacity: 0;
+    }
+}
+
+.cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-top: 30px;
+    gap: 10px;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px;
+    width: 23%;
+    min-height: 160px;
+    text-align: left;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.card-img {
+    width: 25%;
+}
+
+.card-img img {
+    width: 95%;
+}
+
+.card-text {
+    width: 75%;
+}
+
+.card h3 {
+    color: #ffb74d;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.card-text,
+.card-img {
+    float: left;
+    box-sizing: border-box;
+}
+
+.card p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.cta {
+    margin-top: 30px;
+    background: #f7941e;
+    color: #000;
+    font-weight: bold;
+    padding: 15px;
+    border-radius: 5px;
+    display: inline-block;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.cta:hover {
+    background: #ff9800;
+}
+
+@media (max-width: 768px) {
+    .cards {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .card {
+        width: 90%;
+    }
+}
+
+.people-mosiac {
+    text-align: center;
+    padding: 0;
+    background-position: center;
+    background-size: cover;
+    max-width: 85%;
+    margin: 0 auto;
+    left: 163px;
+    position: absolute;
+    width: 82.90%;
+    z-index: 10000;
+    top: 1276px;
+}
+
+.people-mosiac img {}
+
+/* Opportunities banner */
+
+/* Leaderboard CSS Changes */
