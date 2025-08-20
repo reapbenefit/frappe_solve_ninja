@@ -179,6 +179,28 @@ class GlificSettings(Document):
         }
         return self._api_graphql_post_with_reauth(payload)
 
+    def resume_glific_flow(self,flow_id,contact_id,result):
+        logger.info(f"Resuming Glific flow with flow_id: {flow_id}, contact_id: {contact_id}, result: {result}")
+        payload = {
+                "query": """
+                    mutation resumeContactFlow($flowId: ID!, $contactId: ID!, $result: Json!) {
+                        resumeContactFlow(flowId: $flowId, contactId: $contactId, result: $result) {
+                            success
+                            errors {
+                                key
+                                message
+                            }
+                        }
+                    }
+                """,
+                "variables": {
+                    "flowId": flow_id,
+                    "contactId": contact_id,
+                    "result": json.dumps({"result":result})
+                }
+        }
+        return self._api_graphql_post_with_reauth(payload)
+    
     def get_contact_by_phone(self, phone):
         """
         Fetch contact details from Glific using phone number.
@@ -229,9 +251,9 @@ class GlificSettings(Document):
         """
         url = self._make_api_url("/api")
         headers = self._get_headers(token=self.access_token)
-        logger.info(f"Making GraphQL POST to {url} with payload: {json.dumps(payload)}")
-        logger.info(f"Using headers: {json.dumps(headers)}")
-        logger.info(f"Current access token: {self.access_token}")
+        # logger.info(f"Making GraphQL POST to {url} with payload: {json.dumps(payload)}")
+        # logger.info(f"Using headers: {json.dumps(headers)}")
+        # logger.info(f"Payload: {payload}")
         response_data = self._post(url, payload, headers)
 
         if response_data.get("status_code") == 401 and retry:
@@ -252,6 +274,9 @@ class GlificSettings(Document):
             frappe.log_error(json.dumps(response_data), "GraphQL Auth Retry Failed")
             frappe.throw("Authentication failed with Glific after retries (refresh & re-login).")
 
+        """ if response_data.get("status_code") == 200:
+            logger.info(f"GraphQL response: {json.dumps(response_data)}") """
+        
         return response_data
 
 

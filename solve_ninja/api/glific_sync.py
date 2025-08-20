@@ -123,20 +123,22 @@ def sync_metadata_from_bigquery():
 
             ninja_profile_doc = frappe.get_doc("Ninja Profile", profiles[0]["name"])
             ninja_profile_doc.last_active_date_bot = last_active_date
-            ninja_profile_doc.wa_id = whatsapp_id
+            if ninja_profile_doc.wa_id is None:
+                ninja_profile_doc.wa_id = whatsapp_id
             ninja_profile_doc.save(ignore_permissions=True)
 
-            user_doc = frappe.get_doc("User",email )
-            if preferred_name is not None:
-                user_doc.first_name = preferred_name
-            if gender is not None:
-                gender_exists = frappe.get_all('Gender', filters={'gender': gender})
-                if not gender_exists:
-                    frappe.get_doc({
-                        'doctype': 'Gender',
-                        'gender': gender
-                    }).insert(ignore_permissions=True)
-                user_doc.gender = gender
+            """ user_doc = frappe.get_doc("User",email )
+            if preferred_name is not None and user_doc.first_name is None:
+                    user_doc.first_name = preferred_name
+            
+            if gender is not None and user_doc.gender is None and gender.strip().lower() != 'gender':
+                    gender_exists = frappe.get_all('Gender', filters={'gender': gender})
+                    if not gender_exists:
+                        frappe.get_doc({
+                            'doctype': 'Gender',
+                            'gender': gender
+                        }).insert(ignore_permissions=True)
+                    user_doc.gender = gender
 
             if language is not None:
                 user_doc.language = get_language_code(language)
@@ -148,10 +150,10 @@ def sync_metadata_from_bigquery():
                 user_metadata_doc.pincode = pincode
             
 
-            if year_of_birth is not None:
-                user_metadata_doc.year_of_birth = int(year_of_birth)
+            if year_of_birth is not None and user_metadata_doc.year_of_birth is None:
+                    user_metadata_doc.year_of_birth = int(year_of_birth)
 
-            user_metadata_doc.save(ignore_permissions=True)
+            user_metadata_doc.save(ignore_permissions=True) """
 
             frappe.db.commit()
 
