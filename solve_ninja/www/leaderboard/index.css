@@ -1057,6 +1057,7 @@ p.vnb_focus span:first-child {
     margin: 0 auto;
     z-index: 10001;
     position: relative;
+    margin-top: -20px;
 }
 
 .opportunitties_banner-tail span {
@@ -1258,7 +1259,7 @@ p.vnb_focus span:first-child {
 }
 
 .card p {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     line-height: 1.4;
     margin: 0;
 }
