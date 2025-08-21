@@ -95,19 +95,9 @@ h6 {
 .banner_wrapper {
     width: 100%;
     background-image: url('./assets/solve_ninja/images/leaderboard_banner_bg.png');
-    /* background-image: linear-gradient(0deg,
-            hsl(199deg 32% 25%) 0%,
-            hsl(194deg 44% 26%) 11%,
-            hsl(190deg 58% 26%) 22%,
-            hsl(185deg 79% 25%) 33%,
-            hsl(181deg 100% 23%) 44%,
-            hsl(177deg 100% 25%) 56%,
-            hsl(172deg 91% 28%) 67%,
-            hsl(164deg 63% 35%) 78%,
-            hsl(153deg 47% 42%) 89%,
-            hsl(137deg 35% 49%) 100%); */
-    background-color: rgb(37 37 37 / 60%);
-    background-blend-mode: lighten;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 
 .banner_content_wrapper {
@@ -263,7 +253,7 @@ h6 {
 
 .verified_ninjas {
     width: 100%;
-    /* max-width: 1290px; */
+    max-width: 1290px;
     padding: 20px 24px;
     margin: 0 auto;
     box-sizing: border-box;
@@ -464,13 +454,20 @@ p.vnb_focus span:first-child {
 
 @media only screen and (max-width: 767px) {
     .verified_ninjas {
-        padding: 60px 16px;
+        padding: 10px 16px;
     }
 
+
     .vn_title {
-        font-size: 30px;
+        font-size: 27px;
         line-height: 36px;
         text-align: center;
+    }
+
+    .vn_title small {
+        font-size: 14px;
+        line-height: 24px;
+        margin: 10px 0 0;
     }
 
     .vn_stats {
@@ -900,15 +897,68 @@ p.vnb_focus span:first-child {
     color: #0b3c3f;
     /* dark teal text */
     font-weight: bold;
-    font-size: 40px;
+    font-size: 30px;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
 }
 
 .banner-tail span {
     margin: 0 15px;
+}
+
+.desktop {
+    display: block !important;
+}
+
+.mobile {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .desktop {
+        display: none !important;
+    }
+
+    .mobile {
+        display: block !important;
+    }
+
+    .banner-tail {
+        background-color: #f4a62a;
+        color: #0b3c3f;
+        font-weight: bold;
+        font-size: 15px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 5px !important;
+    }
+
+    .banner-tail marquee {
+        height: 20px;
+    }
+
+    .header-live-badge .live-badge {
+        /* display: none; */
+        margin: 0 auto;
+    }
+
+    .opportunitties_banner .header-live-badge_mobile span {
+        font-family: 'SolveNinja1', sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 0.7rem;
+        letter-spacing: 4px;
+    }
+
+    .divider {
+        width: 2px !important;
+        height: 20px !important;
+        background-color: white;
+        content: " ";
+        color: white;
+    }
 }
 
 .divider {
@@ -957,19 +1007,44 @@ p.vnb_focus span:first-child {
     color: #8e918f;
 }
 
+@media (max-width: 768px) {
+    .vn_stats {
+        margin: 0 0 5px;
+    }
+
+    .vn_stats_wrapper {
+        display: flex;
+        align-items: anchor-center;
+    }
+
+    .vn_stats .stats_box strong {
+        font-size: 15px;
+        line-height: 28px;
+        color: #2B4754;
+    }
+
+    .vn_stats .stats_box span {
+        color: #8e918f;
+        font-size: 14px;
+
+    }
+
+    .vn_stats_wrapper svg {
+        height: 41px;
+    }
+}
+
 /* Opportunities banner */
 .opportunitties_banner {
-    background-image: url(./assets/solve_ninja/images/leaderboard_banner_bg.png);
+    background-image: url(./assets/solve_ninja/images/opportunities_bg.png);
     color: #fff;
     text-align: center;
-    padding: 30px 20px;
+    padding: 20px 15px;
     background-position: center;
     background-size: cover;
     max-width: 85%;
     margin: 0 auto;
     margin-top: 20px;
-    background-color: rgb(81 77 77 / 60%);
-    background-blend-mode: lighten;
     min-height: 300px;
 }
 
@@ -987,7 +1062,7 @@ p.vnb_focus span:first-child {
 .opportunitties_banner-tail span {
     font-family: 'SolveNinja1', sans-serif !important;
     font-weight: 700 !important;
-    font-size: 40px;
+    font-size: 30px;
 }
 
 .opportunitties_banner h1 {
@@ -1005,6 +1080,82 @@ p.vnb_focus span:first-child {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+@media (max-width: 768px) {
+    .opportunitties_banner {
+        background-image: url(./assets/solve_ninja/images/banner_mob_bg.png);
+        color: #fff;
+        text-align: center;
+        background-position: center;
+        background-size: cover;
+        max-width: 100%;
+        margin: 0 auto;
+        margin-top: 20px;
+
+        min-height: 300px;
+        padding: 0px !important
+    }
+
+    .banner-tail {
+        padding: 5px !important;
+        max-width: 100% !important;
+    }
+
+    .opportunitties_banner h1 {
+        font-size: 0.7rem;
+    }
+
+    .opportunitties_banner-tail span {
+        font-family: 'SolveNinja1', sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 12px;
+        max-width: 100% !important;
+    }
+
+    .header-live-badge {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px 15px;
+        padding-bottom: 0px;
+    }
+
+    .live-badge {
+        display: flex;
+        /* align-items: center; */
+        border-radius: 25px;
+        overflow: hidden;
+        font-size: 0.9rem;
+        font-weight: bold;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        margin-left: 10px;
+    }
+
+    .live-left {
+        background: #fff;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .live-dot {
+        width: 10px;
+        height: 10px;
+        background: red;
+        border-radius: 50%;
+        margin-right: 5px;
+        animation: blink 1s infinite;
+    }
+
+    .live-right {
+        background: red;
+        color: #fff;
+        padding: 4px 11px;
+        text-transform: uppercase;
+        border-radius: 0 25px 25px 0px;
+    }
 }
 
 /* --- LIVE badge --- */
@@ -1061,24 +1212,26 @@ p.vnb_focus span:first-child {
 .cards {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: center;
     margin-top: 30px;
-    gap: 10px;
+    gap: 20px;
 }
 
 .card {
-    background: rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    padding: 10px;
+    padding: 15px 20px 15px 15px;
     width: 23%;
     min-height: 160px;
     text-align: left;
     position: relative;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     content: "";
     display: table;
     clear: both;
+    background-color: transparent;
+    border: none;
+    margin-left: 5px;
 }
+
 
 .card-img {
     width: 25%;
@@ -1094,7 +1247,7 @@ p.vnb_focus span:first-child {
 
 .card h3 {
     color: #ffb74d;
-    font-size: 1rem;
+    font-size: 0.8rem;
     margin-bottom: 10px;
 }
 
@@ -1126,15 +1279,114 @@ p.vnb_focus span:first-child {
     background: #ff9800;
 }
 
+.mobile-cards {
+    display: none;
+}
+
 @media (max-width: 768px) {
+    .desktop-cards {
+        display: none;
+    }
+
+    .mobile-cards {
+        display: block;
+        padding: 20px 15px;
+    }
+
     .cards {
-        flex-direction: column;
-        align-items: center;
+        display: flex !important;
+        /* force flex on mobile */
+        flex-wrap: nowrap;
+        /* prevent wrapping */
+        overflow-x: scroll;
+        /* horizontal scroll */
+        scroll-snap-type: x mandatory;
+        /* snap effect */
+        -webkit-overflow-scrolling: touch;
+        /* smooth scrolling */
+        gap: 16px;
+        padding: 20px 10px;
+        justify-content: left;
+        padding-bottom: 85px;
     }
 
     .card {
-        width: 90%;
+        flex: 0 0 100%;
+        /* each card ~100% of screen */
+        max-width: 100%;
+        scroll-snap-align: center;
+        /* snap to center */
+        background: rgb(255 255 255 / 32%);
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+        padding: 10px;
     }
+
+    .card-img {
+        display: flex;
+        justify-content: center;
+        /* horizontally center */
+        align-items: center;
+        /* vertically center */
+        height: 150px;
+        /* fixed height for image area (adjust as needed) */
+    }
+
+    .card-img img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        /* scale image properly */
+    }
+
+    .card-text {
+        padding: 15px;
+    }
+
+    /* Hide scrollbar for cleaner look */
+    .cards::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cards {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* .mobile-cards .cards {
+        display: -webkit-inline-box;
+        overflow-x: hidden;
+        scroll-snap-type: x mandatory;
+        gap: 1rem;
+        padding: 1rem 1rem;
+        scrollbar-width: none;
+        max-width: 100%;
+    }
+
+    .mobile-cards .cards::-webkit-scrollbar {
+        display: none;
+    }
+
+    .mobile-cards .card {
+        min-width: 65vw;
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+        background: rgb(255 255 255 / 32%);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin: 0 auto;
+    }
+
+    .mobile-cards .card-img img {
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        display: block;
+    }
+
+    .mobile-cards .card-text {
+        padding: 1rem;
+    } */
 }
 
 .people-mosiac {
@@ -1148,7 +1400,14 @@ p.vnb_focus span:first-child {
     position: absolute;
     width: 82.90%;
     z-index: 10000;
-    top: 1276px;
+    top: 1231px;
+}
+
+@media (max-width: 768px) {
+    .people-mosiac {
+        display: none;
+    }
+}
 }
 
 .people-mosiac img {}
