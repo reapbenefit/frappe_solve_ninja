@@ -13,7 +13,9 @@ def get_user_profile(username=None):
 
 	user_detail = frappe._dict()
 	user_detail.current_user = user
+	user_detail.current_user.is_verified = True if frappe.db.exists("User Review", {"user": user.name, "status": "Accepted"}) else False
 	user_detail.current_user.profile_url = f"{frappe.utils.get_url()}/user-profile/{user.username}"
+	user_detail.current_user.user_image = f"{frappe.utils.get_url()}{user.user_image}" if user.user_image else None
 	
 	user_detail.ninja_profile, user_detail.user_metadata = get_user_related_docs(user.name)
 	user_detail.current_user.is_logged_in, user_detail.current_user.is_system_manager = get_user_flags(user)
@@ -71,7 +73,6 @@ def get_user_actions(user_name):
 
 	highlighted = {'title': '', 'description': ''}
 	for action in actions:
-		action.creation = pretty_date(action.creation)
 		action.review_exists = frappe.db.exists("Events Review", {"events": action.event_id, "status": "Accepted"})
 		if action.review_exists:
 			action.review = frappe.get_doc("Events Review", action.review_exists)
