@@ -98,7 +98,10 @@ def get_ninjas(verified=False, page_length=None, start=0):
 	result = query.run(as_dict=True)
 	
 	for row in result:
-		row.user_profile = frappe.utils.get_url(f"/user-profile/{row.username}")
+		if frappe.conf.get("cmp_base_url"):
+			row.user_profile = f"{frappe.conf.get('cmp_base_url')}/user-profile/{row.username}"
+		else:
+			row.user_profile = frappe.utils.get_url(f"/user-profile/{row.username}")
 	return result
 
 def get_user_badges(user, badge_type=None):
