@@ -4,12 +4,11 @@ import threading
 from frappe.utils import logger
 import httpx
 
-flow_id = '31577'
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 
 @frappe.whitelist(allow_guest=True)
-def initialize_chat(user_mobile_no,user_msg,contact_id):    
+def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):    
     user_email = str(user_mobile_no)+'@solveninja.org'
     
     url = "https://cmp-api.solveninja.org/actions"
@@ -26,7 +25,7 @@ def initialize_chat(user_mobile_no,user_msg,contact_id):
     }
 
 @frappe.whitelist(allow_guest=True)
-def continue_chat(action_uuid,last_user_message,contact_id):
+def continue_chat(action_uuid,last_user_message,contact_id,flow_id):
     url = "https://cmp-api.solveninja.org/ai/basic_action_chat"
     payload = {
         "action_uuid": action_uuid,
@@ -41,10 +40,10 @@ def continue_chat(action_uuid,last_user_message,contact_id):
     }
     
 @frappe.whitelist(allow_guest=True)
-def extract_action_metadata(action_uuid,contact_id):
+def extract_action_metadata(action_uuid,contact_id,flow_id):
     url = "https://cmp-api.solveninja.org/ai/extract_action_metadata?action_uuid="+action_uuid
 
-    run_async_get_call_with_callback(url,paramters={"contact_id": contact_id,"flow_id": flow_id})
+    run_async_post_call_with_callback({},url,paramters={"contact_id": contact_id,"flow_id": flow_id})
     
     return {
         "status": "success",
