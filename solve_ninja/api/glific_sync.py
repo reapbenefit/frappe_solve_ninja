@@ -131,41 +131,9 @@ def sync_metadata_from_bigquery():
 
             ninja_profile_doc = frappe.get_doc("Ninja Profile", profiles[0]["name"])
             ninja_profile_doc.last_active_date_bot = last_active_date
-            ninja_profile_doc.wa_id = whatsapp_id
+            if ninja_profile_doc.wa_id is None:
+                ninja_profile_doc.wa_id = whatsapp_id
             ninja_profile_doc.save(ignore_permissions=True)
-
-
-            """ try:
-                user_doc = frappe.get_doc("User",email )
-            except Exception as e:
-                not_found += 1
-                continue
-            if preferred_name is not None and preferred_name.strip() != "":
-                user_doc.first_name = preferred_name.strip()[:140]
-
-            if gender is not None and gender.strip() != "":
-                gender_exists = frappe.get_all('Gender', filters={'gender': gender})
-                if not gender_exists:
-                    frappe.get_doc({
-                        'doctype': 'Gender',
-                        'gender': gender
-                    }).insert(ignore_permissions=True)
-                user_doc.gender = gender
-
-            if language is not None and language.strip() != "":
-                user_doc.language = get_language_code(language)
-
-            user_doc.save(ignore_permissions=True) """
-
-            """ user_metadata_doc = frappe.get_doc("User Metadata",email )
-            if pincode is not None:
-                user_metadata_doc.pincode = pincode
-            
-
-            if year_of_birth is not None:
-                user_metadata_doc.year_of_birth = int(year_of_birth)
-
-            user_metadata_doc.save(ignore_permissions=True) """
 
             frappe.db.commit()
 
