@@ -191,3 +191,57 @@ def get_contributions():
 		error = True
 
 	return custom_response(message, data, status_code, error)
+
+@frappe.whitelist()
+def get_ninja_profile():
+    """
+    Public API to get ninja profile details based on mobile number.
+    Expects JSON with mobile field or GET parameter ?mobile=<number>
+    Returns only Ninja Profile doctype data.
+    """
+    message = "Ninja profile fetched successfully"
+    status_code = 200
+    error = False
+    data = {}
+
+    try:
+        # Handle both POST (JSON) and GET requests
+        mobile_no = None
+        if frappe.request.method == "POST" and frappe.request.data:
+            request_data = json.loads(frappe.request.data)
+            mobile_no = request_data.get("mobile")
+        else:
+            mobile_no = frappe.form_dict.get("mobile")
+
+        if not mobile_no:
+            raise ValueError("Mobile number is mandatory")
+
+        # Validate and normalize mobile number
+        mobile_no = validate_and_normalize_mobile(mobile_no)
+        user_email = f"{mobile_no}@solveninja.org"
+
+        # Check if user exists
+        if not frappe.db.exists("User", {"mobile_no": mobile_no}):
+            raise ValueError(f"User not found with mobile number {mobile_no}")
+
+        # Get Ninja Profile data
+        if frappe.db.exists("Ninja Profile", user_email):
+            ninja_profile = frappe.get_doc("Ninja Profile", user_email)
+            data = ninja_profile.as_dict()
+            # Remove system fields that are not needed
+            for field in ['docstatus', 'idx', 'owner', 'modified_by', 'doctype', 'creation', 'modified']:
+                data.pop(field, None)
+        else:
+            raise ValueError("Ninja Profile not found for this user")
+
+        return custom_response(message, data, status_code, error)
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Get Ninja Profile Error")
+
+        message = str(e)
+        status_code = 500
+        error = True
+        data = {}
+
+    return custom_response(message, data, status_code, error)
