@@ -245,3 +245,38 @@ def get_ninja_profile():
         data = {}
 
     return custom_response(message, data, status_code, error)
+
+def update_user_creation_field(mobile_no, creation_date_time):
+    try:
+      
+        # Validate and normalize mobile number
+        mobile_no = validate_and_normalize_mobile(mobile_no)
+        user_email = f"{mobile_no}@solveninja.org"
+
+        # Check if user exists
+        if not frappe.db.exists("User", {"mobile_no": mobile_no}):
+            raise ValueError(f"User not found with mobile number {mobile_no}")
+        
+        # Validate and format datetime
+        try:
+            # Parse to datetime object for validation
+            parsed_datetime = frappe.utils.get_datetime(creation_date_time)
+            # Convert back to properly formatted string
+            formatted_creation = frappe.utils.get_datetime_str(parsed_datetime)
+        except (ValueError, TypeError):
+            raise ValueError("Invalid datetime format. Expected format: YYYY-MM-DD HH:MM:SS")
+        
+        # Update creation field directly in database
+        frappe.db.set_value(
+            "User", 
+            user_email, 
+            "creation", 
+            formatted_creation
+        )
+        frappe.db.commit()
+
+        return True
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Update User Creation Field Error")
+        raise e

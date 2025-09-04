@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from frappe.utils import get_datetime
 import time
 import psutil
+from solve_ninja.api.user import update_user_creation_field
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -165,3 +166,65 @@ def sync_metadata_from_bigquery():
         logger.error(f"❌ Error in BigQuery sync: {e}")
 
     logger.info(f"🎯 Completed sync — ✅ Updated: {updated} | ❌ Not found: {not_found}")
+
+
+def sync_user_creation_from_bigquery():
+    logger.info("🔄 sync_user_creation_from_bigquery started")
+
+    credentials_path = frappe.conf.get("google_credentials_path")
+    if not credentials_path:
+        frappe.log_error("❌ google_credentials_path missing in site_config.json")
+        logger.error("❌ google_credentials_path missing in site_config.json")
+        return
+
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+    updated = 0
+    not_found = 0
+
+    query = """
+       select phone,inserted_at from `glific-301906.918095500118.contacts`
+    """
+
+    try:
+        client = bigquery.Client()
+        results = client.query(query, job_config=None).result()
+        updates = [(row["phone"], row["inserted_at"]) for row in results]
+
+        logger.info(f"✅ Total rows from BigQuery: {len(updates)}")
+
+        total = len(updates)
+        next_log_percent = 10
+        start_time = time.time()
+        process = psutil.Process()
+
+        for i, (phone, inserted_at) in enumerate(updates, start=1):
+            
+            try:
+                update_user_creation_field(phone, inserted_at)
+                updated += 1
+            except Exception as e:
+                not_found += 1
+                continue
+            
+            
+            percent_complete = int((i / total) * 100)
+            if percent_complete >= next_log_percent:
+                elapsed = time.time() - start_time
+                avg_time = elapsed / i
+                eta = int((total - i) * avg_time)
+                mem_mb = process.memory_info().rss / 1024 / 1024
+
+                logger.info(
+                    f"📊 {percent_complete}% complete ({i}/{total}) | "
+                    f"⏱️ ETA: {eta // 60}m {eta % 60}s | "
+                    f"🧠 Mem: {mem_mb:.1f}MB"
+                )
+                next_log_percent += 10
+    except Exception as e:
+        frappe.log_error(
+            title="Error in sync_user_creation_from_bigquery",
+            message=traceback.format_exc()
+        )
+        logger.error(f"❌ Error in BigQuery sync: {e}")
+
+    logger.info(f"🎯 Completed sync — ✅ Updated: {updated} | ❌ Not updated: {not_found}")
