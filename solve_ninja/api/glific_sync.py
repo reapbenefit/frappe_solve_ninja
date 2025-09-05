@@ -167,14 +167,20 @@ def sync_metadata_from_bigquery():
 
     logger.info(f"🎯 Completed sync — ✅ Updated: {updated} | ❌ Not found: {not_found}")
 
+def initiate_sync_user_creation_from_bigquery():
+    frappe.enqueue(
+    "solve_ninja.api.glific_sync.sync_user_creation_from_bigquery",
+    queue="long",
+    timeout=60 * 60 * 12  # 12 hours
+)
+
 
 def sync_user_creation_from_bigquery():
-    logger.info("🔄 sync_user_creation_from_bigquery started")
+    frappe.logger().info("🔄 sync_user_creation_from_bigquery started")
 
     credentials_path = frappe.conf.get("google_credentials_path")
     if not credentials_path:
         frappe.log_error("❌ google_credentials_path missing in site_config.json")
-        logger.error("❌ google_credentials_path missing in site_config.json")
         return
 
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
@@ -182,7 +188,7 @@ def sync_user_creation_from_bigquery():
     not_found = 0
 
     query = """
-       select phone,inserted_at from `glific-301906.918095500118.contacts`
+       select distinct phone,inserted_at from `glific-301906.918095500118.contacts`
     """
 
     try:
@@ -190,7 +196,7 @@ def sync_user_creation_from_bigquery():
         results = client.query(query, job_config=None).result()
         updates = [(row["phone"], row["inserted_at"]) for row in results]
 
-        logger.info(f"✅ Total rows from BigQuery: {len(updates)}")
+        frappe.logger().info(f"✅ Total rows from BigQuery: {len(updates)}")
 
         total = len(updates)
         next_log_percent = 10
@@ -214,7 +220,7 @@ def sync_user_creation_from_bigquery():
                 eta = int((total - i) * avg_time)
                 mem_mb = process.memory_info().rss / 1024 / 1024
 
-                logger.info(
+                frappe.logger().info(
                     f"📊 {percent_complete}% complete ({i}/{total}) | "
                     f"⏱️ ETA: {eta // 60}m {eta % 60}s | "
                     f"🧠 Mem: {mem_mb:.1f}MB"
@@ -225,6 +231,6 @@ def sync_user_creation_from_bigquery():
             title="Error in sync_user_creation_from_bigquery",
             message=traceback.format_exc()
         )
-        logger.error(f"❌ Error in BigQuery sync: {e}")
+        frappe.logger().info(f"❌ Error in BigQuery sync: {e}")
 
-    logger.info(f"🎯 Completed sync — ✅ Updated: {updated} | ❌ Not updated: {not_found}")
+    frappe.logger().info(f"🎯 Completed sync — ✅ Updated: {updated} | ❌ Not updated: {not_found}")
