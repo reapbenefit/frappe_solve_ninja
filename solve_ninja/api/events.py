@@ -53,7 +53,7 @@ def submit_event_review(action):
     review.save()
     return action
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def create_events():
     try:
         try:
@@ -78,6 +78,52 @@ def create_events():
             doc.update(data)
             doc.flags.ignore_permissions = True
             doc.save()
+
+            # Handle skills updates for PUT requests
+            skills_ = []
+            if skills is not None and doc.user and frappe.db.exists("User", doc.user):
+                if isinstance(skills, dict):
+                    # Get existing skills for this event
+                    existing_skills = frappe.get_all("Energy Point Log", filters={
+                        "user": doc.user,
+                        "reference_doctype": "Events",
+                        "reference_name": doc.name
+                    }, fields=["name", "badge"])
+                    
+                    existing_badges = {skill.badge: skill.name for skill in existing_skills}
+                    
+                    # Process skills from request
+                    for badge, reason in skills.items():
+                        if badge in existing_badges:
+                            # Update existing skill provision
+                            energy_log = frappe.get_doc("Energy Point Log", existing_badges[badge])
+                            energy_log.reason = reason
+                            energy_log.flags.ignore_permissions = True
+                            energy_log.save()
+                            existing_badges.pop(badge)  # Remove from list to track processed
+                        else:
+                            # Create new skill provision
+                            energy_log = frappe.new_doc("Energy Point Log")
+                            energy_log.update({
+                                "user": doc.user,
+                                "type": "Auto",
+                                "points": 100,
+                                "rule": badge,
+                                "reason": reason,
+                                "reference_doctype": "Events",
+                                "reference_name": doc.name,
+                                "badge": badge,
+                                "reverted": 0,
+                                "seen": 0
+                            })
+                            energy_log.flags.ignore_permissions = True
+                            energy_log.insert()
+                        
+                        skills_.append(energy_log)
+                    
+                    # Remove skills that are no longer in the request
+                    for remaining_badge, skill_name in existing_badges.items():
+                        frappe.delete_doc("Energy Point Log", skill_name, ignore_permissions=True)
 
         elif method == "POST":
             doc = frappe.get_doc(data)
@@ -110,7 +156,7 @@ def create_events():
         frappe.db.commit()
 
         result = doc.as_dict()
-        result["skills"] = [log.as_dict() for log in skills_] if method == "POST" and skills_ else []
+        result["skills"] = [log.as_dict() for log in skills_] if skills_ else []
 
         return custom_response(message=result)
 
