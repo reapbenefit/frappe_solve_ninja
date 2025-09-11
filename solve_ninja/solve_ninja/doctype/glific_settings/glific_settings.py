@@ -49,14 +49,16 @@ class GlificSettings(Document):
             headers["Authorization"] = f"{token}"
         return headers
 
-    def _post(self, url, payload, headers, timeout=15):
+    def _post(self, url, payload, headers, timeout=15, log_retry_error=False):
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=timeout)
             if response.status_code == 401:
-                frappe.log_error(f"Glific 401 Unauthorized: {response.text}", f"Glific API Error ({url})")
+                if log_retry_error:
+                    frappe.log_error(f"Glific 401 Unauthorized during retry: {response.text}", f"Glific API Retry Error ({url})")
                 return {"error": "Unauthorized (401): Invalid credentials or token. Please re-authenticate.", "status_code": 401}
             if response.status_code == 403:
-                frappe.log_error(f"Glific 403 Forbidden: {response.text}", f"Glific API Error ({url})")
+                if log_retry_error:
+                    frappe.log_error(f"Glific 403 Forbidden during retry: {response.text}", f"Glific API Retry Error ({url})")
                 return {"error": "Forbidden (403): Access denied. Please check your permissions.", "status_code": 403}
             response.raise_for_status()
             return response.json()
@@ -86,7 +88,7 @@ class GlificSettings(Document):
             refresh_result = self._refresh_token()
             if refresh_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers)
+                response_data = self._post(url, payload, headers, log_retry_error=True)
                 if response_data.get("status_code") != 401:
                     return response_data
 
@@ -94,7 +96,7 @@ class GlificSettings(Document):
             login_result = self._get_glific_session()
             if login_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers)
+                response_data = self._post(url, payload, headers, log_retry_error=True)
                 if response_data.get("status_code") != 401:
                     return response_data
 
@@ -251,23 +253,21 @@ class GlificSettings(Document):
         """
         url = self._make_api_url("/api")
         headers = self._get_headers(token=self.access_token)
-        # logger.info(f"Making GraphQL POST to {url} with payload: {json.dumps(payload)}")
-        # logger.info(f"Using headers: {json.dumps(headers)}")
-        # logger.info(f"Payload: {payload}")
+
         response_data = self._post(url, payload, headers)
 
         if response_data.get("status_code") == 401 and retry:
             refresh_result = self._refresh_token()
             if refresh_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers)
+                response_data = self._post(url, payload, headers, log_retry_error=True)
                 if response_data.get("status_code") != 401:
                     return response_data
 
             login_result = self._get_glific_session()
             if login_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers)
+                response_data = self._post(url, payload, headers, log_retry_error=True)
                 if response_data.get("status_code") != 401:
                     return response_data
 
