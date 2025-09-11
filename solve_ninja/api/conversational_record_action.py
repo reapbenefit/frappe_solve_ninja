@@ -54,6 +54,8 @@ def extract_action_metadata(action_uuid,contact_id,flow_id):
 def run_async_post_call_with_callback(payload, url, paramters=None):
     frappe.enqueue(
         "solve_ninja.api.conversational_record_action.async_post_job",
+        queue='short',
+        job_priority='high',
         payload=payload,
         url=url,
         paramters=paramters
@@ -62,11 +64,13 @@ def run_async_post_call_with_callback(payload, url, paramters=None):
 def run_async_get_call_with_callback(url, paramters=None):
     frappe.enqueue(
         "solve_ninja.api.conversational_record_action.async_get_job",
+        queue='short',
+        job_priority='high',
         url=url,
         paramters=paramters
     )
 
-def async_post_job(payload, url, paramters=None):
+def async_post_job(payload, url, paramters=None, **kwargs):
 
     headers = {"Content-Type": "application/json"}
     with httpx.Client(timeout=20.0) as client:
@@ -78,7 +82,7 @@ def async_post_job(payload, url, paramters=None):
 
     resume_flow(result, **(paramters or {}))
 
-def async_get_job(url, paramters=None):
+def async_get_job(url, paramters=None, **kwargs):
 
     headers = {"Content-Type": "application/json"}
     with httpx.Client(timeout=20.0) as client:
