@@ -118,12 +118,18 @@ def get_user_badges(user_name):
 
 
 def get_user_reviews(user_name):
-	return frappe.get_all(
-		"User Review",
-		filters={"user": user_name, "status": "Accepted"},
-		fields=["review_title", "reviewer_name", "desigantion", "comment", "organisation"]
-	)
+    reviews = frappe.get_all(
+        "User Review",
+        filters={"user": user_name, "status": "Accepted"},
+        fields=["review_title", "reviewer_name", "desigantion", "comment", "organisation"]
+    )
 
+    # Replace empty/None values with "Not Available"
+    for review in reviews:
+        for field in review:
+            if not review[field]:
+                review[field] = "Not Available"
+    return reviews
 
 def get_user_superheroes(user_name):
 	categories = frappe.db.sql("""

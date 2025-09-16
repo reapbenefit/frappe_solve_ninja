@@ -19,8 +19,8 @@
  "list_columns": [],
  "login_required": 1,
  "max_attachment_size": 0,
- "modified": "2025-07-01 02:35:56.708442",
- "modified_by": "Administrator",
+ "modified": "2025-09-16 13:39:51.895934",
+ "modified_by": "ankit@solveninja.org",
  "module": "Solve Ninja",
  "name": "expert-recommendation",
  "owner": "hello@anupamvs.dev",
@@ -34,6 +34,18 @@
  "web_form_fields": [
   {
    "allow_read_on_all_link_options": 0,
+   "fieldname": "review_title",
+   "fieldtype": "Data",
+   "hidden": 0,
+   "label": "Review Title",
+   "max_length": 0,
+   "max_value": 0,
+   "read_only": 0,
+   "reqd": 1,
+   "show_in_filter": 0
+  },
+  {
+   "allow_read_on_all_link_options": 0,
    "fieldname": "reviewer_name",
    "fieldtype": "Data",
    "hidden": 0,
@@ -41,7 +53,7 @@
    "max_length": 0,
    "max_value": 0,
    "read_only": 0,
-   "reqd": 0,
+   "reqd": 1,
    "show_in_filter": 0
   },
   {
@@ -53,7 +65,7 @@
    "max_length": 0,
    "max_value": 0,
    "read_only": 0,
-   "reqd": 0,
+   "reqd": 1,
    "show_in_filter": 0
   },
   {
@@ -65,7 +77,7 @@
    "max_length": 0,
    "max_value": 0,
    "read_only": 0,
-   "reqd": 0,
+   "reqd": 1,
    "show_in_filter": 0
   },
   {
