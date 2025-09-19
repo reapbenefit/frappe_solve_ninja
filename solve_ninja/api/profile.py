@@ -82,10 +82,15 @@ def get_user_actions(user_name):
 	return actions, highlighted
 
 def get_skill_assignment_log(user):
-	return frappe.get_all("Energy Point Log",
+	skill_assignment_logs = frappe.get_all("Energy Point Log",
 		filters={"user": user, "type": "Auto", "reverted": 0, "reference_doctype": "Events"},
-		fields=["name", "points", "reason", "reference_doctype","reference_name", "badge", "creation"])
+		fields=["name", "points", "reason", "reference_doctype","reference_name", "badge", "microskill", "microskill", "creation"])
 	
+	for skill_assignment_log in skill_assignment_logs:
+		if skill_assignment_log.microskill:
+			skill_assignment_log.microskill = frappe.db.get_value("Microskill", skill_assignment_log.microskill, ["title", "level", "description"], as_dict=1)
+	
+	return skill_assignment_logs
 
 def get_user_badges(user_name):
 	user_badges = frappe.db.get_all(

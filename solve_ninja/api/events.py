@@ -79,51 +79,81 @@ def create_events():
             doc.flags.ignore_permissions = True
             doc.save()
 
-            # Handle skills updates for PUT requests
+            # Handle Energy Point Logs update/delete for PUT
             skills_ = []
-            if skills is not None and doc.user and frappe.db.exists("User", doc.user):
-                if isinstance(skills, dict):
-                    # Get existing skills for this event
-                    existing_skills = frappe.get_all("Energy Point Log", filters={
-                        "user": doc.user,
+            if skills and isinstance(skills, list) and doc.user and frappe.db.exists("User", doc.user):
+                # Get existing energy point logs for this event
+                existing_logs = frappe.get_all("Energy Point Log", 
+                    filters={
                         "reference_doctype": "Events",
-                        "reference_name": doc.name
-                    }, fields=["name", "badge"])
-                    
-                    existing_badges = {skill.badge: skill.name for skill in existing_skills}
-                    
-                    # Process skills from request
-                    for badge, reason in skills.items():
-                        if badge in existing_badges:
-                            # Update existing skill provision
-                            energy_log = frappe.get_doc("Energy Point Log", existing_badges[badge])
-                            energy_log.reason = reason
+                        "reference_name": doc.name,
+                        "user": doc.user
+                    },
+                    fields=["name", "badge", "microskill"]
+                )
+                
+                # Create a set of existing badges for quick lookup
+                existing_badges = {log.badge for log in existing_logs}
+                
+                # Process new skills
+                new_badges = set()
+                for skill in skills:
+                    label = skill.get("label", "")
+                    summary = skill.get("summary", "")
+                    microskill = None
+                    if skill.get("level") and label:
+                        microskill = frappe.db.get_value("Microskill", {"level": skill.get("level"), "badge": label})
+                    if label:  # Only process if label exists
+                        new_badges.add(label)
+                        
+                        # Check if this badge already exists
+                        existing_log = next((log for log in existing_logs if log.badge == label), None)
+                        
+                        if existing_log:
+                            # Update existing log
+                            energy_log = frappe.get_doc("Energy Point Log", existing_log.name)
+                            energy_log.update({
+                                "reason": summary,
+                                "microskill": microskill
+                            })
                             energy_log.flags.ignore_permissions = True
                             energy_log.save()
-                            existing_badges.pop(badge)  # Remove from list to track processed
+                            skills_.append(energy_log)
                         else:
-                            # Create new skill provision
+                            # Create new log
                             energy_log = frappe.new_doc("Energy Point Log")
                             energy_log.update({
                                 "user": doc.user,
                                 "type": "Auto",
                                 "points": 100,
-                                "rule": badge,
-                                "reason": reason,
+                                "rule": label,
+                                "reason": summary,
                                 "reference_doctype": "Events",
                                 "reference_name": doc.name,
-                                "badge": badge,
+                                "badge": label,
+                                "microskill": microskill,
                                 "reverted": 0,
                                 "seen": 0
                             })
                             energy_log.flags.ignore_permissions = True
                             energy_log.insert()
-                        
-                        skills_.append(energy_log)
+                            skills_.append(energy_log)
+                
+                # Delete logs that are no longer in the new skills list
+                badges_to_delete = existing_badges - new_badges
+                for badge_to_delete in badges_to_delete:
+                    logs_to_delete = frappe.get_all("Energy Point Log",
+                        filters={
+                            "reference_doctype": "Events",
+                            "reference_name": doc.name,
+                            "user": doc.user,
+                            "badge": badge_to_delete
+                        },
+                        fields=["name"]
+                    )
                     
-                    # Remove skills that are no longer in the request
-                    for remaining_badge, skill_name in existing_badges.items():
-                        frappe.delete_doc("Energy Point Log", skill_name, ignore_permissions=True)
+                    for log_to_delete in logs_to_delete:
+                        frappe.delete_doc("Energy Point Log", log_to_delete.name, ignore_permissions=True)
 
         elif method == "POST":
             doc = frappe.get_doc(data)
@@ -132,18 +162,26 @@ def create_events():
 
             # Only create Energy Point Logs on POST
             skills_ = []
-            if skills and isinstance(skills, dict) and doc.user and frappe.db.exists("User", doc.user):
-                for badge, reason in skills.items():
+            if skills and isinstance(skills, list) and doc.user and frappe.db.exists("User", doc.user):
+                for skill in skills:
+                    # Extract skill data with new format
+                    label = skill.get("label", "")
+                    summary = skill.get("summary", "")
+                    microskill = None
+                    if skill.get("level") and label:
+                        microskill = frappe.db.get_value("Microskill", {"level": skill.get("level"), "badge": label})
+                    
                     energy_log = frappe.new_doc("Energy Point Log")
                     energy_log.update({
                         "user": doc.user,
                         "type": "Auto",
                         "points": 100,
-                        "rule": badge,
-                        "reason": reason,
+                        "rule": label,  # badge -> label
+                        "reason": summary,  # reason -> summary
                         "reference_doctype": "Events",
                         "reference_name": doc.name,
-                        "badge": badge,
+                        "badge": label,  # badge -> label
+                        "microskill": microskill,  # updated field
                         "reverted": 0,
                         "seen": 0
                     })
