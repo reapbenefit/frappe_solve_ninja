@@ -26,7 +26,8 @@ frappe.ready(function() {
 
 var get_form_data = function() {
 	let reviewer_name = $("input[data-fieldname='reviewer_name']").val()
-	let desigantion = $("input[data-fieldname='desigantion']").val()
+	let designation = $("input[data-fieldname='designation']").val()
+	let review_title = $("input[data-fieldname='review_title']").val()
 	let organisation = $("input[data-fieldname='organisation']").val()
 	let email = $("input[data-fieldname='email']").val()
 	let status = $("select[data-fieldname='status']").val()
@@ -35,7 +36,8 @@ var get_form_data = function() {
 		"review": user_review,
 		"reviewer_name": reviewer_name,
 		"organisation": organisation,
-		"desigantion": desigantion,
+		"designation": designation,
+		"review_title": review_title,
 		"email": email,
 		"status": status,
 		"comment": comment,
