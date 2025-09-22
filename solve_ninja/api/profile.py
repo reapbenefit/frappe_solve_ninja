@@ -157,3 +157,55 @@ def get_user_superheroes(user_name):
 			})
 
 	return superheroes
+
+
+@frappe.whitelist()
+def update_user_summary(username, summary):
+	"""
+	Update the summary field in User Metadata for a given user.
+	
+	Args:
+		username (str): Username or email of the user
+		summary (str): Summary text to update
+	
+	Returns:
+		dict: Success response with updated summary
+	"""
+	try:
+		# Validate input parameters
+		if not username:
+			frappe.throw(_("Username is required"))
+		
+		if not summary:
+			frappe.throw(_("Summary is required"))
+		
+		# Load user to validate existence and permissions
+		user = load_user(username)
+		
+		# Get or create User Metadata
+		if frappe.db.exists("User Metadata", user.name):
+			user_metadata = frappe.get_doc("User Metadata", user.name)
+		else:
+			user_metadata = frappe.get_doc({
+				"doctype": "User Metadata",
+				"user": user.name
+			})
+		
+		# Update summary
+		user_metadata.summary = summary
+		user_metadata.save(ignore_permissions=True)
+		
+		return {
+			"success": True,
+			"message": _("Summary updated successfully"),
+			"summary": summary,
+			"user": user.name
+		}
+		
+	except frappe.DoesNotExistError:
+		frappe.throw(_("User not found"))
+	except frappe.PermissionError:
+		frappe.throw(_("Permission denied"))
+	except Exception as e:
+		frappe.log_error(f"Error updating user summary: {str(e)}")
+		frappe.throw(_("An error occurred while updating the summary"))
