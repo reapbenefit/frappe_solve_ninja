@@ -24,9 +24,10 @@ login.bind_events = function () {
 			return false;
 		}
 		
-		// Validate mobile number format (basic validation)
-		if (!/^[0-9]{10}$/.test(mobile.replace(/[^0-9]/g, ''))) {
-			frappe.msgprint("Please enter a valid 10-digit mobile number");
+		// Validate mobile number format (10 or 12 digits)
+		var cleanMobile = mobile.replace(/[^0-9]/g, '');
+		if (!/^[0-9]{10}$/.test(cleanMobile) && !/^[0-9]{12}$/.test(cleanMobile)) {
+			frappe.msgprint("Please enter a valid 10 or 12-digit mobile number");
 			return false;
 		}
 		
@@ -90,8 +91,8 @@ login.bind_events = function () {
 	// Auto-format mobile number input - using document delegation
 	$(document).on("input", "#login_mobile", function () {
 		var value = this.value.replace(/[^0-9]/g, '');
-		if (value.length > 10) {
-			value = value.substring(0, 10);
+		if (value.length > 12) {
+			value = value.substring(0, 12);
 		}
 		this.value = value;
 	});

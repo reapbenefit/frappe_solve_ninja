@@ -10,6 +10,8 @@ def get_context(context):
 	username = frappe.form_dict.username or frappe.local.form_dict.get("username")
 	
 	if frappe.conf.get("cmp_base_url"):
+		if not username or username in ["me", "Guest"]:
+			username = frappe.db.get_value("User", frappe.session.user, "username")
 		frappe.local.response["type"] = "redirect"
 		frappe.local.response["location"] = f"{frappe.conf.get('cmp_base_url')}/user-profile/{username}"
 		raise frappe.Redirect

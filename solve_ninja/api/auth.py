@@ -15,14 +15,29 @@ def send_otp(mobile):
 		# Clean mobile number (remove any non-digit characters)
 		mobile = ''.join(filter(str.isdigit, mobile))
 		
-		if len(mobile) != 10:
+		# Validate mobile number length (10 or 12 digits)
+		if len(mobile) not in [10, 12]:
 			return {
 				"success": False,
-				"message": "Please enter a valid 10-digit mobile number"
+				"message": "Please enter a valid 10 or 12-digit mobile number"
 			}
 		
 		# Check if user exists with this mobile number
 		user = frappe.db.get_value("User", {"mobile_no": mobile}, ["name", "enabled"], as_dict=True)
+		
+		# If 10-digit number and no user found, try with 91 prefix
+		if not user and len(mobile) == 10:
+			mobile_with_prefix = "91" + mobile
+			user = frappe.db.get_value("User", {"mobile_no": mobile_with_prefix}, ["name", "enabled"], as_dict=True)
+			if user:
+				mobile = mobile_with_prefix  # Use the 12-digit version for consistency
+		
+		# If 12-digit number and no user found, try without country code (last 10 digits)
+		if not user and len(mobile) == 12:
+			mobile_without_prefix = mobile[-10:]  # Get last 10 digits
+			user = frappe.db.get_value("User", {"mobile_no": mobile_without_prefix}, ["name", "enabled"], as_dict=True)
+			if user:
+				mobile = mobile_without_prefix  # Use the 10-digit version for consistency
 		
 		if not user:
 			return {
@@ -80,7 +95,8 @@ def verify_otp_login(mobile, otp):
 		# Clean mobile number
 		mobile = ''.join(filter(str.isdigit, mobile))
 		
-		if len(mobile) != 10:
+		# Validate mobile number length (10 or 12 digits)
+		if len(mobile) not in [10, 12]:
 			return {
 				"success": False,
 				"message": "Invalid mobile number"
