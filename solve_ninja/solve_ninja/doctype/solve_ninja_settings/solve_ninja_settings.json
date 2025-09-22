@@ -10,6 +10,7 @@
   "whatsapp_bot_url",
   "whatsapp__glific_settings_section",
   "default_badge_template",
+  "login_otp_template",
   "channel",
   "column_break_jbyf0",
   "enable_badge_notification"
@@ -40,6 +41,11 @@
    "fieldtype": "Link",
    "label": "Default Template",
    "options": "Badge Template"
+  },
+  {
+   "fieldname": "login_otp_template_id",
+   "fieldtype": "Data",
+   "label": "Login OTP Template ID"
   },
   {
    "fieldname": "channel",

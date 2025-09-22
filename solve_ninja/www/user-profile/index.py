@@ -8,6 +8,11 @@ def get_context(context):
 	context.current_user = None
 	context.add_action_url = frappe.conf.get("add_action_url") or "/record-actions/new"
 	username = frappe.form_dict.username or frappe.local.form_dict.get("username")
+	
+	if frappe.conf.get("cmp_base_url"):
+		frappe.local.response["type"] = "redirect"
+		frappe.local.response["location"] = f"{frappe.conf.get('cmp_base_url')}/user-profile/{username}"
+		raise frappe.Redirect
 
 	try:
 		if username == "me" or not username:
