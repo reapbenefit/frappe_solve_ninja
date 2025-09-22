@@ -108,7 +108,31 @@ def verify_otp_login(mobile, otp):
 				"message": "Please enter a valid 6-digit OTP"
 			}
 		
-		# Get OTP from cache
+		# Find the correct mobile number format that was used to store OTP
+		# Check if user exists with this mobile number
+		user = frappe.db.get_value("User", {"mobile_no": mobile}, ["name", "enabled"], as_dict=True)
+		
+		# If 10-digit number and no user found, try with 91 prefix
+		if not user and len(mobile) == 10:
+			mobile_with_prefix = "91" + mobile
+			user = frappe.db.get_value("User", {"mobile_no": mobile_with_prefix}, ["name", "enabled"], as_dict=True)
+			if user:
+				mobile = mobile_with_prefix  # Use the 12-digit version for consistency
+		
+		# If 12-digit number and no user found, try without country code (last 10 digits)
+		if not user and len(mobile) == 12:
+			mobile_without_prefix = mobile[-10:]  # Get last 10 digits
+			user = frappe.db.get_value("User", {"mobile_no": mobile_without_prefix}, ["name", "enabled"], as_dict=True)
+			if user:
+				mobile = mobile_without_prefix  # Use the 10-digit version for consistency
+		
+		if not user:
+			return {
+				"success": False,
+				"message": "No account found with this mobile number"
+			}
+		
+		# Get OTP from cache using the normalized mobile number
 		cache_key = f"login_otp:{mobile}"
 		otp_data = frappe.cache().get_value(cache_key)
 		
