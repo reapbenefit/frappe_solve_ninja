@@ -41,7 +41,7 @@ def send_otp(mobile):
 		
 		# Store OTP in cache with expiry (5 minutes)
 		cache_key = f"login_otp:{mobile}"
-		frappe.cache.set_value(cache_key, {
+		frappe.cache().set_value(cache_key, {
 			"otp": otp,
 			"user": user.name,
 			"timestamp": time.time()
@@ -64,6 +64,7 @@ def send_otp(mobile):
 			}
 		
 	except Exception as e:
+		frappe.log_error(f"Error sending OTP", e)
 		return {
 			"success": False,
 			"message": "Failed to send OTP. Please try again."
@@ -93,7 +94,7 @@ def verify_otp_login(mobile, otp):
 		
 		# Get OTP from cache
 		cache_key = f"login_otp:{mobile}"
-		otp_data = frappe.cache.get_value(cache_key)
+		otp_data = frappe.cache().get_value(cache_key)
 		
 		if not otp_data:
 			return {
@@ -119,7 +120,7 @@ def verify_otp_login(mobile, otp):
 			}
 		
 		# Clear OTP from cache
-		frappe.cache.delete_value(cache_key)
+		frappe.cache().delete_value(cache_key)
 		
 		# Login the user
 		frappe.local.login_manager.user = user_name
