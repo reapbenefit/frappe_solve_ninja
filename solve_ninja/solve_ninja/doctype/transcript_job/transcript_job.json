@@ -1,0 +1,69 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-14 20:50:45.210079",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "external_service",
+  "external_job_id",
+  "status",
+  "request_json",
+  "response_json"
+ ],
+ "fields": [
+  {
+   "fieldname": "external_service",
+   "fieldtype": "Data",
+   "label": "External Service"
+  },
+  {
+   "fieldname": "external_job_id",
+   "fieldtype": "Data",
+   "label": "External Job ID"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "fieldname": "request_json",
+   "fieldtype": "Code",
+   "label": "Request JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_json",
+   "fieldtype": "Code",
+   "label": "Response JSON",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-14 20:50:56.516410",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Transcript Job",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

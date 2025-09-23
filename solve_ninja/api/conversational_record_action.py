@@ -7,8 +7,36 @@ import httpx
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 
+
 @frappe.whitelist(allow_guest=True)
-def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):    
+def transcribe_audio(audio_url,contact_id,flow_id):    
+    #logger.info(f"transcribe_audio called with audio_url: {audio_url}, contact_id: {contact_id}, flow_id: {flow_id}")
+    frappe.enqueue(
+        "solve_ninja.api.audio_transcribe.upload_and_create_sarvam_job",
+        audio_url=audio_url,
+        callback_function = "solve_ninja.api.conversational_record_action.send_audio_output",
+        callback_kwargs={"contact_id": contact_id, "flow_id": flow_id}
+    )
+    
+    return {
+        "status": "success",
+        "message": "Audio submitted successfully",
+    }
+
+
+def send_audio_output(text, contact_id,flow_id):
+    #logger.info(f"send_audio_output called with text: {text}, contact_id: {contact_id}, flow_id: {flow_id}")
+    glific_settings = frappe.get_doc("Glific Settings")
+    glific_settings.resume_glific_flow(
+        flow_id=flow_id,
+        contact_id=contact_id,
+        result=text       ,
+        
+    )
+
+
+@frappe.whitelist(allow_guest=True)
+def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):      
     user_email = str(user_mobile_no)+'@solveninja.org'
     
     url = "https://cmp-api.solveninja.org/actions"
@@ -16,7 +44,7 @@ def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):
         "user_email": user_email,
         "user_message": user_msg
     }
-
+    #logger.info(f"payload: {payload}")
     run_async_post_call_with_callback(payload, url,paramters={"contact_id": contact_id, "flow_id": flow_id})
     
     return {
@@ -51,7 +79,7 @@ def extract_action_metadata(action_uuid,contact_id,flow_id):
     }
 
 
-def run_async_post_call_with_callback(payload, url, paramters=None):
+def run_async_post_call_with_callback(payload, url, paramters):
     frappe.enqueue(
         "solve_ninja.api.conversational_record_action.async_post_job",
         queue='short',
@@ -73,6 +101,7 @@ def run_async_get_call_with_callback(url, paramters=None):
 def async_post_job(payload, url, paramters=None, **kwargs):
 
     headers = {"Content-Type": "application/json"}
+
     with httpx.Client(timeout=20.0) as client:
         response = client.post(url, json=payload, headers=headers)
         if response.status_code == 200:
@@ -82,8 +111,8 @@ def async_post_job(payload, url, paramters=None, **kwargs):
 
     resume_flow(result, **(paramters or {}))
 
-def async_get_job(url, paramters=None, **kwargs):
 
+def async_get_job(url, paramters=None, **kwargs):
     headers = {"Content-Type": "application/json"}
     with httpx.Client(timeout=20.0) as client:
         response = client.get(url, headers=headers)
@@ -101,3 +130,4 @@ def resume_flow(response, **kwargs):
     
     glific_settings = frappe.get_doc("Glific Settings")
     glific_settings.resume_glific_flow(flow_id=kwargs.get("flow_id"),contact_id=kwargs.get("contact_id"),result=response)
+
