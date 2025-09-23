@@ -170,7 +170,6 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
         frappe.enqueue(
             callback_function,
             queue='short',
-            job_priority='high',
             **callback_kwargs
         )
 
