@@ -11,7 +11,7 @@ import asyncio
 from sarvamai import AsyncSarvamAI
 
 
-SARVAM_API_KEY = "sk_5namj6hd_Yd5PzB3LBpfo6ksd1ZJMxMtE"
+SARVAM_API_KEY = frappe.conf.get("sarvam_api_key")
 
 @frappe.whitelist(allow_guest=True)
 def transcribe_audio(file_url=None):
