@@ -127,7 +127,8 @@ scheduler_events = {
 #	],
     "daily_long": [
         "solve_ninja.doc_events.events.process_manualupload_events",
-        "solve_ninja.api.leaderboard.update_user_rank"
+        "solve_ninja.api.leaderboard.update_user_rank",
+        "solve_ninja.api.glific_sync.sync_metadata_from_bigquery",
     ]
 #	"hourly": [
 #		"solve_ninja.tasks.hourly"
@@ -202,7 +203,6 @@ doc_events = {
         ],
         "after_insert": [
 			"solve_ninja.doc_events.events.after_insert",
-            "solve_ninja.doc_events.events.update_ninja_profile_hook",
             "solve_ninja.doc_events.energy_point_log.send_badge_notification_after_insert",
 		],
         "on_trash": "solve_ninja.doc_events.events.update_ninja_profile_hook",

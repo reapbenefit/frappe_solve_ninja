@@ -53,7 +53,7 @@ def submit_event_review(action):
     review.save()
     return action
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def create_events():
     try:
         try:
@@ -79,6 +79,82 @@ def create_events():
             doc.flags.ignore_permissions = True
             doc.save()
 
+            # Handle Energy Point Logs update/delete for PUT
+            skills_ = []
+            if skills and isinstance(skills, list) and doc.user and frappe.db.exists("User", doc.user):
+                # Get existing energy point logs for this event
+                existing_logs = frappe.get_all("Energy Point Log", 
+                    filters={
+                        "reference_doctype": "Events",
+                        "reference_name": doc.name,
+                        "user": doc.user
+                    },
+                    fields=["name", "badge", "microskill"]
+                )
+                
+                # Create a set of existing badges for quick lookup
+                existing_badges = {log.badge for log in existing_logs}
+                
+                # Process new skills
+                new_badges = set()
+                for skill in skills:
+                    label = skill.get("label", "")
+                    summary = skill.get("summary", "")
+                    microskill = None
+                    if skill.get("level") and label:
+                        microskill = frappe.db.get_value("Microskill", {"level": skill.get("level"), "badge": label})
+                    if label:  # Only process if label exists
+                        new_badges.add(label)
+                        
+                        # Check if this badge already exists
+                        existing_log = next((log for log in existing_logs if log.badge == label), None)
+                        
+                        if existing_log:
+                            # Update existing log
+                            energy_log = frappe.get_doc("Energy Point Log", existing_log.name)
+                            energy_log.update({
+                                "reason": summary,
+                                "microskill": microskill
+                            })
+                            energy_log.flags.ignore_permissions = True
+                            energy_log.save()
+                            skills_.append(energy_log)
+                        else:
+                            # Create new log
+                            energy_log = frappe.new_doc("Energy Point Log")
+                            energy_log.update({
+                                "user": doc.user,
+                                "type": "Auto",
+                                "points": 100,
+                                "rule": label,
+                                "reason": summary,
+                                "reference_doctype": "Events",
+                                "reference_name": doc.name,
+                                "badge": label,
+                                "microskill": microskill,
+                                "reverted": 0,
+                                "seen": 0
+                            })
+                            energy_log.flags.ignore_permissions = True
+                            energy_log.insert()
+                            skills_.append(energy_log)
+                
+                # Delete logs that are no longer in the new skills list
+                badges_to_delete = existing_badges - new_badges
+                for badge_to_delete in badges_to_delete:
+                    logs_to_delete = frappe.get_all("Energy Point Log",
+                        filters={
+                            "reference_doctype": "Events",
+                            "reference_name": doc.name,
+                            "user": doc.user,
+                            "badge": badge_to_delete
+                        },
+                        fields=["name"]
+                    )
+                    
+                    for log_to_delete in logs_to_delete:
+                        frappe.delete_doc("Energy Point Log", log_to_delete.name, ignore_permissions=True)
+
         elif method == "POST":
             doc = frappe.get_doc(data)
             doc.flags.ignore_permissions = True
@@ -86,8 +162,139 @@ def create_events():
 
             # Only create Energy Point Logs on POST
             skills_ = []
-            if skills and isinstance(skills, dict) and doc.user and frappe.db.exists("User", doc.user):
-                for badge, reason in skills.items():
+            if skills and isinstance(skills, list) and doc.user and frappe.db.exists("User", doc.user):
+                for skill in skills:
+                    # Extract skill data with new format
+                    label = skill.get("label", "")
+                    summary = skill.get("summary", "")
+                    microskill = None
+                    if skill.get("level") and label:
+                        microskill = frappe.db.get_value("Microskill", {"level": skill.get("level"), "badge": label})
+                    
+                    energy_log = frappe.new_doc("Energy Point Log")
+                    energy_log.update({
+                        "user": doc.user,
+                        "type": "Auto",
+                        "points": 100,
+                        "rule": label,  # badge -> label
+                        "reason": summary,  # reason -> summary
+                        "reference_doctype": "Events",
+                        "reference_name": doc.name,
+                        "badge": label,  # badge -> label
+                        "microskill": microskill,  # updated field
+                        "reverted": 0,
+                        "seen": 0
+                    })
+                    energy_log.flags.ignore_permissions = True
+                    energy_log.insert()
+                    skills_.append(energy_log)
+        else:
+            return custom_response(message=_("Unsupported method"), status_code=405, error=True)
+
+        frappe.db.commit()
+
+        result = doc.as_dict()
+        result["skills"] = [log.as_dict() for log in skills_] if skills_ else []
+
+        return custom_response(message=result)
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Create or Update Event Error")
+        return custom_response(
+            message="An unexpected error occurred",
+            data={"error": str(e)},
+            status_code=500,
+            error=True
+        )
+
+
+def _validate_update_request(data):
+    """
+    Validate the request data for event update.
+    
+    Args:
+        data (dict): The request data containing event information
+        
+    Returns:
+        Response or None: Returns a custom error response if validation fails,
+                         None if validation passes
+    """
+    if not data:
+        return custom_response(message=_("Missing JSON body"), status_code=400, error=True)
+    
+    event_id = data.get("event_id")
+    if not event_id:
+        return custom_response(message=_("Event ID is required for update"), status_code=400, error=True)
+        
+    if not frappe.db.exists("Events", event_id):
+        return custom_response(message=_("Event not found"), status_code=404, error=True)
+    
+    return None  # No validation errors
+
+
+def _update_event_document(event_id, data):
+    """
+    Update the event document with new data.
+    
+    Args:
+        event_id (str): The ID of the event to update
+        data (dict): The data to update the event with
+        
+    Returns:
+        Document: The updated Events document object
+    """
+    # Remove event_id from data as it's not a field in the Events doctype
+    data.pop("event_id", None)
+    data["doctype"] = "Events"
+
+    # Get the existing document and update it
+    doc = frappe.get_doc("Events", event_id)
+    doc.update(data)
+    doc.flags.ignore_permissions = True
+    doc.save()
+    
+    return doc
+
+
+def _update_event_skills(doc, skills):
+    """
+    Handle skills updates for the event.
+    
+    This method manages Energy Point Log entries (skills) associated with an event.
+    It can add new skills, update existing ones, and remove skills that are no longer
+    in the request.
+    
+    Args:
+        doc (Document): The Events document object
+        skills (dict, optional): Dictionary of skills with badge as key and reason as value
+        
+    Returns:
+        list: List of Energy Point Log document objects that were created or updated
+    """
+    skills_ = []
+    
+    if skills is not None and doc.user and frappe.db.exists("User", doc.user):
+        if isinstance(skills, dict):
+            # Get existing skills for this event
+            existing_skills = frappe.get_all("Energy Point Log", filters={
+                "user": doc.user,
+                "reference_doctype": "Events",
+                "reference_name": doc.name
+            }, fields=["name", "badge"])
+            
+            existing_badges = {skill.badge: skill.name for skill in existing_skills}
+            
+            # Process skills from request
+            for badge, reason in skills.items():
+                if badge in existing_badges:
+                    # Update existing skill provision
+                    energy_log = frappe.get_doc("Energy Point Log", existing_badges[badge])
+                    energy_log.reason = reason
+                    energy_log.flags.ignore_permissions = True
+                    energy_log.save()
+                    existing_badges.pop(badge)  # Remove from list to track processed
+                else:
+                    # Create new skill provision
                     energy_log = frappe.new_doc("Energy Point Log")
                     energy_log.update({
                         "user": doc.user,
@@ -103,19 +310,70 @@ def create_events():
                     })
                     energy_log.flags.ignore_permissions = True
                     energy_log.insert()
-                    skills_.append(energy_log)
-        else:
-            return custom_response(message=_("Unsupported method"), status_code=405, error=True)
+                
+                skills_.append(energy_log)
+            
+            # Remove skills that are no longer in the request
+            for remaining_badge, skill_name in existing_badges.items():
+                frappe.delete_doc("Energy Point Log", skill_name, ignore_permissions=True)
+    
+    return skills_
 
-        frappe.db.commit()
 
+@frappe.whitelist()
+def update_events():
+    """
+    Update an existing event via POST request.
+    
+    This API endpoint allows updating an existing event with new data including
+    event details and associated skills. The method validates the request,
+    updates the event document, manages skills (Energy Point Log entries),
+    and returns the updated event information.
+    
+    Expected JSON payload:
+        {
+            "event_id": "string",  # Required: ID of the event to update
+            "title": "string",     # Optional: Event title
+            "description": "string", # Optional: Event description
+            "location_name": "string", # Optional: Event location
+            "skills": {            # Optional: Skills dictionary
+                "skill_badge": "reason"
+            }
+        }
+    
+    Returns:
+        Response: JSON response containing the updated event data and skills,
+                 or error response if validation/update fails
+    """
+    try:
+        try:
+            data = json.loads(frappe.request.data)
+        except Exception:
+            return custom_response(message=_("Invalid JSON body"), status_code=400, error=True)
+
+        # Validate request data
+        validation_error = _validate_update_request(data)
+        if validation_error:
+            return validation_error
+
+        # Extract skills and event_id
+        skills = data.pop("skills", None)
+        event_id = data.get("event_id")
+
+        # Update the event document
+        doc = _update_event_document(event_id, data)
+
+        # Handle skills updates
+        skills_ = _update_event_skills(doc, skills)
+
+        # Prepare response
         result = doc.as_dict()
-        result["skills"] = [log.as_dict() for log in skills_] if method == "POST" and skills_ else []
+        result["skills"] = [log.as_dict() for log in skills_] if skills_ else []
 
         return custom_response(message=result)
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Create or Update Event Error")
+        frappe.log_error(frappe.get_traceback(), "Update Event Error")
         return custom_response(
             message="An unexpected error occurred",
             data={"error": str(e)},

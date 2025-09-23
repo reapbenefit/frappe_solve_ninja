@@ -2,6 +2,7 @@ import frappe
 import json
 from samaaja.api.common import custom_response
 from frappe.query_builder.functions import Count, Sum
+from solve_ninja.api.common import validate_and_normalize_mobile
 
 
 @frappe.whitelist()
@@ -142,3 +143,140 @@ def user_interested_in(user):
 		LIMIT 3""", user,as_dict=True)
 
 	return [d['category'] for d in user_event_details_category]
+
+
+@frappe.whitelist()
+def get_contributions():
+	"""
+	Public endpoint to fetch the number of events associated with a user based on their mobile number.
+	Supports GET request with ?mobile=<number>&from_date=<YYYY-MM-DD>&to_date=<YYYY-MM-DD>
+	"""
+	message = 'success'
+	data = {}
+	status_code = 200
+	error = False
+
+	try:
+		mobile_no = frappe.form_dict.get("mobile")
+		from_date = frappe.form_dict.get("from_date")
+		to_date = frappe.form_dict.get("to_date")
+
+		if not mobile_no:
+			frappe.throw("Mobile number is mandatory.")
+
+		mobile_no = validate_and_normalize_mobile(mobile_no)
+		user = f"{mobile_no}@solveninja.org"
+		
+		# Build filters with date range if provided
+		filters = {"user": user}
+		
+		if from_date:
+			filters["creation"] = [">=", from_date]
+		
+		if to_date:
+			if from_date:
+				# If both dates are provided, use between filter
+				filters["creation"] = ["between", [from_date, to_date]]
+			else:
+				# If only to_date is provided
+				filters["creation"] = ["<=", to_date]
+		
+		events = frappe.get_all("Events", filters=filters, fields=["*"])
+		data = {"action_count": len(events), "actions": events}
+
+	except Exception as e:
+		frappe.log_error(title="get_contributions failed", message=frappe.get_traceback())
+		message = str(e)
+		status_code = 500
+		error = True
+
+	return custom_response(message, data, status_code, error)
+
+@frappe.whitelist()
+def get_ninja_profile():
+    """
+    Public API to get ninja profile details based on mobile number.
+    Expects JSON with mobile field or GET parameter ?mobile=<number>
+    Returns only Ninja Profile doctype data.
+    """
+    message = "Ninja profile fetched successfully"
+    status_code = 200
+    error = False
+    data = {}
+
+    try:
+        # Handle both POST (JSON) and GET requests
+        mobile_no = None
+        if frappe.request.method == "POST" and frappe.request.data:
+            request_data = json.loads(frappe.request.data)
+            mobile_no = request_data.get("mobile")
+        else:
+            mobile_no = frappe.form_dict.get("mobile")
+
+        if not mobile_no:
+            raise ValueError("Mobile number is mandatory")
+
+        # Validate and normalize mobile number
+        mobile_no = validate_and_normalize_mobile(mobile_no)
+        user_email = f"{mobile_no}@solveninja.org"
+
+        # Check if user exists
+        if not frappe.db.exists("User", {"mobile_no": mobile_no}):
+            raise ValueError(f"User not found with mobile number {mobile_no}")
+
+        # Get Ninja Profile data
+        if frappe.db.exists("Ninja Profile", user_email):
+            ninja_profile = frappe.get_doc("Ninja Profile", user_email)
+            data = ninja_profile.as_dict()
+            # Remove system fields that are not needed
+            for field in ['docstatus', 'idx', 'owner', 'modified_by', 'doctype', 'creation', 'modified']:
+                data.pop(field, None)
+        else:
+            raise ValueError("Ninja Profile not found for this user")
+
+        return custom_response(message, data, status_code, error)
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Get Ninja Profile Error")
+
+        message = str(e)
+        status_code = 500
+        error = True
+        data = {}
+
+    return custom_response(message, data, status_code, error)
+
+def update_user_creation_field(mobile_no, creation_date_time):
+    try:
+      
+        # Validate and normalize mobile number
+        mobile_no = validate_and_normalize_mobile(mobile_no)
+        user_email = f"{mobile_no}@solveninja.org"
+
+        # Check if user exists
+        if not frappe.db.exists("User", {"mobile_no": mobile_no}):
+            raise ValueError(f"User not found with mobile number {mobile_no}")
+        
+        # Validate and format datetime
+        try:
+            # Parse to datetime object for validation
+            parsed_datetime = frappe.utils.get_datetime(creation_date_time)
+            # Convert back to properly formatted string
+            formatted_creation = frappe.utils.get_datetime_str(parsed_datetime)
+        except (ValueError, TypeError):
+            raise ValueError("Invalid datetime format. Expected format: YYYY-MM-DD HH:MM:SS")
+        
+        # Update creation field directly in database
+        frappe.db.set_value(
+            "User", 
+            user_email, 
+            "creation", 
+            formatted_creation
+        )
+        frappe.db.commit()
+
+        return True
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Update User Creation Field Error")
+        raise e

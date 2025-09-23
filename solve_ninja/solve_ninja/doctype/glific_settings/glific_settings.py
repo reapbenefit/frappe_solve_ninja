@@ -179,6 +179,60 @@ class GlificSettings(Document):
         }
         return self._api_graphql_post_with_reauth(payload)
 
+    def create_contact(self, phone, name=None):
+        """
+        Create a new contact in Glific
+        """
+        payload = {
+            "query": """
+                mutation createContact($phone: String!, $name: String) {
+                    createContact(phone: $phone, name: $name) {
+                        contact {
+                            id
+                            name
+                            phone
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "phone": phone,
+                "name": name or f"User {phone}"
+            }
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def send_whatsapp_message(self, receiver_id, message):
+        """
+        Send a regular WhatsApp message (not HSM template)
+        """
+        payload = {
+            "query": """
+                mutation sendMessage($receiverId: ID!, $message: String!) {
+                    sendMessage(receiverId: $receiverId, message: $message) {
+                        message {
+                            id
+                            body
+                            isHsm
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "receiverId": int(receiver_id),
+                "message": message
+            }
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
     def resume_glific_flow(self,flow_id,contact_id,result):
         #logger.info(f"Resuming Glific flow with flow_id: {flow_id}, contact_id: {contact_id}, result: {result}")
         payload = {
@@ -201,6 +255,41 @@ class GlificSettings(Document):
         }
         return self._api_graphql_post_with_reauth(payload)
     
+    def get_session_templates(self):
+        payload = {
+            "query": """
+                query getSessionTemplates {
+                    sessionTemplates {
+                        id
+                        label
+                        body
+                        status
+                    }
+                }
+            """
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def get_contact(self, contact_id):
+        payload = {
+            "query": """
+                query getContact($id: ID!) {
+                    contact(id: $id) {
+                        contact {
+                            id
+                            name
+                            phone
+                            status
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "id": int(contact_id)
+            }
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
     def get_contact_by_phone(self, phone):
         """
         Fetch contact details from Glific using phone number.

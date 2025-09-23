@@ -36,9 +36,7 @@ def send_audio_output(text, contact_id,flow_id):
 
 
 @frappe.whitelist(allow_guest=True)
-def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):    
-    #logger.info(f"initialize_chat called with user_mobile_no: {user_mobile_no}, user_msg: {user_msg}, contact_id: {contact_id}, flow_id: {flow_id}")
-    
+def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):      
     user_email = str(user_mobile_no)+'@solveninja.org'
     
     url = "https://cmp-api.solveninja.org/actions"
@@ -73,7 +71,7 @@ def continue_chat(action_uuid,last_user_message,contact_id,flow_id):
 def extract_action_metadata(action_uuid,contact_id,flow_id):
     url = "https://cmp-api.solveninja.org/ai/extract_action_metadata?action_uuid="+action_uuid
 
-    run_async_get_call_with_callback(url,paramters={"contact_id": contact_id,"flow_id": flow_id})
+    run_async_post_call_with_callback({},url,paramters={"contact_id": contact_id,"flow_id": flow_id})
     
     return {
         "status": "success",
@@ -84,6 +82,8 @@ def extract_action_metadata(action_uuid,contact_id,flow_id):
 def run_async_post_call_with_callback(payload, url, paramters):
     frappe.enqueue(
         "solve_ninja.api.conversational_record_action.async_post_job",
+        queue='short',
+        job_priority='high',
         payload=payload,
         url=url,
         paramters=paramters
@@ -92,11 +92,13 @@ def run_async_post_call_with_callback(payload, url, paramters):
 def run_async_get_call_with_callback(url, paramters=None):
     frappe.enqueue(
         "solve_ninja.api.conversational_record_action.async_get_job",
+        queue='short',
+        job_priority='high',
         url=url,
         paramters=paramters
     )
 
-def async_post_job(payload, url, paramters=None):
+def async_post_job(payload, url, paramters=None, **kwargs):
 
     headers = {"Content-Type": "application/json"}
 
@@ -109,7 +111,8 @@ def async_post_job(payload, url, paramters=None):
 
     resume_flow(result, **(paramters or {}))
 
-def async_get_job(url, paramters=None):
+
+def async_get_job(url, paramters=None, **kwargs):
     headers = {"Content-Type": "application/json"}
     with httpx.Client(timeout=20.0) as client:
         response = client.get(url, headers=headers)

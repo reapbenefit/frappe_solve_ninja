@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from frappe.utils import get_datetime
 import time
 import psutil
+from solve_ninja.api.user import update_user_creation_field
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -76,7 +77,7 @@ def sync_metadata_from_bigquery():
             LEFT JOIN UNNEST(c.fields) AS cf3 ON cf3.label = 'pincode'
             LEFT JOIN UNNEST(c.fields) AS cf4 ON cf4.label = 'year_of_birth'
 
-            WHERE m.flow = 'inbound'
+            WHERE m.flow = 'inbound' {filter_clause}
         ) x
         GROUP BY contact_phone
     """
@@ -86,15 +87,22 @@ def sync_metadata_from_bigquery():
         query_params = []
 
         if last_successful_run:
-            logger.info("📌 Applying filter by last_successful_run timestamp")
-            filter_clause = "AND TIMESTAMP(m.inserted_at) > @last_run"
+            logger.info("📌 Applying filter by last_successful_run datetime (IST wall-clock)")
+
+            # Drop timezone info because BigQuery DATETIME has no timezone
+            if last_successful_run.tzinfo:
+                last_successful_run = last_successful_run.replace(tzinfo=None)
+            logger.info(f"🕒 last_successful_run (Python, naive): {last_successful_run!r}")
+
+            filter_clause = "AND m.inserted_at > @last_run"
             query_params.append(
-                bigquery.ScalarQueryParameter("last_run", "TIMESTAMP", last_successful_run)
+                bigquery.ScalarQueryParameter("last_run", "DATETIME", last_successful_run)
             )
         else:
-            logger.info("⚠️ No last_successful_run timestamp found, skipping filter")
+            logger.info("⚠️ No last_successful_run datetime found, skipping filter")
 
         query = query_base.format(filter_clause=filter_clause)
+    
         job_config = bigquery.QueryJobConfig(query_parameters=query_params) if query_params else None
 
         client = bigquery.Client()
@@ -110,6 +118,7 @@ def sync_metadata_from_bigquery():
 
         for i, (contact_phone, last_active_date, whatsapp_id, preferred_name,gender,pincode,year_of_birth,language) in enumerate(updates, start=1):
             email = contact_phone + "@solveninja.org"
+           
             profiles = frappe.get_all(
                 "Ninja Profile",
                 filters={"user": email},
@@ -126,34 +135,6 @@ def sync_metadata_from_bigquery():
             if ninja_profile_doc.wa_id is None:
                 ninja_profile_doc.wa_id = whatsapp_id
             ninja_profile_doc.save(ignore_permissions=True)
-
-            """ user_doc = frappe.get_doc("User",email )
-            if preferred_name is not None and user_doc.first_name is None:
-                    user_doc.first_name = preferred_name
-            
-            if gender is not None and user_doc.gender is None and gender.strip().lower() != 'gender':
-                    gender_exists = frappe.get_all('Gender', filters={'gender': gender})
-                    if not gender_exists:
-                        frappe.get_doc({
-                            'doctype': 'Gender',
-                            'gender': gender
-                        }).insert(ignore_permissions=True)
-                    user_doc.gender = gender
-
-            if language is not None:
-                user_doc.language = get_language_code(language)
-
-            user_doc.save(ignore_permissions=True)
-
-            user_metadata_doc = frappe.get_doc("User Metadata",email )
-            if pincode is not None:
-                user_metadata_doc.pincode = pincode
-            
-
-            if year_of_birth is not None and user_metadata_doc.year_of_birth is None:
-                    user_metadata_doc.year_of_birth = int(year_of_birth)
-
-            user_metadata_doc.save(ignore_permissions=True) """
 
             frappe.db.commit()
 
@@ -185,3 +166,71 @@ def sync_metadata_from_bigquery():
         logger.error(f"❌ Error in BigQuery sync: {e}")
 
     logger.info(f"🎯 Completed sync — ✅ Updated: {updated} | ❌ Not found: {not_found}")
+
+def initiate_sync_user_creation_from_bigquery():
+    frappe.enqueue(
+    "solve_ninja.api.glific_sync.sync_user_creation_from_bigquery",
+    queue="long",
+    timeout=60 * 60 * 12  # 12 hours
+)
+
+
+def sync_user_creation_from_bigquery():
+    frappe.logger().info("🔄 sync_user_creation_from_bigquery started")
+
+    credentials_path = frappe.conf.get("google_credentials_path")
+    if not credentials_path:
+        frappe.log_error("❌ google_credentials_path missing in site_config.json")
+        return
+
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+    updated = 0
+    not_found = 0
+
+    query = """
+       select distinct phone,inserted_at from `glific-301906.918095500118.contacts`
+    """
+
+    try:
+        client = bigquery.Client()
+        results = client.query(query, job_config=None).result()
+        updates = [(row["phone"], row["inserted_at"]) for row in results]
+
+        frappe.logger().info(f"✅ Total rows from BigQuery: {len(updates)}")
+
+        total = len(updates)
+        next_log_percent = 10
+        start_time = time.time()
+        process = psutil.Process()
+
+        for i, (phone, inserted_at) in enumerate(updates, start=1):
+            
+            try:
+                update_user_creation_field(phone, inserted_at)
+                updated += 1
+            except Exception as e:
+                not_found += 1
+                continue
+            
+            
+            percent_complete = int((i / total) * 100)
+            if percent_complete >= next_log_percent:
+                elapsed = time.time() - start_time
+                avg_time = elapsed / i
+                eta = int((total - i) * avg_time)
+                mem_mb = process.memory_info().rss / 1024 / 1024
+
+                frappe.logger().info(
+                    f"📊 {percent_complete}% complete ({i}/{total}) | "
+                    f"⏱️ ETA: {eta // 60}m {eta % 60}s | "
+                    f"🧠 Mem: {mem_mb:.1f}MB"
+                )
+                next_log_percent += 10
+    except Exception as e:
+        frappe.log_error(
+            title="Error in sync_user_creation_from_bigquery",
+            message=traceback.format_exc()
+        )
+        frappe.logger().info(f"❌ Error in BigQuery sync: {e}")
+
+    frappe.logger().info(f"🎯 Completed sync — ✅ Updated: {updated} | ❌ Not updated: {not_found}")

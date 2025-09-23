@@ -1,0 +1,162 @@
+{% extends "templates/web.html" %}
+
+{% macro mobile_otp_login_body() -%}
+<div class="page-card-body">
+	<div class="form-group">
+		<label class="form-label sr-only" for="login_mobile">{{ _("Mobile Number") }}</label>
+		<div class="mobile-field">
+			<input type="tel" id="login_mobile" class="form-control"
+				placeholder="{{ _('Enter your mobile number') }}"
+				required autofocus autocomplete="tel">
+		</div>
+	</div>
+
+	<div class="form-group otp-section" style="display: none;">
+		<label class="form-label sr-only" for="login_otp">{{ _("OTP") }}</label>
+		<div class="otp-field">
+			<input type="text" id="login_otp" class="form-control" 
+				placeholder="{{ _('Enter OTP') }}"
+				maxlength="6" autocomplete="one-time-code">
+		</div>
+		<div class="otp-info text-muted mt-2">
+			<small>{{ _("OTP sent to your mobile number") }}</small>
+		</div>
+		<div class="resend-otp mt-2">
+			<button type="button" class="btn btn-link btn-sm" id="resend_otp" disabled>
+				{{ _("Resend OTP") }} (<span id="countdown">60</span>s)
+			</button>
+		</div>
+	</div>
+	
+	<div class="page-card-actions">
+		<button class="btn btn-sm btn-primary btn-block btn-send-otp" type="button">
+			{{ _("Send OTP") }}
+		</button>
+		<button class="btn btn-sm btn-primary btn-block btn-verify-otp" type="button" style="display: none;">
+			{{ _("Verify") }}
+		</button>
+	</div>
+	
+	<div class="mobile-description text-muted text-center mt-3">
+		<small>{{ _("Enter 10-digit number (e.g., 9876543210) or 12-digit with country code (e.g., 919876543210)") }}</small>
+	</div>
+</div>
+{% endmacro %}
+
+{% block head_include %}
+{{ include_style('login.bundle.css') }}
+<style>
+.mobile-field, .otp-field {
+	position: relative;
+	display: block;
+}
+
+.mobile-field input, .otp-field input {
+	width: 100%;
+}
+
+.otp-section {
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.btn-link {
+	color: #007bff;
+	text-decoration: none;
+}
+
+.btn-link:hover {
+	color: #0056b3;
+	text-decoration: underline;
+}
+
+.btn-link:disabled {
+	color: #6c757d;
+	text-decoration: none;
+	cursor: not-allowed;
+}
+
+.status-message {
+	font-size: 14px;
+	font-weight: 500;
+	padding: 8px 12px;
+	border-radius: 4px;
+	margin: 8px 0;
+	transition: all 0.3s ease;
+}
+
+.status-message.text-success {
+	background-color: #d4edda;
+	border: 1px solid #c3e6cb;
+}
+
+.status-message.text-danger {
+	background-color: #f8d7da;
+	border: 1px solid #f5c6cb;
+}
+
+.status-message.text-info {
+	background-color: #d1ecf1;
+	border: 1px solid #bee5eb;
+}
+</style>
+{% endblock %}
+
+{% macro logo_section() %}
+<div class="page-card-head">
+	<img class="app-logo" src="{{ logo }}">
+	<h4>{{ _('Login to {0}').format(app_name or _("Solve Ninja")) }}</h4>
+</div>
+{% endmacro %}
+
+{% block page_content %}
+<!-- {{ for_test }} -->
+<div>
+	<noscript>
+		<div class="text-center my-5">
+			<h4>{{ _("Javascript is disabled on your browser") }}</h4>
+			<p class="text-muted">
+				{{ _("You need to enable JavaScript for your app to work.") }}<br>{{ _("To enable it follow the instructions in the following link: {0}").format("<a href='https://enable-javascript.com/'>enable-javascript.com</a></p>") }}
+		</div>
+	</noscript>
+	<section class='for-login'>
+		<div class="login-content page-card">
+			{{ logo_section() }}
+			<form class="form-signin form-mobile-login" role="form">
+				{{ mobile_otp_login_body() }}
+			</form>
+		</div>
+	</section>
+
+	<section class='for-signup {{ "signup-disabled" if disable_signup else "" }}'>
+		<div class="login-content page-card">
+			{{ logo_section() }}
+			{%- if not disable_signup -%}
+			{{ signup_form_template }}
+			{%- else -%}
+			<div class='page-card-head mb-2'>
+				<span class='indicator gray'>{{_("Signup Disabled")}}</span>
+				<p class="text-muted text-normal sign-up-message mt-1 mb-8">{{_("Signups have been disabled for this website.")}}</p>
+				<div><a href='/' class='btn btn-primary btn-md'>{{ _("Home") }}</a></div>
+			</div>
+			{%- endif -%}
+		</div>
+	</section>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>{% include "solve_ninja/overrides/login.js" %}</script>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

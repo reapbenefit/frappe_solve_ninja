@@ -13,7 +13,9 @@ def get_user_profile(username=None):
 
 	user_detail = frappe._dict()
 	user_detail.current_user = user
+	user_detail.current_user.is_verified = True if frappe.db.exists("User Review", {"user": user.name, "status": "Accepted"}) else False
 	user_detail.current_user.profile_url = f"{frappe.utils.get_url()}/user-profile/{user.username}"
+	user_detail.current_user.user_image = f"{frappe.utils.get_url()}{user.user_image}" if user.user_image else None
 	
 	user_detail.ninja_profile, user_detail.user_metadata = get_user_related_docs(user.name)
 	user_detail.current_user.is_logged_in, user_detail.current_user.is_system_manager = get_user_flags(user)
@@ -71,7 +73,6 @@ def get_user_actions(user_name):
 
 	highlighted = {'title': '', 'description': ''}
 	for action in actions:
-		action.creation = pretty_date(action.creation)
 		action.review_exists = frappe.db.exists("Events Review", {"events": action.event_id, "status": "Accepted"})
 		if action.review_exists:
 			action.review = frappe.get_doc("Events Review", action.review_exists)
@@ -81,10 +82,15 @@ def get_user_actions(user_name):
 	return actions, highlighted
 
 def get_skill_assignment_log(user):
-	return frappe.get_all("Energy Point Log",
+	skill_assignment_logs = frappe.get_all("Energy Point Log",
 		filters={"user": user, "type": "Auto", "reverted": 0, "reference_doctype": "Events"},
-		fields=["name", "points", "reason", "reference_doctype","reference_name", "badge", "creation"])
+		fields=["name", "points", "reason", "reference_doctype","reference_name", "badge", "microskill", "microskill", "creation"])
 	
+	for skill_assignment_log in skill_assignment_logs:
+		if skill_assignment_log.microskill:
+			skill_assignment_log.microskill = frappe.db.get_value("Microskill", skill_assignment_log.microskill, ["title", "level", "description"], as_dict=1)
+	
+	return skill_assignment_logs
 
 def get_user_badges(user_name):
 	user_badges = frappe.db.get_all(
@@ -117,11 +123,18 @@ def get_user_badges(user_name):
 
 
 def get_user_reviews(user_name):
-	return frappe.get_all(
-		"User Review",
-		filters={"user": user_name, "status": "Accepted"},
-		fields=["review_title", "reviewer_name", "desigantion", "comment", "organisation"]
-	)
+    reviews = frappe.get_all(
+        "User Review",
+        filters={"user": user_name, "status": "Accepted"},
+        fields=["review_title", "reviewer_name", "desigantion", "comment", "organisation"]
+    )
+
+    # Replace empty/None values with "Not Available"
+    for review in reviews:
+        for field in review:
+            if not review[field]:
+                review[field] = "Not Available"
+    return reviews
 
 
 def get_user_superheroes(user_name):
@@ -144,3 +157,55 @@ def get_user_superheroes(user_name):
 			})
 
 	return superheroes
+
+
+@frappe.whitelist()
+def update_user_summary(username, summary):
+	"""
+	Update the summary field in User Metadata for a given user.
+	
+	Args:
+		username (str): Username or email of the user
+		summary (str): Summary text to update
+	
+	Returns:
+		dict: Success response with updated summary
+	"""
+	try:
+		# Validate input parameters
+		if not username:
+			frappe.throw(_("Username is required"))
+		
+		if not summary:
+			frappe.throw(_("Summary is required"))
+		
+		# Load user to validate existence and permissions
+		user = load_user(username)
+		
+		# Get or create User Metadata
+		if frappe.db.exists("User Metadata", user.name):
+			user_metadata = frappe.get_doc("User Metadata", user.name)
+		else:
+			user_metadata = frappe.get_doc({
+				"doctype": "User Metadata",
+				"user": user.name
+			})
+		
+		# Update summary
+		user_metadata.summary = summary
+		user_metadata.save(ignore_permissions=True)
+		
+		return {
+			"success": True,
+			"message": _("Summary updated successfully"),
+			"summary": summary,
+			"user": user.name
+		}
+		
+	except frappe.DoesNotExistError:
+		frappe.throw(_("User not found"))
+	except frappe.PermissionError:
+		frappe.throw(_("Permission denied"))
+	except Exception as e:
+		frappe.log_error(f"Error updating user summary: {str(e)}")
+		frappe.throw(_("An error occurred while updating the summary"))
