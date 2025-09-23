@@ -1,5 +1,5 @@
 import frappe
-import whisper
+
 from sarvamai import SarvamAI
 from frappe.handler import upload_file
 import os, io, json
@@ -7,32 +7,10 @@ from frappe.utils.file_manager import save_file
 import mimetypes
 import requests
 from urllib.parse import urlparse
-import asyncio
-from sarvamai import AsyncSarvamAI
+
 
 
 SARVAM_API_KEY = frappe.conf.get("sarvam_api_key")
-
-@frappe.whitelist(allow_guest=True)
-def transcribe_audio(file_url=None):
-    if not file_url:
-        return {"error": "No audio file URL provided"}
-
-    file_path = frappe.get_site_path("public", file_url.replace("/files/", "files/"))
-
-    if not os.path.exists(file_path):
-        return {"error": "File not found"}
-
-    try:
-        model = whisper.load_model("medium")
-        result = model.transcribe(file_path, task="translate")
-        return {
-            "text": result["text"],
-            "language": result["language"]
-        }
-    except Exception as e:
-        frappe.log_error()
-        return {"error": str(e)}
 
 @frappe.whitelist(allow_guest=True)
 def transcribe_sarvam(file_url=None):
@@ -191,6 +169,8 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
         # Use enqueue to run the callback asynchronously
         frappe.enqueue(
             callback_function,
+            queue='short',
+            job_priority='high',
             **callback_kwargs
         )
 
