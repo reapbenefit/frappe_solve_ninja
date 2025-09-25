@@ -14,7 +14,6 @@ def transcribe_audio(audio_url,contact_id,flow_id):
     frappe.enqueue(
         "solve_ninja.api.audio_transcribe.upload_and_create_sarvam_job",
         queue='short',
-        job_priority='high',
         audio_url=audio_url,
         callback_function = "solve_ninja.api.conversational_record_action.send_audio_output",
         callback_kwargs={"contact_id": contact_id, "flow_id": flow_id}
@@ -85,7 +84,6 @@ def run_async_post_call_with_callback(payload, url, paramters):
     frappe.enqueue(
         "solve_ninja.api.conversational_record_action.async_post_job",
         queue='short',
-        job_priority='high',
         payload=payload,
         url=url,
         paramters=paramters
@@ -95,7 +93,6 @@ def run_async_get_call_with_callback(url, paramters=None):
     frappe.enqueue(
         "solve_ninja.api.conversational_record_action.async_get_job",
         queue='short',
-        job_priority='high',
         url=url,
         paramters=paramters
     )
