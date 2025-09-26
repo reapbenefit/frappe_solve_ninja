@@ -308,6 +308,11 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 		for count, data in enumerate(users, start + 1):
 			data["recent_rank"] = count
 
+	for row in users:
+		if frappe.conf.get("cmp_base_url"):
+			row.user_profile = f"{frappe.conf.get('cmp_base_url')}/user-profile/{row.username}"
+		else:
+			row.user_profile = frappe.utils.get_url(f"/user-profile/{row.username}")
 	# Apply `hr_range` Filter in Python (If Needed)
 	# if filters.get("hr_range"):
 	# 	users = filter_by_hour_range(users, filters["hr_range"])

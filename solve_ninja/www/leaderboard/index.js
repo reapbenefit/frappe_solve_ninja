@@ -115,7 +115,7 @@ var get_users = function(filters={}) {
                         <div class="lb_row lb_row_result">
                             <div class="lb_col col_rank">${rank}</div>
                             ${rrh}
-                            <div class="lb_col col_name"><a href="/user-profile/${leader.username}">${leader.full_name}</a></div>
+                            <div class="lb_col col_name"><a href="${leader.user_profile}" target="_blank">${leader.full_name}</a></div>
                             <div class="lb_col col_city">${city}</div>
                             <div class="lb_col col_hours">${leader.hours_invested}</div>
                             <div class="lb_col col_actions">${leader.contribution_count}</div>
@@ -194,7 +194,7 @@ var get_verified_users = function() {
                 $(".vn_content").html("")
                 result.message.forEach(user => {
                     let city = user.city ? `, ${user.city}`: ""
-                    let html = `<div class="vn_box"><a href="${user.user_profile}"`;
+                    let html = `<div class="vn_box"><a href="${user.user_profile}" target="_blank"`;
                     if (user.user_image) {
                         html += `<div class="img_wrapper">
                                     <img src="${ user.user_image}" alt="" />
