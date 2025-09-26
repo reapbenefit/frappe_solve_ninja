@@ -57,6 +57,7 @@ def get_user_flags(user):
 def get_user_related_docs(user_name):
 	ninja_profile = frappe.get_doc("Ninja Profile", user_name) if frappe.db.exists("Ninja Profile", user_name) else None
 	user_metadata = frappe.get_doc("User Metadata", user_name) if frappe.db.exists("User Metadata", user_name) else None
+	user_metadata.summary = user_metadata.summary if user_metadata.summary else ""
 	return ninja_profile, user_metadata
 
 
