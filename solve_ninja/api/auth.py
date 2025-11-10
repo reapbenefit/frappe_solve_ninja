@@ -62,8 +62,6 @@ def send_otp(mobile):
 			"timestamp": time.time()
 		}, expires_in_sec=300)  # 5 minutes
 		
-		frappe.errprint(f"OTP for {mobile}: {otp}")
-		
 		# Send OTP via WhatsApp using Glific HSM template
 		whatsapp_sent = send_hsm_otp(mobile, otp)
 		
@@ -87,7 +85,7 @@ def send_otp(mobile):
 
 
 @frappe.whitelist(allow_guest=True)
-def verify_otp_login(mobile, otp):
+def verify_otp_login(mobile, otp, redirect_to=None):
 	"""
 	Verify OTP and login user
 	"""
@@ -167,9 +165,24 @@ def verify_otp_login(mobile, otp):
 		frappe.local.login_manager.post_login()
 		
 		# Determine redirect URL
-		redirect_to = "/app"
+		default_redirect = "/app"
 		if user.user_type == "Website User":
-			redirect_to = "/user-profile/me"
+			default_redirect = "/user-profile/me"
+		
+		# Check for redirect-to parameter
+		if redirect_to:
+			import urllib.parse
+			# Decode the redirect URL
+			decoded_redirect = urllib.parse.unquote(redirect_to)
+			# Validate that it's a safe redirect (same domain or allowed external domains)
+			if decoded_redirect.startswith('/') or decoded_redirect.startswith(frappe.utils.get_url()):
+				redirect_to = decoded_redirect
+			elif any(allowed_domain in decoded_redirect for allowed_domain in ['solveninja.org', 'vercel.app']):
+				redirect_to = decoded_redirect
+			else:
+				redirect_to = default_redirect
+		else:
+			redirect_to = default_redirect
 		
 		return {
 			"success": True,
@@ -228,6 +241,7 @@ def send_hsm_otp(mobile, otp):
 			# Store wa_id in ninja profile for future use
 			ninja_profile.db_set("wa_id", contact_id, commit=True)
 			ninja_profile.reload()
+		print(response)
 	else:
 		# Use existing wa_id
 		contact_id = ninja_profile.wa_id
@@ -251,5 +265,34 @@ def send_hsm_otp(mobile, otp):
 			frappe.log_error(f"HSM send failed", message_data.get('errors'))
 			return False
 	else:
-		frappe.log_error(f"Invalid HSM response", response)
-		return False
+		# Handle specific error cases
+		if response and response.get("errors"):
+			error_messages = [error.get("message", "Unknown error") for error in response["errors"]]
+			error_text = "; ".join(error_messages)
+			frappe.log_error(f"HSM send failed for {mobile}: {error_text}")
+			
+			# Check for specific BSP status error and try fallback
+			if "invalid BSP status" in error_text.lower():
+				frappe.log_error(f"Contact {mobile} has invalid BSP status - trying fallback regular message")
+				
+				# Try sending a regular message as fallback
+				try:
+					fallback_message = f"Your OTP for Solve Ninja login is: {otp}. This OTP is valid for 5 minutes."
+					fallback_response = glific_settings.send_whatsapp_message(contact_id, fallback_message)
+					
+					if fallback_response and fallback_response.get("data") and fallback_response["data"].get("sendMessage"):
+						fallback_data = fallback_response["data"]["sendMessage"]
+						if fallback_data.get("message") and not fallback_data.get("errors"):
+							frappe.log_error(f"Fallback OTP sent successfully to {mobile}")
+							return True
+						else:
+							frappe.log_error(f"Fallback message failed", fallback_data.get('errors'))
+					else:
+						frappe.log_error(f"Fallback message failed", fallback_response)
+				except Exception as e:
+					frappe.log_error(f"Fallback message error for {mobile}: {str(e)}")
+			
+			return False
+		else:
+			frappe.log_error(f"Invalid HSM response for {mobile}", response)
+			return False

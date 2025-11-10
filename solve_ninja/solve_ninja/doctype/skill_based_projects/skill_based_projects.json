@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-17 17:58:44.367830",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "project_title",
+  "image",
+  "skill",
+  "no_of_members_needed",
+  "city",
+  "join_link",
+  "whatsapp_keyword",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "project_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Project Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Image",
+   "reqd": 1
+  },
+  {
+   "fieldname": "skill",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Skill",
+   "options": "Badge",
+   "reqd": 1
+  },
+  {
+   "fieldname": "no_of_members_needed",
+   "fieldtype": "Int",
+   "label": "No of members needed"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "City",
+   "options": "Samaaja Cities",
+   "reqd": 1
+  },
+  {
+   "fieldname": "join_link",
+   "fieldtype": "Data",
+   "label": "Join link",
+   "options": "URL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "whatsapp_keyword",
+   "fieldtype": "Data",
+   "label": "Whatsapp Keyword"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-22 18:01:42.813530",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Skill Based Projects",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -3,7 +3,12 @@ import json
 from samaaja.api.common import custom_response
 from frappe.query_builder.functions import Count, Sum
 from solve_ninja.api.common import validate_and_normalize_mobile
-
+from frappe.sessions import delete_session
+from frappe.query_builder import Order
+from frappe.handler import logout as frappe_logout
+from frappe.utils import logger
+logger.set_log_level("DEBUG")
+logger = frappe.logger("api", allow_site=True, file_count=50)
 
 @frappe.whitelist()
 def new():
@@ -197,89 +202,176 @@ def get_contributions():
 
 @frappe.whitelist()
 def get_ninja_profile():
-    """
-    Public API to get ninja profile details based on mobile number.
-    Expects JSON with mobile field or GET parameter ?mobile=<number>
-    Returns only Ninja Profile doctype data.
-    """
-    message = "Ninja profile fetched successfully"
-    status_code = 200
-    error = False
-    data = {}
+	"""
+	Public API to get ninja profile details based on mobile number.
+	Expects JSON with mobile field or GET parameter ?mobile=<number>
+	Returns only Ninja Profile doctype data.
+	"""
+	message = "Ninja profile fetched successfully"
+	status_code = 200
+	error = False
+	data = {}
 
-    try:
-        # Handle both POST (JSON) and GET requests
-        mobile_no = None
-        if frappe.request.method == "POST" and frappe.request.data:
-            request_data = json.loads(frappe.request.data)
-            mobile_no = request_data.get("mobile")
-        else:
-            mobile_no = frappe.form_dict.get("mobile")
+	try:
+		# Handle both POST (JSON) and GET requests
+		mobile_no = None
+		if frappe.request.method == "POST" and frappe.request.data:
+			request_data = json.loads(frappe.request.data)
+			mobile_no = request_data.get("mobile")
+		else:
+			mobile_no = frappe.form_dict.get("mobile")
 
-        if not mobile_no:
-            raise ValueError("Mobile number is mandatory")
+		if not mobile_no:
+			raise ValueError("Mobile number is mandatory")
 
-        # Validate and normalize mobile number
-        mobile_no = validate_and_normalize_mobile(mobile_no)
-        user_email = f"{mobile_no}@solveninja.org"
+		# Validate and normalize mobile number
+		mobile_no = validate_and_normalize_mobile(mobile_no)
+		user_email = f"{mobile_no}@solveninja.org"
 
-        # Check if user exists
-        if not frappe.db.exists("User", {"mobile_no": mobile_no}):
-            raise ValueError(f"User not found with mobile number {mobile_no}")
+		# Check if user exists
+		if not frappe.db.exists("User", {"mobile_no": mobile_no}):
+			raise ValueError(f"User not found with mobile number {mobile_no}")
 
-        # Get Ninja Profile data
-        if frappe.db.exists("Ninja Profile", user_email):
-            ninja_profile = frappe.get_doc("Ninja Profile", user_email)
-            data = ninja_profile.as_dict()
-            # Remove system fields that are not needed
-            for field in ['docstatus', 'idx', 'owner', 'modified_by', 'doctype', 'creation', 'modified']:
-                data.pop(field, None)
-        else:
-            raise ValueError("Ninja Profile not found for this user")
+		# Get Ninja Profile data
+		if frappe.db.exists("Ninja Profile", user_email):
+			ninja_profile = frappe.get_doc("Ninja Profile", user_email)
+			data = ninja_profile.as_dict()
+			# Remove system fields that are not needed
+			for field in ['docstatus', 'idx', 'owner', 'modified_by', 'doctype', 'creation', 'modified']:
+				data.pop(field, None)
+		else:
+			raise ValueError("Ninja Profile not found for this user")
 
-        return custom_response(message, data, status_code, error)
+		return custom_response(message, data, status_code, error)
 
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Get Ninja Profile Error")
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "Get Ninja Profile Error")
 
-        message = str(e)
-        status_code = 500
-        error = True
-        data = {}
+		message = str(e)
+		status_code = 500
+		error = True
+		data = {}
 
-    return custom_response(message, data, status_code, error)
+	return custom_response(message, data, status_code, error)
+
+@frappe.whitelist(allow_guest=True)
+def logout(username=None):
+	"""
+	Logout all sessions for a given username using Frappe's LoginManager.
+	If username is not provided, uses the current user.
+	"""
+	message = "Logout successful"
+	status_code = 200
+	error = False
+	data = {}
+
+	try:
+
+		if username:
+			logger.info(f"LOGOUT - Username provided: {username}")
+			if not frappe.db.exists("User", username):
+				logger.info(f"LOGOUT - User {username} not found.")
+				raise ValueError(f"User {username} not found")
+		else:
+			logger.info("LOGOUT - No username provided, using current session user.")
+			username = frappe.session.user
+			logger.info(f"LOGOUT - Current user is: {username}")
+		
+		frappe_logout()
+
+		# Use Frappe's built-in clear_sessions function
+		# This is the proper way to logout all sessions for a user
+		clear_sessions(user=username, force=True)
+
+		data = {"message": f"All sessions logged out for user: {username}"}
+
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "Logout All Sessions Error")
+		message = str(e)
+		status_code = 500
+		error = True
+		data = {}
+
+	frappe.db.commit()
+	return custom_response(message, data, status_code, error)
 
 def update_user_creation_field(mobile_no, creation_date_time):
-    try:
-      
-        # Validate and normalize mobile number
-        mobile_no = validate_and_normalize_mobile(mobile_no)
-        user_email = f"{mobile_no}@solveninja.org"
+	try:
+	  
+		# Validate and normalize mobile number
+		mobile_no = validate_and_normalize_mobile(mobile_no)
+		user_email = f"{mobile_no}@solveninja.org"
 
-        # Check if user exists
-        if not frappe.db.exists("User", {"mobile_no": mobile_no}):
-            raise ValueError(f"User not found with mobile number {mobile_no}")
-        
-        # Validate and format datetime
-        try:
-            # Parse to datetime object for validation
-            parsed_datetime = frappe.utils.get_datetime(creation_date_time)
-            # Convert back to properly formatted string
-            formatted_creation = frappe.utils.get_datetime_str(parsed_datetime)
-        except (ValueError, TypeError):
-            raise ValueError("Invalid datetime format. Expected format: YYYY-MM-DD HH:MM:SS")
-        
-        # Update creation field directly in database
-        frappe.db.set_value(
-            "User", 
-            user_email, 
-            "creation", 
-            formatted_creation
-        )
-        frappe.db.commit()
+		# Check if user exists
+		if not frappe.db.exists("User", {"mobile_no": mobile_no}):
+			raise ValueError(f"User not found with mobile number {mobile_no}")
+		
+		# Validate and format datetime
+		try:
+			# Parse to datetime object for validation
+			parsed_datetime = frappe.utils.get_datetime(creation_date_time)
+			# Convert back to properly formatted string
+			formatted_creation = frappe.utils.get_datetime_str(parsed_datetime)
+		except (ValueError, TypeError):
+			raise ValueError("Invalid datetime format. Expected format: YYYY-MM-DD HH:MM:SS")
+		
+		# Update creation field directly in database
+		frappe.db.set_value(
+			"User", 
+			user_email, 
+			"creation", 
+			formatted_creation
+		)
 
-        return True
+		return True
 
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Update User Creation Field Error")
-        raise e
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "Update User Creation Field Error")
+		raise e
+
+def clear_sessions(user=None, keep_current=False, device=None, force=False):
+	"""Clear other sessions of the current user. Called at login / logout
+
+	:param user: user name (default: current user)
+	:param keep_current: keep current session (default: false)
+	:param device: delete sessions of this device (default: desktop, mobile)
+	:param force: triggered by the user (default false)
+	"""
+
+	reason = "Logged In From Another Session"
+	if force:
+		reason = "Force Logged out by the user"
+
+	for sid in get_sessions_to_clear(user, keep_current, device):
+		delete_session(sid, reason=reason)
+
+
+def get_sessions_to_clear(user=None, keep_current=False, device=None):
+	"""Returns sessions of the current user. Called at login / logout
+
+	:param user: user name (default: current user)
+	:param keep_current: keep current session (default: false)
+	:param device: delete sessions of this device (default: desktop, mobile)
+	"""
+	if not user:
+		user = frappe.session.user
+
+	if not device:
+		device = ("desktop", "mobile")
+
+	if not isinstance(device, tuple | list):
+		device = (device,)
+
+	offset = 0
+
+	session = frappe.qb.DocType("Sessions")
+	session_id = frappe.qb.from_(session).where((session.user == user) & (session.device.isin(device)))
+	if keep_current:
+		offset = max(0, offset - 1)
+		session_id = session_id.where(session.sid != frappe.session.sid)
+
+	query = (
+		session_id.select(session.sid).offset(offset).limit(100).orderby(session.lastupdate, order=Order.desc)
+	)
+
+	return query.run(pluck=True)

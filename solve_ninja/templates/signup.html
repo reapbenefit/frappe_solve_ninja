@@ -1,0 +1,60 @@
+<form class="form-signin form-signup hide" role="form" id="signup-form">
+    <div class="page-card-body">
+
+        <!-- Full Name -->
+        <div class="form-group">
+            <label class="form-label sr-only" for="signup_fullname">{{ _("Full Name") }}</label>
+            <input type="text" id="signup_fullname" name="full_name" class="form-control"
+                   placeholder="{{ _('Name') }}" required autofocus autocomplete="name">
+        </div>
+
+        <!-- Mobile Number -->
+        <div class="form-group">
+            <label class="form-label sr-only" for="signup_mobile">{{ _("Mobile Number") }}</label>
+            <input type="text" id="signup_mobile" name="mobile_no" class="form-control"
+                   placeholder="{{ _('Mobile number') }}" required maxlength="10" 
+           pattern="\d{10}"
+           inputmode="numeric"
+           oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+           >
+        </div>
+
+        <!-- Pincode -->
+        <div class="form-group">
+            <label class="form-label sr-only" for="signup_pincode">{{ _("Pincode") }}</label>
+            <input type="text" id="signup_pincode" name="pincode" class="form-control"
+                   placeholder="{{ _('Pincode') }}" required maxlength="6" pattern="\d{6}" inputmode="numeric"
+           oninput="this.value = this.value.replace(/[^0-9]/g,'');">
+        </div>
+
+        <!-- Gender -->
+        <div class="form-group">
+            <label class="form-label sr-only" for="signup_gender">{{ _("Gender") }}</label>
+            <select id="signup_gender" name="gender" class="form-control" required>
+                <option value="">{{ _("Select Gender") }}</option>
+                <option value="Male">{{ _("Male") }}</option>
+                <option value="Female">{{ _("Female") }}</option>
+                <option value="Other">{{ _("Other") }}</option>
+            </select>
+        </div>
+
+        <!-- Year of Birth -->
+        <div class="form-group">
+            <label class="form-label sr-only" for="signup_yob">{{ _("Year of Birth") }}</label>
+            <input type="text" id="signup_yob" name="year_of_birth" class="form-control"
+                   placeholder="{{ _('Year of birth') }}" min="1900" max="2025" required maxlength="4" pattern="\d{4}" inputmode="numeric"
+           oninput="this.value = this.value.replace(/[^0-9]/g,'');">
+        </div>
+
+    </div>
+
+    <div class="page-card-actions">
+        <button class="btn btn-sm btn-primary btn-block btn-signup" type="submit">
+            {{ _("Sign up") }}
+        </button>
+
+        <p class="text-center sign-up-message">
+            <a href="#login" class="blue">{{ _("Have an account? Login") }}</a>
+        </p>
+    </div>
+</form>

@@ -19,7 +19,14 @@
   "deadline",
   "section_break_zkjlh",
   "opp_description",
-  "eligibility_criteria"
+  "eligibility_criteria",
+  "skills",
+  "mode",
+  "location",
+  "city",
+  "start_date",
+  "stipend_amount",
+  "whatsapp_keyword"
  ],
  "fields": [
   {
@@ -73,8 +80,7 @@
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Application Deadline",
-   "length": 50,
-   "reqd": 1
+   "length": 50
   },
   {
    "fieldname": "section_break_zkjlh",
@@ -83,7 +89,7 @@
   {
    "fieldname": "opp_description",
    "fieldtype": "Text",
-   "label": "Opportunity Description",
+   "label": "Opportunity Description(minimum 75 words)",
    "reqd": 1
   },
   {
@@ -91,10 +97,52 @@
    "fieldtype": "Text",
    "label": "Eligibility Criteria",
    "reqd": 1
+  },
+  {
+   "fieldname": "skills",
+   "fieldtype": "Table MultiSelect",
+   "label": "Opportunity Skills",
+   "options": "Opportunity Skill",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "Hybrid\nStipend\nOn-site\nVolunteer\nOnline",
+   "reqd": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Pincode",
+   "reqd": 1
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "label": "City",
+   "options": "Samaaja Cities"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "stipend_amount",
+   "fieldtype": "Data",
+   "label": "Stipend Amount"
+  },
+  {
+   "fieldname": "whatsapp_keyword",
+   "fieldtype": "Data",
+   "label": "Whatsapp Keyword",
+   "reqd": 1
   }
  ],
  "links": [],
- "modified": "2025-08-01 16:31:09.974918",
+ "modified": "2025-10-21 12:14:24.875599",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Opportunity Template",

@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-07 10:20:47.853038",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "solve_event",
+  "solve_event_date",
+  "column_break_rzjsw",
+  "sub_type",
+  "mode",
+  "city"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "solve_event",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Solve Event",
+   "options": "Solve Event",
+   "reqd": 1
+  },
+  {
+   "fieldname": "solve_event_date",
+   "fieldtype": "Datetime",
+   "label": "Solve Event Date"
+  },
+  {
+   "fieldname": "sub_type",
+   "fieldtype": "Select",
+   "label": "Sub Type",
+   "options": "Solver Jam\nSolve Con\nChangemaker Adda"
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "Online\nOffline"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "label": "City",
+   "options": "Samaaja Cities"
+  },
+  {
+   "fieldname": "column_break_rzjsw",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-29 00:54:28.729271",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Solve Event Participation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

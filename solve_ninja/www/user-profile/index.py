@@ -20,7 +20,12 @@ def get_context(context):
 		if username == "me" or not username:
 			context.current_user = frappe.get_doc("User", frappe.session.user)
 		else:
-			context.current_user = frappe.get_doc("User", {"username": username})
+			if frappe.db.exists("User", username):
+				context.current_user = frappe.get_doc("User", username)
+			elif frappe.db.exists("User", {"username": username}):
+				context.current_user = frappe.get_doc("User", {"username": username})
+			else:
+				raise frappe.DoesNotExistError("User not found or not allowed")
 		
 		# Disallow Administrator and Guest
 		if context.current_user.name in ["Administrator", "Guest"]:

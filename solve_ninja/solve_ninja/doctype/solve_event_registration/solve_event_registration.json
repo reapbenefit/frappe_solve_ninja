@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-16 12:15:08.956940",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "full_name",
+  "mobile",
+  "column_break_c7wzf",
+  "city",
+  "year_of_birth",
+  "section_break_hbcat",
+  "user",
+  "solve_event",
+  "source",
+  "column_break_mxfll",
+  "status",
+  "reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "mandatory_depends_on": "eval:!doc.user"
+  },
+  {
+   "fieldname": "mobile",
+   "fieldtype": "Data",
+   "label": "Mobile",
+   "mandatory_depends_on": "eval:!doc.user"
+  },
+  {
+   "fieldname": "column_break_c7wzf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "label": "City",
+   "mandatory_depends_on": "eval:!doc.user",
+   "options": "Samaaja Cities"
+  },
+  {
+   "fieldname": "year_of_birth",
+   "fieldtype": "Int",
+   "label": "Year of Birth",
+   "mandatory_depends_on": "eval:!doc.user"
+  },
+  {
+   "fieldname": "section_break_hbcat",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "solve_event",
+   "fieldtype": "Link",
+   "label": "Solve Event",
+   "options": "Solve Event",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Source",
+   "options": "snbot\nmanualupload\nWeb Form",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_mxfll",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status"
+  },
+  {
+   "depends_on": "eval:doc.status=='Rejected'",
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason (if Rejected)",
+   "mandatory_depends_on": "eval:doc.status=='Rejected'"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-18 01:05:19.317231",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Solve Event Registration",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

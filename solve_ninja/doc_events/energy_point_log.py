@@ -103,17 +103,18 @@ def log_glific_integration_request(doc, url, headers, data, response, error=None
 
 def send_badge_notification_after_insert(doc, method=None):
     # Delay the notification slightly to ensure User Badge is updated
-    frappe.enqueue(
-        "solve_ninja.doc_events.energy_point_log.send_badge_notification",
-        now=False,  # run in background,
-        events=doc,
-    )
+    if doc.user and doc.source and doc.source not in ["SamaajData", "manualupload"]:
+        frappe.enqueue(
+            "solve_ninja.doc_events.energy_point_log.send_badge_notification",
+            now=False,  # run in background,
+            events=doc,
+        )
 
 def send_badge_notification(events):
     solve_ninja_settings = frappe.get_single("Solve Ninja Settings")
     if not solve_ninja_settings.enable_badge_notification:
         return
-    sleep(2)
+    sleep(10)
     # Delay to ensure User Badge is updated
     eps = frappe.get_all("Energy Point Log", filters={
         "reference_doctype": "Events",

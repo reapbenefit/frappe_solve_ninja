@@ -36,6 +36,10 @@
 			{{ _("Verify") }}
 		</button>
 	</div>
+	<div class="text-center sign-up-message">
+			{{ _("Don't have an account?") }}
+			<a href="#signup">{{ _("Sign up") }}</a>
+		</div>
 	
 	<div class="mobile-description text-muted text-center mt-3">
 		<small>{{ _("Enter 10-digit number (e.g., 9876543210) or 12-digit with country code (e.g., 919876543210)") }}</small>
@@ -53,6 +57,10 @@
 
 .mobile-field input, .otp-field input {
 	width: 100%;
+}
+
+.input-error {
+    border: 2px solid red !important;
 }
 
 .otp-section {

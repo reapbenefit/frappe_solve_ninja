@@ -1,0 +1,497 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-14 20:57:28.536485",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_basic_info",
+  "page_name",
+  "language",
+  "display_order",
+  "is_active",
+  "column_break_35",
+  "section_break_hero",
+  "hero_title",
+  "hero_subtitle",
+  "hero_description",
+  "hero_cta_text",
+  "hero_cta_button",
+  "hero_secondary_button",
+  "hero_image_alt",
+  "section_break_features",
+  "features_title",
+  "features_description",
+  "feature_1_title",
+  "feature_1_description",
+  "feature_1_icon",
+  "feature_2_title",
+  "feature_2_description",
+  "feature_2_icon",
+  "feature_3_title",
+  "feature_3_description",
+  "feature_3_icon",
+  "section_break_testimonials",
+  "testimonials_title",
+  "testimonials_description",
+  "testimonial_1_text",
+  "testimonial_1_author",
+  "testimonial_1_role",
+  "testimonial_2_text",
+  "testimonial_2_author",
+  "testimonial_2_role",
+  "testimonial_3_text",
+  "testimonial_3_author",
+  "testimonial_3_role",
+  "section_break_statistics",
+  "statistics_title",
+  "stat_1_number",
+  "stat_1_label",
+  "stat_1_description",
+  "stat_2_number",
+  "stat_2_label",
+  "stat_2_description",
+  "stat_3_number",
+  "stat_3_label",
+  "stat_3_description",
+  "section_break_footer",
+  "footer_copyright",
+  "footer_email",
+  "footer_phone",
+  "footer_address",
+  "footer_links",
+  "section_break_seo",
+  "meta_title",
+  "meta_description",
+  "meta_keywords",
+  "og_title",
+  "og_description",
+  "og_image",
+  "section_break_page_specific",
+  "page_specific_content"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_basic_info",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "description": "Select the page this content belongs to",
+   "fieldname": "page_name",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Page Name",
+   "options": "Home\nLearn\nConnect\nLead",
+   "reqd": 1
+  },
+  {
+   "description": "Language for this content",
+   "fieldname": "language",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Language",
+   "options": "English\nHindi",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "Order in which content appears",
+   "fieldname": "display_order",
+   "fieldtype": "Int",
+   "label": "Display Order"
+  },
+  {
+   "default": "1",
+   "description": "Whether this content is active and should be displayed",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "column_break_35",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_hero",
+   "fieldtype": "Section Break",
+   "label": "Hero Section"
+  },
+  {
+   "description": "Main hero title",
+   "fieldname": "hero_title",
+   "fieldtype": "Text",
+   "label": "Hero Title"
+  },
+  {
+   "description": "Hero subtitle or tagline",
+   "fieldname": "hero_subtitle",
+   "fieldtype": "Text",
+   "label": "Hero Subtitle"
+  },
+  {
+   "description": "Hero section description",
+   "fieldname": "hero_description",
+   "fieldtype": "Text Editor",
+   "label": "Hero Description"
+  },
+  {
+   "default": "Get Started",
+   "description": "Primary call-to-action button text",
+   "fieldname": "hero_cta_text",
+   "fieldtype": "Data",
+   "label": "Hero CTA Text"
+  },
+  {
+   "default": "Get Started",
+   "description": "Primary button text",
+   "fieldname": "hero_cta_button",
+   "fieldtype": "Data",
+   "label": "Hero CTA Button"
+  },
+  {
+   "default": "Learn More",
+   "description": "Secondary button text",
+   "fieldname": "hero_secondary_button",
+   "fieldtype": "Data",
+   "label": "Hero Secondary Button"
+  },
+  {
+   "default": "Hero image",
+   "description": "Alt text for hero image",
+   "fieldname": "hero_image_alt",
+   "fieldtype": "Data",
+   "label": "Hero Image Alt"
+  },
+  {
+   "fieldname": "section_break_features",
+   "fieldtype": "Section Break",
+   "label": "Features Section"
+  },
+  {
+   "description": "Features section title",
+   "fieldname": "features_title",
+   "fieldtype": "Text",
+   "label": "Features Title"
+  },
+  {
+   "description": "Features section description",
+   "fieldname": "features_description",
+   "fieldtype": "Text Editor",
+   "label": "Features Description"
+  },
+  {
+   "description": "First feature title",
+   "fieldname": "feature_1_title",
+   "fieldtype": "Data",
+   "label": "Feature 1 Title"
+  },
+  {
+   "description": "First feature description",
+   "fieldname": "feature_1_description",
+   "fieldtype": "Text",
+   "label": "Feature 1 Description"
+  },
+  {
+   "description": "First feature icon class or URL",
+   "fieldname": "feature_1_icon",
+   "fieldtype": "Data",
+   "label": "Feature 1 Icon"
+  },
+  {
+   "description": "Second feature title",
+   "fieldname": "feature_2_title",
+   "fieldtype": "Data",
+   "label": "Feature 2 Title"
+  },
+  {
+   "description": "Second feature description",
+   "fieldname": "feature_2_description",
+   "fieldtype": "Text",
+   "label": "Feature 2 Description"
+  },
+  {
+   "description": "Second feature icon class or URL",
+   "fieldname": "feature_2_icon",
+   "fieldtype": "Data",
+   "label": "Feature 2 Icon"
+  },
+  {
+   "description": "Third feature title",
+   "fieldname": "feature_3_title",
+   "fieldtype": "Data",
+   "label": "Feature 3 Title"
+  },
+  {
+   "description": "Third feature description",
+   "fieldname": "feature_3_description",
+   "fieldtype": "Text",
+   "label": "Feature 3 Description"
+  },
+  {
+   "description": "Third feature icon class or URL",
+   "fieldname": "feature_3_icon",
+   "fieldtype": "Data",
+   "label": "Feature 3 Icon"
+  },
+  {
+   "fieldname": "section_break_testimonials",
+   "fieldtype": "Section Break",
+   "label": "Testimonials Section"
+  },
+  {
+   "description": "Testimonials section title",
+   "fieldname": "testimonials_title",
+   "fieldtype": "Text",
+   "label": "Testimonials Title"
+  },
+  {
+   "description": "Testimonials section description",
+   "fieldname": "testimonials_description",
+   "fieldtype": "Text Editor",
+   "label": "Testimonials Description"
+  },
+  {
+   "description": "First testimonial quote",
+   "fieldname": "testimonial_1_text",
+   "fieldtype": "Text Editor",
+   "label": "Testimonial 1 Text"
+  },
+  {
+   "description": "First testimonial author name",
+   "fieldname": "testimonial_1_author",
+   "fieldtype": "Data",
+   "label": "Testimonial 1 Author"
+  },
+  {
+   "description": "First testimonial author role",
+   "fieldname": "testimonial_1_role",
+   "fieldtype": "Data",
+   "label": "Testimonial 1 Role"
+  },
+  {
+   "description": "Second testimonial quote",
+   "fieldname": "testimonial_2_text",
+   "fieldtype": "Text Editor",
+   "label": "Testimonial 2 Text"
+  },
+  {
+   "description": "Second testimonial author name",
+   "fieldname": "testimonial_2_author",
+   "fieldtype": "Data",
+   "label": "Testimonial 2 Author"
+  },
+  {
+   "description": "Second testimonial author role",
+   "fieldname": "testimonial_2_role",
+   "fieldtype": "Data",
+   "label": "Testimonial 2 Role"
+  },
+  {
+   "description": "Third testimonial quote",
+   "fieldname": "testimonial_3_text",
+   "fieldtype": "Text Editor",
+   "label": "Testimonial 3 Text"
+  },
+  {
+   "description": "Third testimonial author name",
+   "fieldname": "testimonial_3_author",
+   "fieldtype": "Data",
+   "label": "Testimonial 3 Author"
+  },
+  {
+   "description": "Third testimonial author role",
+   "fieldname": "testimonial_3_role",
+   "fieldtype": "Data",
+   "label": "Testimonial 3 Role"
+  },
+  {
+   "fieldname": "section_break_statistics",
+   "fieldtype": "Section Break",
+   "label": "Statistics Section"
+  },
+  {
+   "description": "Statistics section title",
+   "fieldname": "statistics_title",
+   "fieldtype": "Text",
+   "label": "Statistics Title"
+  },
+  {
+   "default": "0",
+   "description": "First statistic number",
+   "fieldname": "stat_1_number",
+   "fieldtype": "Data",
+   "label": "Stat 1 Number"
+  },
+  {
+   "description": "First statistic label",
+   "fieldname": "stat_1_label",
+   "fieldtype": "Data",
+   "label": "Stat 1 Label"
+  },
+  {
+   "description": "First statistic description",
+   "fieldname": "stat_1_description",
+   "fieldtype": "Text",
+   "label": "Stat 1 Description"
+  },
+  {
+   "default": "0",
+   "description": "Second statistic number",
+   "fieldname": "stat_2_number",
+   "fieldtype": "Data",
+   "label": "Stat 2 Number"
+  },
+  {
+   "description": "Second statistic label",
+   "fieldname": "stat_2_label",
+   "fieldtype": "Data",
+   "label": "Stat 2 Label"
+  },
+  {
+   "description": "Second statistic description",
+   "fieldname": "stat_2_description",
+   "fieldtype": "Text",
+   "label": "Stat 2 Description"
+  },
+  {
+   "default": "0",
+   "description": "Third statistic number",
+   "fieldname": "stat_3_number",
+   "fieldtype": "Data",
+   "label": "Stat 3 Number"
+  },
+  {
+   "description": "Third statistic label",
+   "fieldname": "stat_3_label",
+   "fieldtype": "Data",
+   "label": "Stat 3 Label"
+  },
+  {
+   "description": "Third statistic description",
+   "fieldname": "stat_3_description",
+   "fieldtype": "Text",
+   "label": "Stat 3 Description"
+  },
+  {
+   "fieldname": "section_break_footer",
+   "fieldtype": "Section Break",
+   "label": "Footer Section"
+  },
+  {
+   "default": "\u00a9 2024 SolveNinja. All rights reserved.",
+   "description": "Copyright text",
+   "fieldname": "footer_copyright",
+   "fieldtype": "Data",
+   "label": "Footer Copyright"
+  },
+  {
+   "default": "hello@solveninja.org",
+   "description": "Contact email",
+   "fieldname": "footer_email",
+   "fieldtype": "Data",
+   "label": "Footer Email"
+  },
+  {
+   "default": "+91 00000 00000",
+   "description": "Contact phone",
+   "fieldname": "footer_phone",
+   "fieldtype": "Data",
+   "label": "Footer Phone"
+  },
+  {
+   "default": "12 Civic Lane, Bengaluru 560001",
+   "description": "Contact address",
+   "fieldname": "footer_address",
+   "fieldtype": "Data",
+   "label": "Footer Address"
+  },
+  {
+   "default": "[]",
+   "description": "JSON array of footer navigation links",
+   "fieldname": "footer_links",
+   "fieldtype": "JSON",
+   "label": "Footer Links"
+  },
+  {
+   "fieldname": "section_break_seo",
+   "fieldtype": "Section Break",
+   "label": "SEO & Meta"
+  },
+  {
+   "description": "Page title for search engines",
+   "fieldname": "meta_title",
+   "fieldtype": "Data",
+   "label": "Meta Title"
+  },
+  {
+   "description": "Page description for search engines",
+   "fieldname": "meta_description",
+   "fieldtype": "Text",
+   "label": "Meta Description"
+  },
+  {
+   "description": "SEO keywords",
+   "fieldname": "meta_keywords",
+   "fieldtype": "Data",
+   "label": "Meta Keywords"
+  },
+  {
+   "description": "Social media title",
+   "fieldname": "og_title",
+   "fieldtype": "Data",
+   "label": "OG Title"
+  },
+  {
+   "description": "Social media description",
+   "fieldname": "og_description",
+   "fieldtype": "Text",
+   "label": "OG Description"
+  },
+  {
+   "description": "Social media image",
+   "fieldname": "og_image",
+   "fieldtype": "Attach Image",
+   "label": "OG Image"
+  },
+  {
+   "fieldname": "section_break_page_specific",
+   "fieldtype": "Section Break",
+   "label": "Page-Specific Content"
+  },
+  {
+   "default": "{}",
+   "description": "JSON object for page-specific content (e.g., Learn page challenges, Connect page events, Lead page opportunities)",
+   "fieldname": "page_specific_content",
+   "fieldtype": "JSON",
+   "label": "Page Specific Content"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-14 20:57:28.536485",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Website Content",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

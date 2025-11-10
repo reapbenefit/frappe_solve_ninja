@@ -23,7 +23,9 @@ web_include_js = "/assets/solve_ninja/js/solve_ninja.js"
 # website_theme_scss = "solve_ninja/public/scss/website"
 
 # include js, css files in header of web form
-# webform_include_js = {"doctype": "public/js/doctype.js"}
+# webform_include_js = {
+#     "Web Form": "public/js/web_form_override.js"
+# }
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
@@ -42,14 +44,17 @@ web_include_js = "/assets/solve_ninja/js/solve_ninja.js"
 # home_page = "login"
 
 # website user home page (by Role)
-role_home_page = {
-	"All": "/user-profile/me"
-}
+# role_home_page = {
+# 	"All": "/user-profile/me"
+# }
+
+signup_form_template = "solve_ninja/templates/signup.html"
 
 website_route_rules = [
-    {"from_route": "/user-profile/<username>", "to_route": "user-profile"},
+    {"from_route": "/user-profile/<username>", "to_route": "/user-profile"},
     {"from_route": "/campaign/<route>", "to_route": "campaign"},
-    {"from_route": "/opportunity/<opportunity>", "to_route": "opportunity"}
+    {"from_route": "/opportunity/<opportunity>", "to_route": "opportunity"},
+    {"from_route": "/marketplace2.0", "to_route": "marketplace2"}
    # {"from_route": "/application-for-opportunity/new/<opportunity>", "to_route": "application-for-opportunity/new"},
 ]
 

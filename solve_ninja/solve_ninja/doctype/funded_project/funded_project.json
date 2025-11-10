@@ -1,0 +1,136 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-18 14:11:37.294736",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "image",
+  "lead_ninja_name",
+  "city",
+  "column_break_hfyhx",
+  "description",
+  "section_break_our7d",
+  "grant_amount",
+  "funded_date",
+  "theme",
+  "media_link",
+  "column_break_nnqzg",
+  "outcome_summary",
+  "testimonial"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_hfyhx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lead_ninja_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Lead Ninja Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "City",
+   "options": "Samaaja Cities",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_our7d",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "grant_amount",
+   "fieldtype": "Currency",
+   "label": "Grant Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "funded_date",
+   "fieldtype": "Date",
+   "label": "Funded Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "theme",
+   "fieldtype": "Data",
+   "label": "Theme",
+   "reqd": 1
+  },
+  {
+   "fieldname": "media_link",
+   "fieldtype": "Data",
+   "label": "Media Link",
+   "options": "URL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_nnqzg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "outcome_summary",
+   "fieldtype": "Text",
+   "label": "Outcome Summary",
+   "reqd": 1
+  },
+  {
+   "fieldname": "testimonial",
+   "fieldtype": "Text",
+   "label": "Testimonial",
+   "reqd": 1
+  }
+ ],
+ "image_field": "image",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-07 04:12:37.878791",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Funded Project",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title"
+}

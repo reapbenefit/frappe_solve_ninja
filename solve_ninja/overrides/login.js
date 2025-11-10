@@ -105,6 +105,72 @@ login.bind_events = function () {
 		}
 		this.value = value;
 	});
+
+	$(".form-signup").on("submit", function (event) {
+		event.preventDefault();
+
+		// Get redirect-to parameter from URL
+		var urlParams = new URLSearchParams(window.location.search);
+		var redirectTo = urlParams.get('redirect-to');
+		
+		// Get values
+		const full_name = $('#signup_fullname').val().trim();
+		const mobile = $('#signup_mobile').val().trim();
+		const pincode = $('#signup_pincode').val().trim();
+		const gender = $('#signup_gender').val();
+		const year_of_birth = $('#signup_yob').val().trim();
+
+		const currentYear = new Date().getFullYear();
+		if (!/^\d{4}$/.test(year_of_birth) || parseInt(year_of_birth) >= currentYear) {
+			login.set_status(`Year of Birth must be 4 digits and less than ${currentYear}.`, 'red');
+			$('#signup_yob').addClass('input-error').focus(); // add red border + focus
+			return;
+		}else {
+    		$('#signup_yob').removeClass('input-error'); // remove error when valid
+		}								
+
+		var args = {};
+		args.redirect_to = frappe.utils.sanitise_redirect(frappe.utils.get_url_arg("redirect-to"));
+		args.first_name = full_name;
+		args.mobile = mobile;
+		args.pincode = pincode;
+		args.gender =	gender;
+		args.year_of_birth = year_of_birth;
+
+		login.set_status("Verifying...", 'blue');
+
+		frappe.call({
+			method: "solve_ninja.api.common.add_user",
+			args: args,
+		})
+		.done(function(r) {
+			frappe.msgprint("Signup successful. Please login with OTP.");
+			if (redirectTo) {
+				console.log("Redirecting to:", redirectTo);
+				window.location.href = "/login?redirect-to=" + 
+								encodeURIComponent(frappe.utils.sanitise_redirect(frappe.utils.get_url_arg("redirect-to")));
+				return;
+			}
+			window.location.href = "/login";
+		})
+		.fail(function(xhr, status, error) {
+			errorMessage = JSON.parse(xhr.responseText);
+			if (errorMessage && errorMessage.message) {
+				error = errorMessage.message;
+			} else {
+				error = "Please connect with ReapBenefit team for help";
+			}
+			console.error("Signup failed:", error, xhr.responseText);
+			frappe.msgprint("Signup was not successful. " + error);
+			login.set_status("Signup was not successful. " + error, 'red');
+		})
+		.always(function() {
+			console.log("Signup request completed");
+		});
+
+		return false;
+	});
+
 };
 
 login.route = function () {
@@ -167,12 +233,17 @@ login.send_otp = function (mobile) {
 login.verify_otp = function (mobile, otp) {
 	login.set_status("Verifying OTP...", 'blue');
 	
+	// Get redirect-to parameter from URL
+	var urlParams = new URLSearchParams(window.location.search);
+	var redirectTo = urlParams.get('redirect-to');
+	
 	return frappe.call({
 		type: "POST",
 		method: "solve_ninja.api.auth.verify_otp_login",
 		args: {
 			mobile: mobile,
-			otp: otp
+			otp: otp,
+			redirect_to: redirectTo
 		},
 		callback: function (response) {
 			if (response.message && response.message.success) {
@@ -231,6 +302,7 @@ login.start_countdown = function () {
 };
 
 login.set_status = function (message, color) {
+	
 	// Create or update status message area
 	var statusArea = $('.status-message');
 	if (statusArea.length === 0) {
@@ -243,7 +315,7 @@ login.set_status = function (message, color) {
 	// Set color based on status
 	if (color == "red") {
 		statusArea.removeClass('text-success text-info').addClass('text-danger');
-		$('section:visible .page-card-body').addClass("invalid");
+		//$('section:visible .page-card-body').addClass("invalid");
 	} else if (color == "green") {
 		statusArea.removeClass('text-danger text-info').addClass('text-success');
 		$('section:visible .page-card-body').removeClass("invalid");
@@ -293,3 +365,4 @@ frappe.ready(function () {
 	
 	console.log("Mobile login initialization complete");
 });
+

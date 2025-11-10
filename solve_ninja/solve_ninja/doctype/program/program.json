@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:program_name",
+ "creation": "2025-09-24 15:05:35.366141",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "program_name",
+  "start_date",
+  "end_date",
+  "city",
+  "mode",
+  "description",
+  "source_type",
+  "sub_source_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "program_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Program Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "City",
+   "options": "Samaaja Cities",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Data",
+   "label": "Mode",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Long Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Link",
+   "label": "Source_of_acquisition",
+   "options": "Source_of_acquisition",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sub_source_type",
+   "fieldtype": "Link",
+   "label": "Sub_Source_of_Acquisition",
+   "options": "Sub_Source_of_Acquisition",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-30 02:35:13.974745",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Program",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

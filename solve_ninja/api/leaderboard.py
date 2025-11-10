@@ -414,3 +414,4 @@ def get_opportunities(page_length=10, start=0):
     )
 
     return query.run(as_dict=True)
+

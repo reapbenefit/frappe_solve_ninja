@@ -172,7 +172,7 @@ def search_users():
     logger.info('ENDS - searching a new user ------------')
     return custom_response(message,data,status_code,error)
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def add_user():
     """
     Public endpoint to add a new user using mobile number and optional metadata.
@@ -185,7 +185,9 @@ def add_user():
     mobile = ''
 
     try:
-        user_data = json.loads(frappe.request.data)
+        user_data = frappe.local.form_dict or {}
+        if not user_data and frappe.request.data:
+            user_data = json.loads(frappe.request.data)
 
         # Ensure required fields are present
         validate_required_fields(user_data, ["mobile", "first_name", "pincode"])
