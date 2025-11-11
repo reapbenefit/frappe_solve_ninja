@@ -1,0 +1,321 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-17 22:58:17.952705",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "language",
+  "is_active",
+  "ways_to_connect_title",
+  "ways_to_connect_description",
+  "solvecon_title",
+  "solvecon_description",
+  "solvecon_tag_in_person",
+  "solvecon_tag_workshops",
+  "solvecon_tag_talks",
+  "solvecon_link",
+  "changemaker_adda_title",
+  "changemaker_adda_description",
+  "changemaker_adda_tag_online",
+  "changemaker_adda_tag_stories",
+  "changemaker_adda_tag_community",
+  "changemaker_adda_link",
+  "experience_energy_title",
+  "experience_energy_subtitle",
+  "experience_energy_explore_button",
+  "gatherings_title",
+  "gatherings_select_city",
+  "event_registration_button",
+  "want_solvecon_title",
+  "want_solvecon_description",
+  "want_solvecon_mobile_description",
+  "request_option_title",
+  "request_button",
+  "organize_button",
+  "map_title",
+  "map_description",
+  "map_event_mumbai_name",
+  "map_event_mumbai_details",
+  "map_event_delhi_name",
+  "map_event_delhi_details",
+  "map_event_bangalore_name",
+  "map_event_bangalore_details",
+  "footer_text",
+  "footer_button",
+  "pathways_title",
+  "gatherings_tab_all_events"
+ ],
+ "fields": [
+  {
+   "default": "en",
+   "fieldname": "language",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Language",
+   "options": "Language",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "default": "Connect through Events",
+   "fieldname": "ways_to_connect_title",
+   "fieldtype": "Data",
+   "label": "Ways to Connect - Title"
+  },
+  {
+   "default": "Two ways to meet, learn and grow with fellow Ninjas.",
+   "fieldname": "ways_to_connect_description",
+   "fieldtype": "Text",
+   "label": "Ways to Connect - Description"
+  },
+  {
+   "default": "SolveCon",
+   "fieldname": "solvecon_title",
+   "fieldtype": "Data",
+   "label": "SolveCon - Title"
+  },
+  {
+   "default": "Connect with changemakers at a city-wide in-person festival. Join workshops and hear impact stories.",
+   "fieldname": "solvecon_description",
+   "fieldtype": "Text",
+   "label": "SolveCon - Description"
+  },
+  {
+   "default": "In-person",
+   "fieldname": "solvecon_tag_in_person",
+   "fieldtype": "Data",
+   "label": "SolveCon - In Person Tag"
+  },
+  {
+   "default": "Workshops",
+   "fieldname": "solvecon_tag_workshops",
+   "fieldtype": "Data",
+   "label": "SolveCon - Workshops Tag"
+  },
+  {
+   "default": "Talks",
+   "fieldname": "solvecon_tag_talks",
+   "fieldtype": "Data",
+   "label": "SolveCon - Talks Tag"
+  },
+  {
+   "default": "See SolveCon Dates \u2192",
+   "fieldname": "solvecon_link",
+   "fieldtype": "Data",
+   "label": "SolveCon - Link Text"
+  },
+  {
+   "default": "Changemaker Adda",
+   "fieldname": "changemaker_adda_title",
+   "fieldtype": "Data",
+   "label": "Changemaker Adda - Title"
+  },
+  {
+   "default": "Interact with young people about their journeys and share your wins.",
+   "fieldname": "changemaker_adda_description",
+   "fieldtype": "Text",
+   "label": "Changemaker Adda - Description"
+  },
+  {
+   "default": "Online",
+   "fieldname": "changemaker_adda_tag_online",
+   "fieldtype": "Data",
+   "label": "Changemaker Adda - Online Tag"
+  },
+  {
+   "default": "Stories",
+   "fieldname": "changemaker_adda_tag_stories",
+   "fieldtype": "Data",
+   "label": "Changemaker Adda - Stories Tag"
+  },
+  {
+   "default": "Community",
+   "fieldname": "changemaker_adda_tag_community",
+   "fieldtype": "Data",
+   "label": "Changemaker Adda - Community Tag"
+  },
+  {
+   "default": "Upcoming Addas \u2192",
+   "fieldname": "changemaker_adda_link",
+   "fieldtype": "Data",
+   "label": "Changemaker Adda - Link Text"
+  },
+  {
+   "default": "Experience the Energy",
+   "fieldname": "experience_energy_title",
+   "fieldtype": "Data",
+   "label": "Experience Energy - Title"
+  },
+  {
+   "default": "SolveCon talks \u2022 Adda discussions \u2022 SolverJam workshops",
+   "fieldname": "experience_energy_subtitle",
+   "fieldtype": "Data",
+   "label": "Experience Energy - Subtitle"
+  },
+  {
+   "default": "Explore Full Library \u2192",
+   "fieldname": "experience_energy_explore_button",
+   "fieldtype": "Data",
+   "label": "Experience Energy - Explore Button"
+  },
+  {
+   "default": "Be Part of the Next Gathering",
+   "fieldname": "gatherings_title",
+   "fieldtype": "Data",
+   "label": "Gatherings - Title"
+  },
+  {
+   "default": "Select a City",
+   "fieldname": "gatherings_select_city",
+   "fieldtype": "Data",
+   "label": "Gatherings - Select City"
+  },
+  {
+   "default": "Register",
+   "fieldname": "event_registration_button",
+   "fieldtype": "Data",
+   "label": "Event Registration Button"
+  },
+  {
+   "default": "Want SolveCon to Your City?",
+   "fieldname": "want_solvecon_title",
+   "fieldtype": "Data",
+   "label": "Want SolveCon - Title"
+  },
+  {
+   "default": "Help bring the flagship event - SolveCon to your city where young changemakers gather to exchange ideas, showcase impact projects, attend workshops and create connections!",
+   "fieldname": "want_solvecon_description",
+   "fieldtype": "Text",
+   "label": "Want SolveCon - Description"
+  },
+  {
+   "default": "Let young changemakers gather to exchange ideas, showcase impact projects, attend workshops and create connections!",
+   "fieldname": "want_solvecon_mobile_description",
+   "fieldtype": "Text",
+   "label": "Want SolveCon - Mobile Description"
+  },
+  {
+   "default": "Tell us details about your city and we'll come!",
+   "fieldname": "request_option_title",
+   "fieldtype": "Data",
+   "label": "Request Option - Title"
+  },
+  {
+   "default": "Request SolveCon",
+   "fieldname": "request_button",
+   "fieldtype": "Data",
+   "label": "Request Button"
+  },
+  {
+   "default": "Organise it Yourself",
+   "fieldname": "organize_button",
+   "fieldtype": "Data",
+   "label": "Organize Button"
+  },
+  {
+   "default": "SolveCon Events",
+   "fieldname": "map_title",
+   "fieldtype": "Data",
+   "label": "Map - Title"
+  },
+  {
+   "default": "Join our community events across different cities",
+   "fieldname": "map_description",
+   "fieldtype": "Text",
+   "label": "Map - Description"
+  },
+  {
+   "default": "SolveCon Mumbai",
+   "fieldname": "map_event_mumbai_name",
+   "fieldtype": "Data",
+   "label": "Map Event Mumbai - Name"
+  },
+  {
+   "default": "12 Jan 2025 \u2022 850+ attendees",
+   "fieldname": "map_event_mumbai_details",
+   "fieldtype": "Data",
+   "label": "Map Event Mumbai - Details"
+  },
+  {
+   "default": "SolveCon Delhi",
+   "fieldname": "map_event_delhi_name",
+   "fieldtype": "Data",
+   "label": "Map Event Delhi - Name"
+  },
+  {
+   "default": "15 Feb 2025 \u2022 650+ attendees",
+   "fieldname": "map_event_delhi_details",
+   "fieldtype": "Data",
+   "label": "Map Event Delhi - Details"
+  },
+  {
+   "default": "SolveCon Bangalore",
+   "fieldname": "map_event_bangalore_name",
+   "fieldtype": "Data",
+   "label": "Map Event Bangalore - Name"
+  },
+  {
+   "default": "20 Mar 2025 \u2022 720+ attendees",
+   "fieldname": "map_event_bangalore_details",
+   "fieldtype": "Data",
+   "label": "Map Event Bangalore - Details"
+  },
+  {
+   "default": "No matter where you are \u2013 there's a Solve Ninja community waiting for you.",
+   "fieldname": "footer_text",
+   "fieldtype": "Text",
+   "label": "Footer - Text"
+  },
+  {
+   "default": "Join the Movement \u2192",
+   "fieldname": "footer_button",
+   "fieldtype": "Data",
+   "label": "Footer - Button"
+  },
+  {
+   "default": "Tell us details about your city and we'll come!",
+   "fieldname": "pathways_title",
+   "fieldtype": "Data",
+   "label": "Pathways Title"
+  },
+  {
+   "default": "All Events",
+   "fieldname": "gatherings_tab_all_events",
+   "fieldtype": "Data",
+   "label": "Gatherings - All Events Tab"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-11 14:36:39.182124",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Connect Page Content",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "language",
+ "track_changes": 1
+}

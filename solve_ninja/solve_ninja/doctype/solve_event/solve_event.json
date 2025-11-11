@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2025-09-10 14:47:49.275667",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "description",
+  "start_date_time",
+  "mode",
+  "end_date_time",
+  "city",
+  "unique_id",
+  "type",
+  "cover_image"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_date_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Start Date Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "Online\nOffline"
+  },
+  {
+   "fieldname": "end_date_time",
+   "fieldtype": "Datetime",
+   "label": "End Date Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "label": "City",
+   "options": "Samaaja Cities",
+   "reqd": 1
+  },
+  {
+   "fieldname": "unique_id",
+   "fieldtype": "Data",
+   "label": "Unique ID"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Solver Jam\nSolve Con\nChangemaker Adda",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cover_image",
+   "fieldtype": "Attach Image",
+   "label": "Cover Image",
+   "reqd": 1
+  }
+ ],
+ "image_field": "cover_image",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-11 14:33:29.528422",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Solve Event",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title"
+}

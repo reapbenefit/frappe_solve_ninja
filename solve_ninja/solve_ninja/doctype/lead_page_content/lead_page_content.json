@@ -1,0 +1,385 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-18 00:23:22.879173",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "language",
+  "is_active",
+  "lead_hero_title",
+  "lead_hero_description",
+  "lead_hero_primary_button",
+  "mentorship_network_title",
+  "mentorship_network_description",
+  "mentorship_network_primary_button",
+  "mentorship_network_secondary_button",
+  "mentorship_network_card_title",
+  "mentorship_network_card_description",
+  "changemaker_fund_title",
+  "changemaker_fund_description",
+  "changemaker_fund_funded_badge",
+  "changemaker_fund_cta_button",
+  "changemaker_fund_ninja_label",
+  "changemaker_fund_grant_label",
+  "changemaker_fund_outcome_label",
+  "changemaker_fund_stat_1_label",
+  "changemaker_fund_stat_1_value",
+  "changemaker_fund_stat_1_description",
+  "changemaker_fund_stat_2_label",
+  "changemaker_fund_stat_2_value",
+  "changemaker_fund_stat_2_description",
+  "changemaker_fund_stat_3_label",
+  "changemaker_fund_stat_3_value",
+  "changemaker_fund_stat_3_description",
+  "city_chapters_title",
+  "city_chapters_description",
+  "city_chapters_pathways_title",
+  "city_chapters_start_chapter_button",
+  "city_chapters_lead_chapter_button",
+  "city_chapters_community_highlight_title",
+  "city_chapters_stat_1_label",
+  "city_chapters_stat_1_value",
+  "city_chapters_stat_2_label",
+  "city_chapters_stat_2_value",
+  "city_chapters_stat_3_label",
+  "city_chapters_stat_3_value",
+  "city_chapters_mobile_stat_1_label",
+  "city_chapters_mobile_stat_1_value",
+  "city_chapters_mobile_stat_2_label",
+  "city_chapters_mobile_stat_2_value",
+  "city_chapters_mobile_stat_3_label",
+  "city_chapters_mobile_stat_3_value",
+  "city_chapters_mobile_stat_4_label",
+  "city_chapters_mobile_stat_4_value",
+  "lead_cta_title",
+  "lead_cta_button_text"
+ ],
+ "fields": [
+  {
+   "default": "English",
+   "description": "Select the language for this content",
+   "fieldname": "language",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Language",
+   "options": "Language",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "default": "Lead. Inspire. Shape the Future of Changemaking.",
+   "fieldname": "lead_hero_title",
+   "fieldtype": "Data",
+   "label": "Lead Hero - Title"
+  },
+  {
+   "default": "Take your ideas further, guide peers, and represent youth voices at scale.",
+   "fieldname": "lead_hero_description",
+   "fieldtype": "Text",
+   "label": "Lead Hero - Description"
+  },
+  {
+   "default": "Step Up and Lead \u2192",
+   "fieldname": "lead_hero_primary_button",
+   "fieldtype": "Data",
+   "label": "Lead Hero - Primary Button"
+  },
+  {
+   "default": "Every leader needs guidance.",
+   "fieldname": "mentorship_network_title",
+   "fieldtype": "Data",
+   "label": "Mentorship Network - Title"
+  },
+  {
+   "default": "Over 5,000 Ninjas have been mentored by 100+ experts in sustainability, policy, and innovation.",
+   "fieldname": "mentorship_network_description",
+   "fieldtype": "Text",
+   "label": "Mentorship Network - Description"
+  },
+  {
+   "default": "Request Mentorship \u2192",
+   "fieldname": "mentorship_network_primary_button",
+   "fieldtype": "Data",
+   "label": "Mentorship Network - Primary Button"
+  },
+  {
+   "default": "Go to Learn Page \u2192",
+   "fieldname": "mentorship_network_secondary_button",
+   "fieldtype": "Data",
+   "label": "Mentorship Network - Secondary Button"
+  },
+  {
+   "default": "Mentorship Network",
+   "fieldname": "mentorship_network_card_title",
+   "fieldtype": "Data",
+   "label": "Mentorship Network - Card Title"
+  },
+  {
+   "default": "Tap into domain experts who will accelerate your leadership journey.",
+   "fieldname": "mentorship_network_card_description",
+   "fieldtype": "Text",
+   "label": "Mentorship Network - Card Description"
+  },
+  {
+   "default": "Fuel Your Ideas with the Changemaker Fund",
+   "fieldname": "changemaker_fund_title",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Title"
+  },
+  {
+   "default": "Turn your changemaking projects into reality with micro-grants and support.",
+   "fieldname": "changemaker_fund_description",
+   "fieldtype": "Text",
+   "label": "Changemaker Fund - Description"
+  },
+  {
+   "default": "Funded",
+   "fieldname": "changemaker_fund_funded_badge",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Funded Badge"
+  },
+  {
+   "default": "Apply for the Fund \u2192",
+   "fieldname": "changemaker_fund_cta_button",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - CTA Button"
+  },
+  {
+   "default": "Ninja",
+   "fieldname": "changemaker_fund_ninja_label",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Ninja Label"
+  },
+  {
+   "default": "Grant",
+   "fieldname": "changemaker_fund_grant_label",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Grant Label"
+  },
+  {
+   "default": "Outcome",
+   "fieldname": "changemaker_fund_outcome_label",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Outcome Label"
+  },
+  {
+   "default": "Disbursed",
+   "fieldname": "changemaker_fund_stat_1_label",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 1 Label"
+  },
+  {
+   "default": "INR 10+ Lakhs",
+   "fieldname": "changemaker_fund_stat_1_value",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 1 Value"
+  },
+  {
+   "default": "already disbursed",
+   "fieldname": "changemaker_fund_stat_1_description",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 1 Description"
+  },
+  {
+   "default": "Projects Funded",
+   "fieldname": "changemaker_fund_stat_2_label",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 2 Label"
+  },
+  {
+   "default": "150+ projects",
+   "fieldname": "changemaker_fund_stat_2_value",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 2 Value"
+  },
+  {
+   "default": "funded across India",
+   "fieldname": "changemaker_fund_stat_2_description",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 2 Description"
+  },
+  {
+   "default": "Average Cost",
+   "fieldname": "changemaker_fund_stat_3_label",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 3 Label"
+  },
+  {
+   "default": "\u20b925,000",
+   "fieldname": "changemaker_fund_stat_3_value",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 3 Value"
+  },
+  {
+   "default": "per project",
+   "fieldname": "changemaker_fund_stat_3_description",
+   "fieldtype": "Data",
+   "label": "Changemaker Fund - Stat 3 Description"
+  },
+  {
+   "default": "Be the Spark in Your City",
+   "fieldname": "city_chapters_title",
+   "fieldtype": "Data",
+   "label": "City Chapters - Title"
+  },
+  {
+   "default": "Take Solve Ninja to the next level \u2014 launch or lead a City Chapter in your community. Shape how young people organize, act, and sustain change.",
+   "fieldname": "city_chapters_description",
+   "fieldtype": "Text",
+   "label": "City Chapters - Description"
+  },
+  {
+   "default": "Pathways",
+   "fieldname": "city_chapters_pathways_title",
+   "fieldtype": "Data",
+   "label": "City Chapters - Pathways Title"
+  },
+  {
+   "default": "Start a Chapter \u2192",
+   "fieldname": "city_chapters_start_chapter_button",
+   "fieldtype": "Data",
+   "label": "City Chapters - Start Chapter Button"
+  },
+  {
+   "default": "Lead a Chapter \u2192",
+   "fieldname": "city_chapters_lead_chapter_button",
+   "fieldtype": "Data",
+   "label": "City Chapters - Lead Chapter Button"
+  },
+  {
+   "default": "Community Highlight",
+   "fieldname": "city_chapters_community_highlight_title",
+   "fieldtype": "Data",
+   "label": "City Chapters - Community Highlight Title"
+  },
+  {
+   "default": "Active Chapters",
+   "fieldname": "city_chapters_stat_1_label",
+   "fieldtype": "Data",
+   "label": "City Chapters - Stat 1 Label"
+  },
+  {
+   "default": "12",
+   "fieldname": "city_chapters_stat_1_value",
+   "fieldtype": "Data",
+   "label": "City Chapters - Stat 1 Value"
+  },
+  {
+   "default": "Events Last Year",
+   "fieldname": "city_chapters_stat_2_label",
+   "fieldtype": "Data",
+   "label": "City Chapters - Stat 2 Label"
+  },
+  {
+   "default": "100+",
+   "fieldname": "city_chapters_stat_2_value",
+   "fieldtype": "Data",
+   "label": "City Chapters - Stat 2 Value"
+  },
+  {
+   "default": "Ninjas Supported",
+   "fieldname": "city_chapters_stat_3_label",
+   "fieldtype": "Data",
+   "label": "City Chapters - Stat 3 Label"
+  },
+  {
+   "default": "5,000+",
+   "fieldname": "city_chapters_stat_3_value",
+   "fieldtype": "Data",
+   "label": "City Chapters - Stat 3 Value"
+  },
+  {
+   "default": "active city communities",
+   "fieldname": "city_chapters_mobile_stat_1_label",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 1 Label"
+  },
+  {
+   "default": "12",
+   "fieldname": "city_chapters_mobile_stat_1_value",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 1 Value"
+  },
+  {
+   "default": "events last year",
+   "fieldname": "city_chapters_mobile_stat_2_label",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 2 Label"
+  },
+  {
+   "default": "100+",
+   "fieldname": "city_chapters_mobile_stat_2_value",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 2 Value"
+  },
+  {
+   "default": "Ninjas supported",
+   "fieldname": "city_chapters_mobile_stat_3_label",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 3 Label"
+  },
+  {
+   "default": "5,000+",
+   "fieldname": "city_chapters_mobile_stat_3_value",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 3 Value"
+  },
+  {
+   "default": "pathways to lead",
+   "fieldname": "city_chapters_mobile_stat_4_label",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 4 Label"
+  },
+  {
+   "default": "2",
+   "fieldname": "city_chapters_mobile_stat_4_value",
+   "fieldtype": "Data",
+   "label": "City Chapters - Mobile Stat 4 Value"
+  },
+  {
+   "default": "Leadership isn't given. It's built \u2014 one action at a time.",
+   "fieldname": "lead_cta_title",
+   "fieldtype": "Data",
+   "label": "Lead CTA - Title"
+  },
+  {
+   "default": "Step Up and Lead",
+   "fieldname": "lead_cta_button_text",
+   "fieldtype": "Data",
+   "label": "Lead CTA - Button Text"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-11 14:36:36.611687",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Lead Page Content",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "language",
+ "track_changes": 1
+}

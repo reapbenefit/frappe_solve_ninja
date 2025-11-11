@@ -1,0 +1,93 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-10 15:54:45.801295",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "full_name",
+  "phone",
+  "feedback_date",
+  "solve_event",
+  "suggestion",
+  "host_event",
+  "involve_with_org",
+  "nominate_friends"
+ ],
+ "fields": [
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Phone",
+   "options": "Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "feedback_date",
+   "fieldtype": "Datetime",
+   "label": "Feedback Date"
+  },
+  {
+   "fieldname": "solve_event",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Solve Event",
+   "options": "Solve Event",
+   "reqd": 1
+  },
+  {
+   "fieldname": "suggestion",
+   "fieldtype": "Long Text",
+   "label": "Suggested Change"
+  },
+  {
+   "fieldname": "host_event",
+   "fieldtype": "Select",
+   "label": "Host Event",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "involve_with_org",
+   "fieldtype": "Select",
+   "label": "Involve with Org",
+   "options": "Start a Solve Ninja squad in your school/college\nLead a campaign on an issue you care about\nVolunteer with us for events and projects\nBecome a Core Ninja and shape bigger initiatives"
+  },
+  {
+   "fieldname": "nominate_friends",
+   "fieldtype": "Long Text",
+   "label": "Nominate Friends"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-11 14:35:34.463345",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Event Feedback",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestWebsiteContent(FrappeTestCase):
+class TestConnectPageContent(FrappeTestCase):
 	pass
