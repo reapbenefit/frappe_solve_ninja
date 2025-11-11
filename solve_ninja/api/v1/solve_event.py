@@ -291,7 +291,7 @@ def get_solve_events(page_length=10, start=0, solve_event_type = None):
 					"has_prev": start > 0
 				},
 				"filters": {
-					"sub_type": sub_type
+					"solve_event_type": solve_event_type
 				}
 			},
 			status_code=200,

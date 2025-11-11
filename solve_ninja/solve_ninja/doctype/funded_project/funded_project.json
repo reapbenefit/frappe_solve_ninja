@@ -33,8 +33,7 @@
   {
    "fieldname": "image",
    "fieldtype": "Attach Image",
-   "label": "Image",
-   "reqd": 1
+   "label": "Image"
   },
   {
    "fieldname": "description",
@@ -58,8 +57,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "City",
-   "options": "Samaaja Cities",
-   "reqd": 1
+   "options": "Samaaja Cities"
   },
   {
    "fieldname": "section_break_our7d",
@@ -68,20 +66,17 @@
   {
    "fieldname": "grant_amount",
    "fieldtype": "Currency",
-   "label": "Grant Amount",
-   "reqd": 1
+   "label": "Grant Amount"
   },
   {
    "fieldname": "funded_date",
    "fieldtype": "Date",
-   "label": "Funded Date",
-   "reqd": 1
+   "label": "Funded Date"
   },
   {
    "fieldname": "theme",
    "fieldtype": "Data",
-   "label": "Theme",
-   "reqd": 1
+   "label": "Theme"
   },
   {
    "fieldname": "media_link",
@@ -110,7 +105,7 @@
  "image_field": "image",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-07 04:12:37.878791",
+ "modified": "2025-11-11 16:03:31.388129",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Funded Project",
