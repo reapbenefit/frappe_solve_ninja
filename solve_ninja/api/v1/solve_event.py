@@ -233,7 +233,7 @@ def get_solve_events(page_length=10, start=0, solve_event_type = None):
 		base_conditions = None
 		
 		# Sub type filter
-		if sub_type:
+		if solve_event_type:
 			base_conditions = SolveEvent.type == solve_event_type
 		
 		# Build query
