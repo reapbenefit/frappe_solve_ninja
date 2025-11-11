@@ -55,7 +55,7 @@ def get_upcoming_events(page_length=10, start=0, city=None, event_type=None):
 				SolveEvent.end_date_time,
 				SolveEvent.city,
 				SolveEvent.unique_id,
-				SolveEvent.sub_type,
+				SolveEvent.type,
 				SolveEvent.cover_image,
 				SolveEvent.name
 			)
@@ -147,7 +147,7 @@ def get_past_events(page_length=10, start=0, city=None, event_type=None):
 		
 		# Event type filter
 		if event_type:
-			base_conditions = base_conditions & SolveEvent.event_type.isin(event_type)
+			base_conditions = base_conditions & SolveEvent.type.isin(event_type)
 		
 		# Build query
 		query = (
@@ -160,7 +160,7 @@ def get_past_events(page_length=10, start=0, city=None, event_type=None):
 				SolveEvent.end_date_time,
 				SolveEvent.city,
 				SolveEvent.unique_id,
-				SolveEvent.sub_type,
+				SolveEvent.type,
 				SolveEvent.cover_image,
 				SolveEvent.name
 			)
@@ -211,17 +211,17 @@ def get_past_events(page_length=10, start=0, city=None, event_type=None):
 		)
 
 @frappe.whitelist(allow_guest=True)
-def get_solve_events(page_length=10, start=0, sub_type=None):
+def get_solve_events(page_length=10, start=0, solve_event_type = None):
 	"""
 	Get solve events filtered by sub_type, ordered by creation desc.
 	
 	Args:
 	- page_length: Number of results per page (default: 10)
 	- start: Starting index for pagination (default: 0)
-	- sub_type: Filter by sub_type (string, optional)
+	- solve__event_type: Filter by type (string, optional)
 	
 	Returns:
-	- All fields from Solve Event doctype filtered by sub_type, ordered by creation desc
+	- All fields from Solve Event doctype filtered by type, ordered by creation desc
 	"""
 	try:
 		page_length = int(page_length)
@@ -234,7 +234,7 @@ def get_solve_events(page_length=10, start=0, sub_type=None):
 		
 		# Sub type filter
 		if sub_type:
-			base_conditions = SolveEvent.sub_type == sub_type
+			base_conditions = SolveEvent.type == solve_event_type
 		
 		# Build query
 		query = (
@@ -247,7 +247,7 @@ def get_solve_events(page_length=10, start=0, sub_type=None):
 				SolveEvent.end_date_time,
 				SolveEvent.city,
 				SolveEvent.unique_id,
-				SolveEvent.sub_type,
+				SolveEvent.type,
 				SolveEvent.cover_image,
 				SolveEvent.name,
 				SolveEvent.creation
