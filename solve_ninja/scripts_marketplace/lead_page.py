@@ -27,9 +27,8 @@ def create_lead_page_doctype():
         "fields": [
             # Basic Info
             {
-                "fieldname": "language",
+                "fieldname": "content_language",
                 "fieldtype": "Link",
-                "in_list_view": 1,
                 "label": "Language",
                 "options": "Language",
                 "reqd": 1,
@@ -354,7 +353,6 @@ def create_lead_page_doctype():
         ],
         "sort_field": "modified",
         "sort_order": "DESC",
-        "title_field": "language",
         "track_changes": 1
     }
     

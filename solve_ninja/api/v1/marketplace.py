@@ -188,6 +188,7 @@ def get_ninjas_in_focus(page_length=10, start=0):
 				UserMetadata.media,
 				UserMetadata.testimonial,
 				UserMetadata.story,
+                UserMetadata.active_since,
 				User.full_name,
 				User.username,
 				User.user_image,

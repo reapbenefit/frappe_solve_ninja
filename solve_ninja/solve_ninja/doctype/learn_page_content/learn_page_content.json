@@ -64,7 +64,6 @@
    "description": "Select the language for this content",
    "fieldname": "language",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Language",
    "options": "Language",
    "reqd": 1
@@ -345,7 +344,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-22 18:05:13.253526",
+ "modified": "2025-11-10 18:11:49.938611",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Learn Page Content",
