@@ -62,10 +62,8 @@
    "description": "Select the language for this content",
    "fieldname": "language",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Language",
-   "options": "Language",
-   "reqd": 1
+   "options": "Language"
   },
   {
    "default": "1",
@@ -358,7 +356,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-11 14:36:36.611687",
+ "modified": "2025-11-12 11:05:45.866825",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Lead Page Content",
@@ -380,6 +378,5 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "language",
  "track_changes": 1
 }

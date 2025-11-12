@@ -294,7 +294,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-11 14:36:39.182124",
+ "modified": "2025-11-12 11:06:47.910982",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Connect Page Content",
@@ -316,6 +316,5 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "language",
  "track_changes": 1
 }
