@@ -52,10 +52,8 @@
    "default": "en",
    "fieldname": "language",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Language",
-   "options": "Language",
-   "reqd": 1
+   "options": "Language"
   },
   {
    "default": "1",
@@ -294,7 +292,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-12 11:06:47.910982",
+ "modified": "2025-11-12 12:29:49.511442",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Connect Page Content",
