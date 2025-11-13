@@ -10,7 +10,7 @@ from samaaja.api.common import custom_response
 @frappe.whitelist(allow_guest=True)
 def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 	"""
-	Get top reviewed users with their reviews and recent activity based on specified days.
+	Get top users with their recent activity based on specified days.
 	
 	Args:
 	- page_length: Number of results per page (default: 10)
@@ -19,7 +19,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 	- filters: JSON string containing additional filters (optional)
 	
 	Returns:
-	- User data with reviews and recent activity
+	- User data with recent activity
 	"""
 	try:
 		start = cint(start)
@@ -33,7 +33,6 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 		Events = DocType("Events")
 		NinjaProfile = DocType("Ninja Profile")
 		UserMetadata = DocType("User Metadata")
-		UserReview = DocType("User Review")
 
 		# Calculate time condition based on days
 		time_condition = now_datetime() - timedelta(days=days)
@@ -45,10 +44,6 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			.join(NinjaProfile).on(User.name == NinjaProfile.name)
 			.join(UserMetadata).on(User.name == UserMetadata.name)
 			.join(Events).on(User.name == Events.user)
-			.left_join(UserReview).on(
-				(User.name == UserReview.user) & 
-				(UserReview.status == "Accepted")
-			)
 			.select(
 				User.name,
 				User.username,
@@ -62,8 +57,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				User.full_name,
 				Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),
 				Coalesce(Count(Events.user), 0).as_("contribution_count"),
-				Sum(Events.hours_invested).as_("recent_rank"),
-				Count(UserReview.name).as_("review_count")
+				Sum(Events.hours_invested).as_("recent_rank")
 			)
 			.distinct()
 			.where(
@@ -78,9 +72,6 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			.orderby(Sum(Events.hours_invested), order=Order.desc)
 			.orderby(User.full_name, order=Order.asc)
 		)
-		
-		# Add HAVING clause to ensure at least one accepted review
-		query = query.having(Count(UserReview.name) > 0)
 		
 		# Apply Filters Dynamically
 		if filters.get("organization"):
@@ -109,10 +100,6 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			.join(NinjaProfile).on(User.name == NinjaProfile.name)
 			.join(UserMetadata).on(User.name == UserMetadata.name)
 			.join(Events).on(User.name == Events.user)
-			.left_join(UserReview).on(
-				(User.name == UserReview.user) & 
-				(UserReview.status == "Accepted")
-			)
 			.select(Count(User.name).distinct().as_("total"))
 			.where(
 				(User.enabled == 1) &
@@ -120,7 +107,6 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
 			)
 			.groupby(User.name)
-			.having(Count(UserReview.name) > 0)
 		)
 		
 		# Apply same filters to count query
@@ -155,7 +141,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				row.user_profile = frappe.utils.get_url(f"/user-profile/{row.username}")
 
 		return custom_response(
-			message="Top reviewed users retrieved successfully",
+			message="Top users retrieved successfully",
 			data={
 				"result": users,
 				"pagination": {
@@ -177,7 +163,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 	except Exception as e:
 		frappe.log_error(f"Error in get_top_reviewed_users: {str(e)}")
 		return custom_response(
-			message="Failed to retrieve top reviewed users",
+			message="Failed to retrieve top users",
 			data=None,
 			status_code=500,
 			error=str(e)
