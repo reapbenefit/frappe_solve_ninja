@@ -313,7 +313,8 @@ def get_opportunities_for_youth(page_length=10, start=0, city=None, mode=None, s
 				OpportunityTemplate.stipend_amount,
 				OpportunityTemplate.mode,
 				OpportunityTemplate.whatsapp_keyword,
-				OpportunityTemplate.header_logo
+				OpportunityTemplate.header_logo,
+				OpportunityTemplate.url
 			)
 		)
 		

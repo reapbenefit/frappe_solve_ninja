@@ -26,7 +26,8 @@
   "city",
   "start_date",
   "stipend_amount",
-  "whatsapp_keyword"
+  "whatsapp_keyword",
+  "url"
  ],
  "fields": [
   {
@@ -137,12 +138,17 @@
   {
    "fieldname": "whatsapp_keyword",
    "fieldtype": "Data",
-   "label": "Whatsapp Keyword",
-   "reqd": 1
+   "label": "Whatsapp Keyword"
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Small Text",
+   "label": "URL",
+   "max_height": "5rem"
   }
  ],
  "links": [],
- "modified": "2025-10-21 12:14:24.875599",
+ "modified": "2025-11-14 12:50:31.014707",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Opportunity Template",
