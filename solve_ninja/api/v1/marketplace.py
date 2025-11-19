@@ -70,7 +70,8 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 		base_conditions = (
 			(UserMetadata.city.isnotnull()) &
 			(UserMetadata.city != "") &
-			(NinjaProfile.contributions > 0)
+			(NinjaProfile.contributions > 0) &
+			(UserMetadata.org_id.notin(["RBINT", "Reap Benefit Team", "Reap Benefit SNLA program"]))
 		)
 		
 		# Build event filter conditions
@@ -88,7 +89,7 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 			.select(
 				UserMetadata.city,
 				Count(NinjaProfile.name).distinct().as_("active_ninjas"),
-				Sum(NinjaProfile.hours_invested).as_("hours_invested"),
+				Sum(Events.hours_invested).as_("hours_invested"),
 				Count(Events.name).as_("action_count")
 			)
 			.where(base_conditions)

@@ -174,3 +174,87 @@ def process_manualupload_events():
             doc.save(ignore_permissions=True)  # Triggers Energy Points
         except Exception as e:
             frappe.log_error(f"Failed to save Event: {event.name} - {str(e)}")
+
+
+import frappe
+from frappe.query_builder import DocType, functions as fn
+
+def update_user_headline(user: str):
+    """Update a user's headline field based on their top 3 event types."""
+    if not user or not frappe.db.exists('User', user):
+        return
+
+    Events = DocType('Events')
+    
+    # Fetch top 3 event types for this user
+    top_types = (
+        frappe.qb.from_(Events)
+        .select(Events.type)
+        .where(Events.user == user)
+        .where(Events.type.isnotnull())
+        .groupby(Events.type)
+        .orderby(Count(Events.name), order=frappe.qb.desc)
+        .limit(3)
+    ).run(pluck=True)
+
+    headline = ', '.join(top_types) if top_types else ''
+    current_headline = frappe.db.get_value('User', user, 'headline')
+
+    if headline and headline != current_headline:
+        frappe.db.set_value('User', user, 'headline', headline)
+        frappe.db.commit()
+
+
+def get_all_event_users(days: int = None):
+    """
+    Return a list of unique users referenced in Events.
+    
+    Args:
+        days (int, optional): Number of days to look back. If None, considers all events.
+    
+    Returns:
+        list: List of unique user IDs who have events (optionally filtered by days).
+    """
+    filters = {"user": ("is", "set")}
+    
+    # Filter by creation date if days parameter is provided
+    if days is not None:
+        from_date = add_to_date(now_datetime(), days=-days)
+        filters["creation"] = [">=", from_date]
+    
+    users = frappe.get_all("Events", filters=filters, pluck="user")
+    return list(set(users))  # remove duplicates safely
+
+
+def update_all_user_headlines(enqueue: bool = False, days: int = None):
+    """
+    Update headline for all unique users found in Events.
+    
+    Args:
+        enqueue (bool): If True, enqueue the updates. If False, run synchronously.
+        days (int, optional): Number of days to look back for filtering users. If None, considers all events.
+    """
+    users = get_all_event_users(days=days)
+    if not users:
+        frappe.logger().info("No users found in Events.")
+        return
+
+    if enqueue:
+        for user in users:
+            frappe.enqueue(update_user_headline, user=user, queue="default")
+        frappe.logger().info(f"Enqueued headline update for {len(users)} users.")
+    else:
+        for user in users:
+            try:
+                update_user_headline(user)
+            except Exception:
+                frappe.log_error(frappe.get_traceback(), f"Failed updating headline for user {user}")
+        frappe.logger().info(f"Updated headlines for {len(users)} users.")
+
+
+def update_all_user_headlines_daily():
+    """
+    Daily batch job to update headlines for users who have events in the last 2 days.
+    This method is called by the scheduler.
+    """
+    update_all_user_headlines(enqueue=False, days=2)

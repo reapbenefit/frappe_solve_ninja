@@ -63,6 +63,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			.where(
 				(User.enabled == 1) &
 				(NinjaProfile.rank != 0) &
+				(UserMetadata.org_id.notin(["RBINT", "Reap Benefit Team", "Reap Benefit SNLA program"])) &
 				(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
 			)
 			.groupby(
