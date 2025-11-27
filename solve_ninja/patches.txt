@@ -6,3 +6,4 @@ solve_ninja.patches.update_user_bio_from_headline
 solve_ninja.patches.create_user_metadata_for_existing_users
 solve_ninja.patches.update_event_type_and_sub_type_in_events
 solve_ninja.patches.update_ninja_profile_minimum_one_event
+solve_ninja.patches.delete_events_metadata_doctype

@@ -26,7 +26,6 @@ def after_insert(doc, method=None):
     """
     update_action_detail_in_ninja_profile(doc)
     update_user_interest_from_top_categories(doc.user)
-    create_events_metadata(doc)
 
 def update_action_detail_in_ninja_profile(doc):
     """
@@ -128,32 +127,6 @@ def update_ninja_profile_hook(doc, method=None):
     if doc.user:
         frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
 
-def create_events_metadata(doc):
-    """
-    Creates Events Metadata document after Events is created.
-    
-    Args:
-        doc (Document): The Events document that was just created.
-    """
-    if not doc.user:
-        return
-    
-    try:
-        # Create Events Metadata document
-        events_metadata = frappe.get_doc({
-            "doctype": "Events Metadata",
-            "events": doc.name,
-            "unique_code": f"EVT_{doc.name}_{frappe.utils.now()}"
-        })
-        
-        # Save the Events Metadata document
-        events_metadata.flags.ignore_permissions = True
-        events_metadata.insert()
-        
-        frappe.logger().info(f"Created Events Metadata for Event: {doc.name}")
-        
-    except Exception as e:
-        frappe.log_error(f"Error creating Events Metadata for Event {doc.name}: {str(e)}")
 
 def process_manualupload_events():
     """Batch job to save Events created in the last 25 hours with source=manualupload"""
