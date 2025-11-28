@@ -153,24 +153,24 @@ import frappe
 from frappe.query_builder import DocType, functions as fn
 
 def update_user_headline(user: str):
-    """Update a user's headline field based on their top 3 event types."""
+    """Update a user's headline field based on their top 3 event categories."""
     if not user or not frappe.db.exists('User', user):
         return
 
     Events = DocType('Events')
     
-    # Fetch top 3 event types for this user
-    top_types = (
+    # Fetch top 3 event categories for this user
+    top_categories = (
         frappe.qb.from_(Events)
-        .select(Events.type)
+        .select(Events.category)
         .where(Events.user == user)
-        .where(Events.type.isnotnull())
-        .groupby(Events.type)
+        .where(Events.category.isnotnull())
+        .groupby(Events.category)
         .orderby(Count(Events.name), order=frappe.qb.desc)
         .limit(3)
     ).run(pluck=True)
 
-    headline = ', '.join(top_types) if top_types else ''
+    headline = ', '.join(top_categories) if top_categories else ''
     current_headline = frappe.db.get_value('User', user, 'headline')
 
     if headline and headline != current_headline:

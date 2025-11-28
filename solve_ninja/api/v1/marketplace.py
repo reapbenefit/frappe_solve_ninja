@@ -115,8 +115,8 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 		count_result = count_query.run()
 		total_count = count_result[0][0] if count_result else 0
 		
-		# Sort by active_ninjas in Python since we need to order after grouping
-		result.sort(key=lambda x: x['active_ninjas'], reverse=True)
+		# Sort by action_count in Python since we need to order after grouping
+		result.sort(key=lambda x: x['action_count'], reverse=True)
 		
 		return custom_response(
 			message="City-wise ninja statistics retrieved successfully",
@@ -497,6 +497,9 @@ def get_learn_page_content(language='en'):
             'learn_ninjas_of_month_title': learn_content.learn_ninjas_of_month_title,
             'learn_ninjas_of_month_view_profile': learn_content.learn_ninjas_of_month_view_profile,
 			'learn_ninjas_of_month_action_taken_label': learn_content.learn_ninjas_of_month_action_taken_label,
+			'learn_ninjas_of_month_city_filter': learn_content.learn_ninjas_of_month_city_filter,
+			'learn_ninjas_of_month_search_placeholder': learn_content.learn_ninjas_of_month_search_placeholder,
+			'learn_ninjas_of_month_clear_filters': learn_content.learn_ninjas_of_month_clear_filters,
             
             # CTA Section
             'learn_cta_title': learn_content.learn_cta_title,

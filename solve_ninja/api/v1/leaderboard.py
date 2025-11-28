@@ -39,6 +39,11 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 
 		# Base Query: Always Fetch Rank from `Ninja Profile`
 		user_count = frappe.db.count("User", {"enabled": 1})
+		
+		# Define aggregate functions for reuse
+		contribution_count = Count(Events.user)
+		hours_invested_sum = Sum(Events.hours_invested)
+		
 		query = (
 			frappe.qb.from_(User)
 			.join(NinjaProfile).on(User.name == NinjaProfile.name)
@@ -52,14 +57,11 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				UserMetadata.city,
 				Coalesce(NinjaProfile.rank, user_count).as_("rank"),
 				User.org_id,
-				User.user_image,
 				User.location,
 				User.full_name,
-				Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),
-				Coalesce(Count(Events.user), 0).as_("contribution_count"),
-				Sum(Events.hours_invested).as_("recent_rank")
+				Coalesce(hours_invested_sum, 0).as_("hours_invested"),
+				Coalesce(contribution_count, 0).as_("contribution_count")
 			)
-			.distinct()
 			.where(
 				(User.enabled == 1) &
 				(NinjaProfile.rank != 0) &
@@ -70,7 +72,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				User.name, User.username, UserMetadata.city, User.org_id, User.user_image, 
 				User.location, User.full_name, NinjaProfile.rank
 			)
-			.orderby(Sum(Events.hours_invested), order=Order.desc)
+			.orderby(Coalesce(contribution_count, 0), order=Order.desc)
 			.orderby(User.full_name, order=Order.asc)
 		)
 		
@@ -79,7 +81,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			query = query.where(User.org_id == filters["organization"])
 		
 		if filters.get("city"):
-			query = query.where(User.city == filters["city"])
+			query = query.where(UserMetadata.city == filters["city"])
 
 		if filters.get("ninja"):
 			full_name_filter = f"%{filters['ninja'].lower()}%"
@@ -95,16 +97,17 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				min_hr = flt(filters.get("hr_range").replace("+", ""))
 				query = query.having(Coalesce(Sum(Events.hours_invested), 0) > min_hr)
 
-		# Get total count for pagination
+		# Get total count for pagination - build same query structure but count distinct users
 		count_query = (
 			frappe.qb.from_(User)
 			.join(NinjaProfile).on(User.name == NinjaProfile.name)
 			.join(UserMetadata).on(User.name == UserMetadata.name)
 			.join(Events).on(User.name == Events.user)
-			.select(Count(User.name).distinct().as_("total"))
+			.select(User.name)
 			.where(
 				(User.enabled == 1) &
 				(NinjaProfile.rank != 0) &
+				(UserMetadata.org_id.notin(["RBINT", "Reap Benefit Team", "Reap Benefit SNLA program"])) &
 				(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
 			)
 			.groupby(User.name)
@@ -115,19 +118,29 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			count_query = count_query.where(User.org_id == filters["organization"])
 		
 		if filters.get("city"):
-			count_query = count_query.where(User.city == filters["city"])
+			count_query = count_query.where(UserMetadata.city == filters["city"])
 
 		if filters.get("ninja"):
 			full_name_filter = f"%{filters['ninja'].lower()}%"
 			count_query = count_query.where(Lower(User.full_name).like(full_name_filter))
+		
+		# Apply hour range filter to count query
+		if filters.get("hr_range"):
+			if "-" in filters.get("hr_range"):
+				min_hr, max_hr = map(flt, filters.get("hr_range").split("-"))
+				count_query = count_query.having(Coalesce(Sum(Events.hours_invested), 0).between(min_hr, max_hr))
+			elif "+" in filters.get("hr_range"):
+				min_hr = flt(filters.get("hr_range").replace("+", ""))
+				count_query = count_query.having(Coalesce(Sum(Events.hours_invested), 0) > min_hr)
 
 		# Apply pagination
 		query = query.limit(page_length).offset(start)
 
 		# Execute queries
 		users = query.run(as_dict=True)
+		# Count the number of distinct users returned from the grouped query
 		count_result = count_query.run()
-		total_count = count_result[0][0] if count_result else 0
+		total_count = len(count_result) if count_result else 0
 
 		# Assign Serial Numbers (Recent Rank)
 		for count, data in enumerate(users, start + 1):

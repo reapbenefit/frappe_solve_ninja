@@ -47,6 +47,9 @@ def create_learn_page_doctype():
                 "section_break_ninjas_of_month",
                 "learn_ninjas_of_month_title",
                 "learn_ninjas_of_month_view_profile",
+                "learn_ninjas_of_month_city_filter",
+                "learn_ninjas_of_month_search_placeholder",
+                "learn_ninjas_of_month_clear_filters",
                 "section_break_cta",
                 "learn_cta_title",
                 "learn_cta_button_text"
@@ -245,6 +248,27 @@ def create_learn_page_doctype():
                     "label": "View Profile",
                     "default": "View Profile",
                     "description": "Text for view profile button"
+                },
+                {
+                    "fieldname": "learn_ninjas_of_month_city_filter",
+                    "fieldtype": "Small Text",
+                    "label": "City Filter",
+                    "default": "City",
+                    "description": "Text for city filter"
+                },
+                {
+                    "fieldname": "learn_ninjas_of_month_search_placeholder",
+                    "fieldtype": "Small Text",
+                    "label": "Search Placeholder",
+                    "default": "Enter text to search name",
+                    "description": "Text for search placeholder"
+                },
+                {
+                    "fieldname": "learn_ninjas_of_month_clear_filters",
+                    "fieldtype": "Small Text",
+                    "label": "Clear Filters",
+                    "default": "Clear",
+                    "description": "Text for clear filters button"
                 },
                 {
                     "fieldname": "section_break_cta",

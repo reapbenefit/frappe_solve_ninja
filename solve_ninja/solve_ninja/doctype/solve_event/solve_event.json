@@ -7,17 +7,39 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "basic_information_section",
   "title",
-  "description",
-  "start_date_time",
-  "mode",
-  "end_date_time",
-  "city",
-  "unique_id",
+  "column_break_1",
   "type",
-  "cover_image"
+  "description_section",
+  "description",
+  "date_time_section",
+  "start_date_time",
+  "column_break_2",
+  "end_date_time",
+  "location_details_section",
+  "city",
+  "column_break_3",
+  "mode",
+  "additional_information_section",
+  "unique_id",
+  "column_break_4",
+  "cover_image",
+  "checkin_section",
+  "checkin_url",
+  "column_break_il3fx",
+  "checkin_qr"
  ],
  "fields": [
+  {
+   "fieldname": "basic_information_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
   {
    "fieldname": "title",
    "fieldtype": "Data",
@@ -26,10 +48,31 @@
    "reqd": 1
   },
   {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Solver Jam\nSolve Con\nAdda",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
    "fieldname": "description",
    "fieldtype": "Data",
    "label": "Description",
    "reqd": 1
+  },
+  {
+   "fieldname": "date_time_section",
+   "fieldtype": "Section Break",
+   "label": "Date & Time"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "start_date_time",
@@ -39,16 +82,19 @@
    "reqd": 1
   },
   {
-   "fieldname": "mode",
-   "fieldtype": "Select",
-   "label": "Mode",
-   "options": "Online\nOffline"
-  },
-  {
    "fieldname": "end_date_time",
    "fieldtype": "Datetime",
    "label": "End Date Time",
    "reqd": 1
+  },
+  {
+   "fieldname": "location_details_section",
+   "fieldtype": "Section Break",
+   "label": "Location & Details"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "city",
@@ -58,28 +104,64 @@
    "reqd": 1
   },
   {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "Online\nOffline"
+  },
+  {
+   "fieldname": "additional_information_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Information"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "unique_id",
    "fieldtype": "Data",
    "label": "Unique ID"
-  },
-  {
-   "fieldname": "type",
-   "fieldtype": "Select",
-   "label": "Type",
-   "options": "Solver Jam\nSolve Con\nChangemaker Adda",
-   "reqd": 1
   },
   {
    "fieldname": "cover_image",
    "fieldtype": "Attach Image",
    "label": "Cover Image",
    "reqd": 1
+  },
+  {
+   "fieldname": "checkin_section",
+   "fieldtype": "Section Break",
+   "label": "Check-in"
+  },
+  {
+   "fieldname": "checkin_url",
+   "fieldtype": "Data",
+   "label": "URL"
+  },
+  {
+   "fieldname": "column_break_il3fx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "checkin_qr",
+   "fieldtype": "Attach Image",
+   "label": "QR"
   }
  ],
  "image_field": "cover_image",
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-11-11 14:33:29.528422",
+ "links": [
+  {
+   "link_doctype": "Solve Event Registration",
+   "link_fieldname": "solve_event"
+  },
+  {
+   "link_doctype": "Solve Event Participation",
+   "link_fieldname": "solve_event"
+  }
+ ],
+ "modified": "2025-11-28 13:49:12.976646",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event",
