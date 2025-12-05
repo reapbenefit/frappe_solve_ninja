@@ -1,7 +1,5 @@
 import frappe
 import random
-import time
-import json
 from frappe.utils import now_datetime, add_to_date
 from solve_ninja.utils import validate_and_normalize_mobile
 
@@ -54,13 +52,26 @@ def send_otp(mobile):
 		# Generate 6-digit OTP
 		otp = str(random.randint(100000, 999999))
 		
-		# Store OTP in cache with expiry (5 minutes)
-		cache_key = f"login_otp:{mobile}"
-		frappe.cache().set_value(cache_key, {
-			"otp": otp,
+		# Invalidate any existing pending OTPs for this mobile number
+		existing_otps = frappe.get_all("Login OTP", 
+			filters={"mobile": mobile, "status": "Pending"},
+			fields=["name"]
+		)
+		for existing_otp in existing_otps:
+			frappe.db.set_value("Login OTP", existing_otp.name, "status", "Expired")
+		
+		# Store OTP in DocType with expiry (5 minutes)
+		valid_till = add_to_date(now_datetime(), minutes=5)
+		login_otp = frappe.get_doc({
+			"doctype": "Login OTP",
+			"mobile": mobile,
 			"user": user.name,
-			"timestamp": time.time()
-		}, expires_in_sec=300)  # 5 minutes
+			"otp": otp,
+			"valid_till": valid_till,
+			"status": "Pending"
+		})
+		login_otp.insert(ignore_permissions=True)
+		frappe.db.commit()
 		
 		# Send OTP via WhatsApp using Glific HSM template
 		whatsapp_sent = send_hsm_otp(mobile, otp)
@@ -130,25 +141,46 @@ def verify_otp_login(mobile, otp, redirect_to=None):
 				"message": "No account found with this mobile number"
 			}
 		
-		# Get OTP from cache using the normalized mobile number
-		cache_key = f"login_otp:{mobile}"
-		otp_data = frappe.cache().get_value(cache_key)
+		# Get OTP from DocType using the normalized mobile number
+		login_otp = frappe.get_all("Login OTP",
+			filters={
+				"mobile": mobile,
+				"status": "Pending",
+				"user": user.name
+			},
+			fields=["name", "valid_till"],
+			order_by="creation desc",
+			limit=1
+		)
 		
-		if not otp_data:
+		if not login_otp:
+			return {
+				"success": False,
+				"message": "OTP not found. Please request a new one."
+			}
+		
+		login_otp = login_otp[0]
+		otp_doc = frappe.get_doc("Login OTP", login_otp.name)
+		
+		# Check if OTP has expired
+		if now_datetime() > otp_doc.valid_till:
+			frappe.db.set_value("Login OTP", login_otp.name, "status", "Expired")
+			frappe.db.commit()
 			return {
 				"success": False,
 				"message": "OTP has expired. Please request a new one."
 			}
 		
-		# Verify OTP
-		if otp_data.get("otp") != otp:
+		# Verify OTP (get decrypted password from password field)
+		decrypted_otp = otp_doc.get_password("otp")
+		if decrypted_otp != otp:
 			return {
 				"success": False,
 				"message": "Invalid OTP. Please try again."
 			}
 		
 		# Get user details
-		user_name = otp_data.get("user")
+		user_name = otp_doc.user
 		user = frappe.get_doc("User", user_name)
 		
 		if not user.enabled:
@@ -157,8 +189,9 @@ def verify_otp_login(mobile, otp, redirect_to=None):
 				"message": "Your account is disabled. Please contact administrator."
 			}
 		
-		# Clear OTP from cache
-		frappe.cache().delete_value(cache_key)
+		# Mark OTP as Used
+		frappe.db.set_value("Login OTP", login_otp.name, "status", "Used")
+		frappe.db.commit()
 		
 		# Login the user
 		frappe.local.login_manager.user = user_name
@@ -241,7 +274,6 @@ def send_hsm_otp(mobile, otp):
 			# Store wa_id in ninja profile for future use
 			ninja_profile.db_set("wa_id", contact_id, commit=True)
 			ninja_profile.reload()
-		print(response)
 	else:
 		# Use existing wa_id
 		contact_id = ninja_profile.wa_id
@@ -259,7 +291,6 @@ def send_hsm_otp(mobile, otp):
 	if response and response.get("data") and response["data"].get("sendHsmMessage"):
 		message_data = response["data"]["sendHsmMessage"]
 		if message_data.get("message") and not message_data.get("errors"):
-			frappe.log_error(f"HSM OTP sent successfully to {mobile}")
 			return True
 		else:
 			frappe.log_error(f"HSM send failed", message_data.get('errors'))

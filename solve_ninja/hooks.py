@@ -224,9 +224,9 @@ doc_events = {
     "User Metadata": {
         "validate": "solve_ninja.doc_events.user_metadata.on_save"
     },
-    # "Energy Point Log": {
-    #     "after_insert": "solve_ninja.doc_events.energy_point_log.handle_energy_point_log"
-    # }
+    "Energy Point Log": {
+        "after_insert": "solve_ninja.doc_events.energy_point_log.handle_energy_point_log"
+    }
 }
 
 has_permission = {
