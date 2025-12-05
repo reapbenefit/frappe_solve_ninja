@@ -291,7 +291,6 @@ def send_hsm_otp(mobile, otp):
 	if response and response.get("data") and response["data"].get("sendHsmMessage"):
 		message_data = response["data"]["sendHsmMessage"]
 		if message_data.get("message") and not message_data.get("errors"):
-			frappe.log_error(f"HSM OTP sent successfully to {mobile}")
 			return True
 		else:
 			frappe.log_error(f"HSM send failed", message_data.get('errors'))

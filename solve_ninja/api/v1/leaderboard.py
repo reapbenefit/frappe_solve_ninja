@@ -50,14 +50,11 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			.join(UserMetadata).on(User.name == UserMetadata.name)
 			.join(Events).on(User.name == Events.user)
 			.select(
-				User.name,
 				User.username,
 				User.user_image,
 				User.headline,
 				UserMetadata.city,
 				Coalesce(NinjaProfile.rank, user_count).as_("rank"),
-				User.org_id,
-				User.location,
 				User.full_name,
 				Coalesce(hours_invested_sum, 0).as_("hours_invested"),
 				Coalesce(contribution_count, 0).as_("contribution_count")
@@ -65,7 +62,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			.where(
 				(User.enabled == 1) &
 				(NinjaProfile.rank != 0) &
-				(UserMetadata.org_id.notin(["RBINT", "Reap Benefit Team", "Reap Benefit SNLA program"])) &
+				(UserMetadata.publish_status == "Publish") &
 				(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
 			)
 			.groupby(
@@ -147,12 +144,6 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			data["user_image"] = f"{frappe.utils.get_url()}{data.user_image}" if data.user_image else None
 			data["recent_rank"] = count
 
-		# Generate profile URLs
-		for row in users:
-			if frappe.conf.get("cmp_base_url"):
-				row.user_profile = f"{frappe.conf.get('cmp_base_url')}/user-profile/{row.username}"
-			else:
-				row.user_profile = frappe.utils.get_url(f"/user-profile/{row.username}")
 
 		return custom_response(
 			message="Top users retrieved successfully",

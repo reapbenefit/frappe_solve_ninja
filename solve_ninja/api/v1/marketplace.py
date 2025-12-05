@@ -24,8 +24,10 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 	- action_count: Count of events
 	"""
 	try:
-		from pypika import Order
-		from pypika.functions import Count, Sum, Extract
+		from datetime import datetime
+		from frappe.utils import format_datetime
+		from frappe.query_builder import Order
+		from frappe.query_builder.functions import Count, Sum, Coalesce
 		
 		page_length = int(page_length)
 		start = int(start)
@@ -71,42 +73,60 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 			(UserMetadata.city.isnotnull()) &
 			(UserMetadata.city != "") &
 			(NinjaProfile.contributions > 0) &
-			(UserMetadata.org_id.notin(["RBINT", "Reap Benefit Team", "Reap Benefit SNLA program"]))
+			(UserMetadata.publish_status == "Publish")
 		)
 		
-		# Build event filter conditions
-		event_conditions = []
-		if month:
-			event_conditions.append(Extract('month', Events.creation) == month)
-		if year:
-			event_conditions.append(Extract('year', Events.creation) == year)
+		# Build date range for Events if month/year provided (more efficient than Extract())
+		# Use date range filtering which can use indexes
+		event_date_condition = None
+		if month_provided and year_provided:
+			# Calculate start and end of month for efficient date range filtering
+			start_date = datetime(year, month, 1)
+			if month == 12:
+				end_date = datetime(year + 1, 1, 1)
+			else:
+				end_date = datetime(year, month + 1, 1)
+			
+			# Format dates for SQL (use Frappe's format_datetime for consistency)
+			start_date_str = format_datetime(start_date, "yyyy-MM-dd HH:mm:ss")
+			end_date_str = format_datetime(end_date, "yyyy-MM-dd HH:mm:ss")
+			
+			event_date_condition = (
+				(Events.creation >= start_date_str) &
+				(Events.creation < end_date_str)
+			)
 		
-		# Single query to get all stats using LEFT JOIN for events
+		# Build JOIN condition for Events - include date filter in JOIN for efficiency
+		# This prevents joining all events before filtering
+		events_join_condition = Events.user == UserMetadata.name
+		if event_date_condition:
+			events_join_condition = events_join_condition & event_date_condition
+		
+		# Optimized query: Filter events in JOIN condition, not WHERE clause
 		query = (
 			frappe.qb.from_(UserMetadata)
 			.join(NinjaProfile).on(NinjaProfile.name == UserMetadata.name)
-			.left_join(Events).on(Events.user == UserMetadata.name)
+			.left_join(Events).on(events_join_condition)
 			.select(
 				UserMetadata.city,
-				Count(NinjaProfile.name).distinct().as_("active_ninjas"),
-				Sum(Events.hours_invested).as_("hours_invested"),
-				Count(Events.name).as_("action_count")
+				Count(UserMetadata.name).distinct().as_("active_ninjas"),
+				Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),
+				Coalesce(Count(Events.name), 0).as_("action_count")
 			)
 			.where(base_conditions)
 			.groupby(UserMetadata.city)
+			.orderby(Coalesce(Count(Events.name), 0), order=Order.desc)
+			.orderby(UserMetadata.city, order=Order.asc)
 			.limit(page_length)
 			.offset(start)
 		)
 		
-		# Apply event date filters if provided
-		if event_conditions:
-			for condition in event_conditions:
-				query = query.where(condition)
-		
-		# Get total count separately
+		# Get total count - count distinct cities that match the criteria
+		# Use same join structure to ensure consistency
 		count_query = (
 			frappe.qb.from_(UserMetadata)
 			.join(NinjaProfile).on(NinjaProfile.name == UserMetadata.name)
+			.left_join(Events).on(events_join_condition)
 			.select(Count(UserMetadata.city).distinct().as_("total"))
 			.where(base_conditions)
 		)
@@ -114,9 +134,6 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 		result = query.run(as_dict=True)
 		count_result = count_query.run()
 		total_count = count_result[0][0] if count_result else 0
-		
-		# Sort by action_count in Python since we need to order after grouping
-		result.sort(key=lambda x: x['action_count'], reverse=True)
 		
 		return custom_response(
 			message="City-wise ninja statistics retrieved successfully",
@@ -176,7 +193,8 @@ def get_ninjas_in_focus(page_length=10, start=0):
 		# Build base conditions - only ninjas in focus
 		base_conditions = (
 			(UserMetadata.is_ninja_in_focus == 1) &
-			(UserMetadata.name == User.name)
+			(UserMetadata.name == User.name) &
+			(UserMetadata.publish_status == "Publish")
 		)
 		
 		# Query to get ninjas in focus with user details
@@ -184,7 +202,6 @@ def get_ninjas_in_focus(page_length=10, start=0):
 			frappe.qb.from_(UserMetadata)
 			.join(User).on(User.name == UserMetadata.name)
 			.select(
-				UserMetadata.name,
 				UserMetadata.is_ninja_in_focus,
 				UserMetadata.media,
 				UserMetadata.testimonial,
@@ -193,7 +210,6 @@ def get_ninjas_in_focus(page_length=10, start=0):
 				User.full_name,
 				User.username,
 				User.user_image,
-				User.creation,
 				User.headline
 			)
 			.where(base_conditions)
@@ -213,7 +229,7 @@ def get_ninjas_in_focus(page_length=10, start=0):
 		result = query.run(as_dict=True)
 
 		for row in result:
-			row.profile_url = f"{frappe.utils.get_url()}/user-profile/{row.username}"
+			# row.profile_url = f"{frappe.utils.get_url()}/user-profile/{row.username}"
 			row.user_image = f"{frappe.utils.get_url()}{row.user_image}" if row.user_image else None
 			row.media = f"{frappe.utils.get_url()}{row.media}" if row.media else None
 

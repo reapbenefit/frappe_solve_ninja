@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+import time
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import Count
 from pypika.terms import Order
@@ -117,12 +118,36 @@ def update_ninja_profile(user: str):
         total_events = 0
 
     if frappe.db.exists("Ninja Profile", user):
-        frappe.db.set_value("Ninja Profile", user, {
-            "hours_invested": total_hours,
-            "contributions": total_events
-        }, update_modified=False)
+        # Retry logic for database update to handle transient errors
+        max_retries = 3
+        retry_delay = 0.5  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                frappe.db.set_value("Ninja Profile", user, {
+                    "hours_invested": total_hours,
+                    "contributions": total_events
+                }, update_modified=False)
+                break  # Success, exit retry loop
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    # Wait before retrying (exponential backoff)
+                    time.sleep(retry_delay * (2 ** attempt))
+                    continue
+                else:
+                    # Last attempt failed, log error
+                    frappe.log_error(
+                        f"Failed to update Ninja Profile for user {user} after {max_retries} attempts: {str(e)}",
+                        "Update Ninja Profile Error"
+                    )
 
-
+def on_trash(doc, method=None):
+    records = frappe.get_all("Event Source Metadata", filters={"event_id": doc.name})
+    for r in records:
+        frappe.delete_doc("Event Source Metadata", r.name, force=True)
+    if doc.user:
+        frappe.db.set_value("Ninja Profile", doc.user, "last_action", None)
+        
 def update_ninja_profile_hook(doc, method=None):
     if doc.user:
         frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)

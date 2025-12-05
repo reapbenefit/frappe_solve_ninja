@@ -40,7 +40,7 @@ def get_mentors(page_length=10, start=0):
 			frappe.qb.from_(UserMetadata)
 			.join(User).on(User.name == UserMetadata.name)
 			.select(
-				UserMetadata.name,
+				# UserMetadata.name,
 				UserMetadata.is_mentor,
 				UserMetadata.mentor_quote,
 				UserMetadata.mentor_expertise,
@@ -66,7 +66,7 @@ def get_mentors(page_length=10, start=0):
 		result = query.run(as_dict=True)
 
 		for row in result:
-			row.profile_url = f"{frappe.utils.get_url()}/user-profile/{row.username}"
+			# row.profile_url = f"{frappe.utils.get_url()}/user-profile/{row.username}"
 			row.user_image = f"{frappe.utils.get_url()}{row.user_image}" if row.user_image else None
 
 		count_result = count_query.run()
@@ -132,7 +132,7 @@ def get_chapter_lead(page_length=10, start=0):
 			frappe.qb.from_(UserMetadata)
 			.join(User).on(User.name == UserMetadata.name)
 			.select(
-				UserMetadata.name,
+				# UserMetadata.name,
 				UserMetadata.is_city_chapter_lead,
 				UserMetadata.chapter_lead_achivement,
 				User.full_name,
@@ -156,7 +156,7 @@ def get_chapter_lead(page_length=10, start=0):
 		result = query.run(as_dict=True)
 
 		for row in result:
-			row.profile_url = f"{frappe.utils.get_url()}/user-profile/{row.username}"
+			# row.profile_url = f"{frappe.utils.get_url()}/user-profile/{row.username}"
 			row.user_image = f"{frappe.utils.get_url()}{row.user_image}" if row.user_image else None
 
 		count_result = count_query.run()
