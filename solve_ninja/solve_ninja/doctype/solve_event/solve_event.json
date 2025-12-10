@@ -22,13 +22,8 @@
   "column_break_3",
   "mode",
   "additional_information_section",
-  "unique_id",
   "column_break_4",
-  "cover_image",
-  "checkin_section",
-  "checkin_url",
-  "column_break_il3fx",
-  "checkin_qr"
+  "cover_image"
  ],
  "fields": [
   {
@@ -119,34 +114,10 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "unique_id",
-   "fieldtype": "Data",
-   "label": "Unique ID"
-  },
-  {
    "fieldname": "cover_image",
    "fieldtype": "Attach Image",
    "label": "Cover Image",
    "reqd": 1
-  },
-  {
-   "fieldname": "checkin_section",
-   "fieldtype": "Section Break",
-   "label": "Check-in"
-  },
-  {
-   "fieldname": "checkin_url",
-   "fieldtype": "Data",
-   "label": "URL"
-  },
-  {
-   "fieldname": "column_break_il3fx",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "checkin_qr",
-   "fieldtype": "Attach Image",
-   "label": "QR"
   }
  ],
  "image_field": "cover_image",
@@ -161,7 +132,7 @@
    "link_fieldname": "solve_event"
   }
  ],
- "modified": "2025-11-28 13:49:12.976646",
+ "modified": "2025-12-09 13:09:55.697544",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event",
