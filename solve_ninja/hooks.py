@@ -54,7 +54,7 @@ website_route_rules = [
     {"from_route": "/user-profile/<username>", "to_route": "/user-profile"},
     {"from_route": "/campaign/<route>", "to_route": "campaign"},
     {"from_route": "/opportunity/<opportunity>", "to_route": "opportunity"},
-    {"from_route": "/marketplace2.0", "to_route": "marketplace2"}
+    {"from_route": "/marketplace2.0", "to_route": "marketplace"}
    # {"from_route": "/application-for-opportunity/new/<opportunity>", "to_route": "application-for-opportunity/new"},
 ]
 

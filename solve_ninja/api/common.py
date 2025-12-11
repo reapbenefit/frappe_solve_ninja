@@ -190,13 +190,16 @@ def add_user():
             user_data = json.loads(frappe.request.data)
 
         # Ensure required fields are present
-        validate_required_fields(user_data, ["mobile", "first_name", "pincode"])
+        validate_required_fields(user_data, ["mobile", "first_name"])
 
         # Normalize and validate mobile number
         mobile = validate_and_normalize_mobile(user_data.get("mobile"))
 
         # Validate pincode format
-        validate_pincode(user_data.get("pincode"))
+        if user_data.get("pincode"):
+            validate_pincode(user_data.get("pincode"))
+        else:
+            user_data["pincode"] = None
 
         # Check if user already exists
         if frappe.db.exists("User", {"mobile_no": mobile}):
@@ -866,13 +869,13 @@ def update_user_metadata(user, user_data):
     """
     Updates or creates User Metadata record with pincode if available.
     """
-    if not user_data.get("pincode"):
-        return
 
     # Check if metadata already exists
     if frappe.db.exists("User Metadata", user):
         user_metadata = frappe.get_doc("User Metadata", user)
         user_metadata.pincode = user_data.get("pincode")
+        user_metadata.city = user_data.get("city")
+        user_metadata.state = user_data.get("state")
         user_metadata.year_of_birth = user_data.get("year_of_birth")
         if user_data.get("org_id") and frappe.db.exists("User Organization", user_data.get("org_id")):
             user_metadata.org_id = user_data.get("org_id")
