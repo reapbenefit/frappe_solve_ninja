@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-11 13:28:47.653350",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "dataset_description",
+  "geography",
+  "disaggregation_level",
+  "start_date",
+  "end_date",
+  "data_category",
+  "data_collection_methodology",
+  "update_frequency",
+  "data_producer",
+  "data_source",
+  "imagevideo_details",
+  "rastersatellite_details",
+  "known_issues_with_data",
+  "missing_data",
+  "is_clean",
+  "release_details",
+  "keywords"
+ ],
+ "fields": [
+  {
+   "fieldname": "dataset_description",
+   "fieldtype": "Text",
+   "in_list_view": 1,
+   "label": "Dataset description ",
+   "reqd": 1
+  },
+  {
+   "fieldname": "geography",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Geography",
+   "options": "Samaaja Cities",
+   "reqd": 1
+  },
+  {
+   "fieldname": "disaggregation_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Disaggregation level",
+   "options": "State\nCity\nBlock\nVillage",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Data collection start date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Data",
+   "label": "Data collection end date"
+  },
+  {
+   "fieldname": "data_category",
+   "fieldtype": "Select",
+   "label": "Data category",
+   "options": "Socioeconomic",
+   "reqd": 1
+  },
+  {
+   "fieldname": "data_collection_methodology",
+   "fieldtype": "Select",
+   "label": "Data collection methodology",
+   "options": "Inference",
+   "reqd": 1
+  },
+  {
+   "fieldname": "update_frequency",
+   "fieldtype": "Select",
+   "label": "Update frequency",
+   "options": "Daily\nWeekly\nBi-weekly\nMonthly\nAnnualy"
+  },
+  {
+   "fieldname": "data_producer",
+   "fieldtype": "Data",
+   "label": "Data producer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "data_source",
+   "fieldtype": "Data",
+   "label": "Data source",
+   "reqd": 1
+  },
+  {
+   "fieldname": "imagevideo_details",
+   "fieldtype": "Text",
+   "label": "Image/video details"
+  },
+  {
+   "fieldname": "rastersatellite_details",
+   "fieldtype": "Text",
+   "label": "Raster/satellite details"
+  },
+  {
+   "fieldname": "known_issues_with_data",
+   "fieldtype": "Text",
+   "label": "Known issues with data",
+   "reqd": 1
+  },
+  {
+   "fieldname": "missing_data",
+   "fieldtype": "Text",
+   "label": "Missing data"
+  },
+  {
+   "fieldname": "release_details",
+   "fieldtype": "Text",
+   "label": "Release details"
+  },
+  {
+   "fieldname": "keywords",
+   "fieldtype": "Text",
+   "label": "Keywords"
+  },
+  {
+   "fieldname": "is_clean",
+   "fieldtype": "Select",
+   "label": "Is data clean ?",
+   "options": "Yes\nNo",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-12-11 13:44:50.913034",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Samaaj Data Metadata",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
