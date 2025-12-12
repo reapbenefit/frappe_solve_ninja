@@ -30,7 +30,7 @@ def get_subcategories_user_tag_wise_stats():
             if user_tag == "hidden":
                 continue
             if user_tag == "":
-                user_tag = "Other"
+                continue
 
             subcategory_item = {
                 subcategory["name"]: subcategory_count
