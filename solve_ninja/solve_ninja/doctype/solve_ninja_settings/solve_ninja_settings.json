@@ -8,12 +8,16 @@
  "engine": "InnoDB",
  "field_order": [
   "whatsapp_bot_url",
+  "event_checkin_flow_id",
+  "program_checkin_flow_id",
+  "column_break_zo08w",
+  "checkin_url",
   "whatsapp__glific_settings_section",
   "default_badge_template",
-  "login_otp_template",
   "channel",
   "column_break_jbyf0",
-  "enable_badge_notification"
+  "enable_badge_notification",
+  "login_otp_template_id"
  ],
  "fields": [
   {
@@ -52,12 +56,31 @@
    "fieldtype": "Select",
    "label": "Channel",
    "options": "Glific"
+  },
+  {
+   "fieldname": "column_break_zo08w",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "checkin_url",
+   "fieldtype": "Small Text",
+   "label": "CheckIn URL"
+  },
+  {
+   "fieldname": "event_checkin_flow_id",
+   "fieldtype": "Int",
+   "label": "Event Checkin Flow ID"
+  },
+  {
+   "fieldname": "program_checkin_flow_id",
+   "fieldtype": "Int",
+   "label": "Program Checkin Flow ID"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-08 08:52:47.556075",
+ "modified": "2025-12-11 23:43:35.590995",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Ninja Settings",

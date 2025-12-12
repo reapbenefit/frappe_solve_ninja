@@ -4,5 +4,5 @@
 # import frappe
 from frappe.model.document import Document
 
-class ProgramParticipant(Document):
+class ProgramSubSource(Document):
 	pass

@@ -1,45 +1,48 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-10-28 11:07:43.624752",
+ "creation": "2025-12-04 19:03:19.122198",
  "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "program",
-  "user",
-  "specific_program"
+  "event_id",
+  "action_source",
+  "source_link"
  ],
  "fields": [
   {
-   "fieldname": "user",
+   "fieldname": "event_id",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "User",
-   "options": "User",
-   "reqd": 1
+   "in_standard_filter": 1,
+   "label": "Event",
+   "options": "Events"
   },
   {
-   "fieldname": "specific_program",
-   "fieldtype": "Data",
-   "label": "specific_program"
-  },
-  {
-   "fieldname": "program",
-   "fieldtype": "Link",
+   "fieldname": "action_source",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Program",
-   "options": "Program",
-   "reqd": 1
+   "in_standard_filter": 1,
+   "label": "Source of Action",
+   "options": "\nSolve Event Participation\nProgram Participation\nChatbot Nudge"
+  },
+  {
+   "fieldname": "source_link",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Source",
+   "options": "action_source"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-30 02:32:41.931505",
+ "modified": "2025-12-04 19:16:48.579824",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
- "name": "Program Participant",
+ "name": "Event Source Metadata",
  "owner": "Administrator",
  "permissions": [
   {

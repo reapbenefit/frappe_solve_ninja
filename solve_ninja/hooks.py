@@ -211,7 +211,7 @@ doc_events = {
 			"solve_ninja.doc_events.events.after_insert",
             "solve_ninja.doc_events.energy_point_log.send_badge_notification_after_insert",
 		],
-        "on_trash": "solve_ninja.doc_events.events.update_ninja_profile_hook",
+        "on_trash": "solve_ninja.doc_events.events.on_trash",
     },
     "User": {
        "after_insert": "solve_ninja.doc_events.user.after_insert",
@@ -232,3 +232,7 @@ doc_events = {
 has_permission = {
     "Events": "solve_ninja.api.common.has_permission"
 }
+
+ignore_links_on_delete = [
+    "Event Source Metadata",
+]

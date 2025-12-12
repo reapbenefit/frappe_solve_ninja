@@ -329,6 +329,108 @@ class GlificSettings(Document):
 
         return self._api_graphql_post_with_reauth(payload)
 
+    def get_flow(self, flow_id):
+        """
+        Fetch flow details from Glific using flow ID.
+
+        Args:
+            flow_id (int or str): Flow ID
+
+        Returns:
+            dict: Flow details from Glific including id, name, and keywords
+        """
+        if not flow_id:
+            frappe.throw("Flow ID is required")
+
+        payload = {
+            "query": """
+                query flow($id: ID!) {
+                    flow(id: $id) {
+                        flow {
+                            id
+                            name
+                            keywords
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "id": int(flow_id) if isinstance(flow_id, str) else flow_id
+            }
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def update_flow(self, flow_id, name=None, keywords=None):
+        """
+        Update flow in Glific. Adds keywords to existing keywords list (avoiding duplicates).
+        If name is not provided, preserves existing flow name.
+
+        Args:
+            flow_id (int or str): Flow ID
+            name (str, optional): Flow name. If None, uses existing name.
+            keywords (list, optional): Keywords to add to existing keywords list.
+
+        Returns:
+            dict: Updated flow details from Glific
+        """
+        if not flow_id:
+            frappe.throw("Flow ID is required")
+
+        # First, get existing flow data
+        existing_flow_response = self.get_flow(flow_id)
+        
+        # Extract existing flow data
+        existing_flow = None
+        if existing_flow_response and "data" in existing_flow_response:
+            existing_flow = existing_flow_response.get("data", {}).get("flow", {}).get("flow")
+        
+        if not existing_flow:
+            frappe.throw(f"Flow with ID {flow_id} not found")
+
+        # Use existing name if name not provided
+        flow_name = name if name is not None else existing_flow.get("name", "")
+        
+        # Merge keywords: start with existing keywords, add new ones (avoiding duplicates)
+        existing_keywords = existing_flow.get("keywords") or []
+        if not isinstance(existing_keywords, list):
+            existing_keywords = []
+        
+        merged_keywords = list(existing_keywords)  # Copy existing keywords
+        
+        if keywords:
+            if not isinstance(keywords, list):
+                keywords = [keywords]
+            # Add new keywords, avoiding duplicates
+            for keyword in keywords:
+                if keyword not in merged_keywords:
+                    merged_keywords.append(keyword)
+
+        payload = {
+            "query": """
+                mutation updateFlow($id: ID!, $input: FlowInput!) {
+                    updateFlow(id: $id, input: $input) {
+                        flow {
+                            id
+                            name
+                            keywords
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "id": str(flow_id),
+                "input": {
+                    "name": flow_name,
+                    "keywords": merged_keywords
+                }
+            }
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
     def _api_graphql_post_with_reauth(self, payload, retry=True):
         """
         Makes a POST to the /api endpoint with GraphQL payload. Handles 401 by refreshing token or re-login.
