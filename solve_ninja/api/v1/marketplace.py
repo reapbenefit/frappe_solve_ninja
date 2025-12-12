@@ -165,7 +165,7 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 		)
 
 @frappe.whitelist(allow_guest=True)
-def get_ninjas_in_focus(page_length=10, start=0):
+def get_ninjas_in_focus(page_length=50, start=0):
 	"""
 	Get ninjas in focus with their media, testimonial, and story information.
 	
