@@ -23,10 +23,11 @@ def after_insert(doc, method=None):
     Hook that runs after an Events document is inserted.
     - Updates last action metadata on the linked Ninja Profile.
     - Updates top 3 event categories in the User's interest field.
-    - Creates Events Metadata document.
+    - Creates Event Source Metadata document.
     """
     update_action_detail_in_ninja_profile(doc)
     update_user_interest_from_top_categories(doc.user)
+    create_events_metadata(doc)
 
 def update_action_detail_in_ninja_profile(doc):
     """
@@ -126,7 +127,8 @@ def update_ninja_profile(user: str):
             try:
                 frappe.db.set_value("Ninja Profile", user, {
                     "hours_invested": total_hours,
-                    "contributions": total_events
+                    "contributions": total_events,
+                    "last_action": frappe.get_last_doc("Events", filters={"user": user}).name,
                 }, update_modified=False)
                 break  # Success, exit retry loop
             except Exception as e:
@@ -137,8 +139,8 @@ def update_ninja_profile(user: str):
                 else:
                     # Last attempt failed, log error
                     frappe.log_error(
-                        f"Failed to update Ninja Profile for user {user} after {max_retries} attempts: {str(e)}",
-                        "Update Ninja Profile Error"
+                        message=f"Failed to update Ninja Profile for user {user} after {max_retries} attempts: {str(e)}",
+                        title="Update Ninja Profile Error"
                     )
 
 def on_trash(doc, method=None):
@@ -147,10 +149,40 @@ def on_trash(doc, method=None):
         frappe.delete_doc("Event Source Metadata", r.name, force=True)
     if doc.user:
         frappe.db.set_value("Ninja Profile", doc.user, "last_action", None)
+        frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
         
 def update_ninja_profile_hook(doc, method=None):
     if doc.user:
         frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
+
+
+
+
+def create_events_metadata(doc):
+    """
+    Creates Event Source Metadata document after Events is created.
+    
+    Args:
+        doc (Document): The Events document that was just created.
+    """
+    if not doc.user:
+        return
+    
+    try:
+        # Create Event Source Metadata document
+        events_metadata = frappe.get_doc({
+            "doctype": "Event Source Metadata",
+            "event_id": doc.name,
+        })
+        
+        # Save the Event Source Metadata document
+        events_metadata.flags.ignore_permissions = True
+        events_metadata.insert()
+        
+        frappe.logger().info(f"Created Event Source Metadata for Event: {doc.name}")
+        
+    except Exception as e:
+        frappe.log_error(f"Error creating Event Source Metadata for Event {doc.name}: {str(e)}")
 
 
 def process_manualupload_events():

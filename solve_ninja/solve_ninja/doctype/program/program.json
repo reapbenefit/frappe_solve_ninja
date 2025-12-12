@@ -14,8 +14,13 @@
   "city",
   "mode",
   "description",
-  "source_type",
-  "sub_source_type"
+  "program_source",
+  "program_sub_source",
+  "checkin_section",
+  "checkin_url",
+  "column_break_jt4bc",
+  "unique_id",
+  "checkin_qr"
  ],
  "fields": [
   {
@@ -60,23 +65,54 @@
    "label": "Description"
   },
   {
-   "fieldname": "source_type",
+   "fieldname": "checkin_section",
+   "fieldtype": "Section Break",
+   "label": "Checkin"
+  },
+  {
+   "fieldname": "checkin_url",
+   "fieldtype": "Small Text",
+   "label": "URL",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_jt4bc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "checkin_qr",
+   "fieldtype": "Attach Image",
+   "label": "QR",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "unique_id",
+   "fieldtype": "Data",
+   "label": "Unique ID",
+   "no_copy": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "program_source",
    "fieldtype": "Link",
-   "label": "Source_of_acquisition",
-   "options": "Source_of_acquisition",
+   "label": "Program Source",
+   "options": "Program Source",
    "reqd": 1
   },
   {
-   "fieldname": "sub_source_type",
+   "fieldname": "program_sub_source",
    "fieldtype": "Link",
-   "label": "Sub_Source_of_Acquisition",
-   "options": "Sub_Source_of_Acquisition",
+   "label": "Program Sub Source",
+   "options": "Program Sub Source",
    "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-30 02:35:13.974745",
+ "modified": "2025-12-12 16:39:46.469579",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Program",
