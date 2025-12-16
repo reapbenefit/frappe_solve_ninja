@@ -4,7 +4,10 @@
 import frappe
 from frappe.utils import pretty_date
 from frappe import _
+from frappe.utils import logger
 
+logger.set_log_level("DEBUG")
+logger = frappe.logger("api", allow_site=True, file_count=50)
 
 @frappe.whitelist()
 def get_user_profile(username=None):
@@ -17,14 +20,20 @@ def get_user_profile(username=None):
 	user_detail.current_user.profile_url = f"{frappe.utils.get_url()}/user-profile/{user.username}"
 	user_detail.current_user.user_image = f"{frappe.utils.get_url()}{user.user_image}" if user.user_image else None
 	
-	user_detail.ninja_profile, user_detail.user_metadata = get_user_related_docs(user.name)
+	user_detail.ninja_profile, user_detail.user_metadata, partner = get_user_related_docs(user.name)
 	user_detail.current_user.is_logged_in, user_detail.current_user.is_system_manager = get_user_flags(user)
 	user_detail.actions, user_detail.current_user.highlighted_action = get_user_actions(user.name)
 	user_detail.skills, user_detail.current_user.partners = get_user_badges(user.name)
 	user_detail.reviews = get_user_reviews(user.name)
 	user_detail.superheroes = get_user_superheroes(user.name)
 	user_detail.skill_assignment_log = get_skill_assignment_log(user.name)
-
+	if partner and user_detail.user_metadata:
+		user_detail.current_user.partner = {
+			"partner_name": partner.partner_name if partner.partner_name else "",
+			"partner_logo": partner.partner_logo if partner.partner_logo else ""
+		}
+	else:
+		user_detail.current_user.partner = None
 	return user_detail
 
 def load_user(username):
@@ -57,8 +66,14 @@ def get_user_flags(user):
 def get_user_related_docs(user_name):
 	ninja_profile = frappe.get_doc("Ninja Profile", user_name) if frappe.db.exists("Ninja Profile", user_name) else None
 	user_metadata = frappe.get_doc("User Metadata", user_name) if frappe.db.exists("User Metadata", user_name) else None
-	user_metadata.summary = user_metadata.summary if user_metadata.summary else ""
-	return ninja_profile, user_metadata
+	partner = None
+	
+	if user_metadata:
+		user_metadata.summary = user_metadata.summary if user_metadata.summary else ""
+		if user_metadata.partner:
+			partner = frappe.get_doc("Partner", user_metadata.partner) if frappe.db.exists("Partner", user_metadata.partner) else None
+	
+	return ninja_profile, user_metadata, partner
 
 
 def get_user_actions(user_name):
