@@ -54,6 +54,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				User.user_image,
 				User.headline,
 				UserMetadata.city,
+				UserMetadata.summary,
 				Coalesce(NinjaProfile.rank, user_count).as_("rank"),
 				User.full_name,
 				Coalesce(hours_invested_sum, 0).as_("hours_invested"),
@@ -66,8 +67,14 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
 			)
 			.groupby(
-				User.name, User.username, UserMetadata.city, User.org_id, User.user_image, 
-				User.location, User.full_name, NinjaProfile.rank
+				User.name,
+				User.username,
+				User.user_image,
+				User.headline,
+				User.full_name,
+				UserMetadata.city,
+				UserMetadata.summary,
+				NinjaProfile.rank
 			)
 			.orderby(Coalesce(contribution_count, 0), order=Order.desc)
 			.orderby(User.full_name, order=Order.asc)
