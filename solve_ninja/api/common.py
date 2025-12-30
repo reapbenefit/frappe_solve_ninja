@@ -13,6 +13,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 import requests
+from solve_ninja.utils import find_user_by_mobile, log_integration_request
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -172,6 +173,22 @@ def search_users():
     logger.info('ENDS - searching a new user ------------')
     return custom_response(message,data,status_code,error)
 
+def log_add_user_integration_request(user_data, response_data, error_data=None, user_name=None):
+    """
+    Log the add_user API request to Integration Request doctype.
+    """
+    log_integration_request(
+        request_data=user_data,
+        response_data=response_data,
+        service_name="Add User API",
+        request_description="Add new user via API",
+        error_data=error_data,
+        reference_doctype="User" if user_name else None,
+        reference_docname=user_name if user_name else None,
+        error_title="Add User"
+    )
+
+
 @frappe.whitelist(allow_guest=True)
 def add_user():
     """
@@ -183,6 +200,9 @@ def add_user():
     error = False
     data = ''
     mobile = ''
+    user_data = {}
+    user_name = None
+    error_data = None
 
     try:
         user_data = frappe.local.form_dict or {}
@@ -207,6 +227,11 @@ def add_user():
 
         user_doc = build_user_doc(user_data, mobile)
         user_doc.insert(ignore_permissions=True)
+        user_name = user_doc.name
+
+        # Create Program Participation if program unique_id is provided
+        if user_data.get("program_id"):
+            create_program_participation(user_doc.name, user_data.get("program_id").upper())
 
         # Enqueue ninja profile update in background
         frappe.enqueue(
@@ -235,8 +260,98 @@ def add_user():
         message = str(e)
         status_code = 500
         error = True
+        error_data = {
+            "error": str(e),
+            "traceback": frappe.get_traceback()
+        }
 
     logger.info('ENDS - adding a new user ------------')
+    
+    # Log to Integration Request
+    response_data = {
+        "message": message,
+        "status": "error" if error else "success",
+        "data": data,
+        "status_code": status_code
+    }
+    log_add_user_integration_request(user_data, response_data, error_data, user_name)
+    
+    return custom_response(message, data, status_code, error)
+
+@frappe.whitelist()
+def update_user():
+    """
+    Public endpoint to update user profile information using mobile number.
+    Updates: first_name, age, dob/birth_date, gender, city
+    """
+    message = 'User updated successfully'
+    status_code = 200
+    error = False
+    data = ''
+    mobile = ''
+
+    try:
+        user_data = frappe.local.form_dict or {}
+        if not user_data and frappe.request.data:
+            user_data = json.loads(frappe.request.data)
+
+        # Ensure required field is present
+        if not user_data.get("mobile"):
+            frappe.throw("Mobile number is mandatory.")
+
+        # Validate mobile number format
+        mobile_input = user_data.get("mobile")
+        if not mobile_input or len(mobile_input) not in [10, 12] or not mobile_input.isdigit():
+            frappe.throw("Mobile number must be either 10 or 12 digits and numeric.")
+
+        # Find user by mobile number using generic method
+        user_name, mobile = find_user_by_mobile(mobile_input)
+        
+        if not user_name:
+            message = f"User not found with mobile number {mobile_input}"
+            status_code = 404
+            error = True
+            logger.warning(message)
+            return custom_response(message, data, status_code, error)
+
+        # Get existing User document
+        user_doc = frappe.get_doc("User", user_name)
+
+        # Update first_name if provided
+        if user_data.get("first_name"):
+            user_doc.first_name = user_data.get("first_name")
+
+        # Update age/birth_date if provided
+        # Prefer age if both are provided
+        if user_data.get("age"):
+            user_doc.age = user_data.get("age")
+        elif user_data.get("dob") or user_data.get("birth_date"):
+            dob_value = user_data.get("dob") or user_data.get("birth_date")
+            user_doc.birth_date = frappe.utils.getdate(dob_value)
+
+        # Update gender if provided
+        if user_data.get("gender"):
+            user_doc.gender = user_data.get("gender")
+
+        # Update city if provided (using assign_city logic)
+        if user_data.get("city"):
+            assign_city(user_doc, user_data.get("city"))
+
+        # Save user document
+        user_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        data = f"https://solveninja.org/user-profile/{user_doc.username}"
+        logger.info(f"Successfully updated user {user_name}")
+
+    except Exception as e:
+        logger.error(f"Error occurred while updating user with mobile - {mobile}")
+        logger.error(e, exc_info=True)
+        frappe.log_error(frappe.get_traceback(), "Update User Error")
+        message = str(e)
+        status_code = 500
+        error = True
+
     return custom_response(message, data, status_code, error)
 
 def validate_required_fields(user_data, required_fields):
@@ -270,6 +385,7 @@ def validate_and_normalize_mobile(mobile):
         mobile = "91" + mobile
 
     return mobile
+
 
 @frappe.whitelist()
 def fetch_profile():
@@ -883,10 +999,57 @@ def update_user_metadata(user, user_data):
     
 def update_ninja_profile(user, user_data):
     """
-    Updates Ninja Profile record with wa_id if available.
+    Updates Ninja Profile record with wa_id and acquisition_source_unique_id if available.
+    Checks program_id or event_id to update acquisition_source_unique_id.
     """
-    if user_data.get("wa_id") and frappe.db.exists("Ninja Profile", user):
-        frappe.db.set_value("Ninja Profile", user, "wa_id", user_data.get("wa_id"))
+    if not frappe.db.exists("Ninja Profile", user):
+        return
+    
+    ninja_profile = frappe.get_doc("Ninja Profile", user)
+    updated = False
+    
+    # Update wa_id if provided
+    if user_data.get("wa_id"):
+        ninja_profile.wa_id = user_data.get("wa_id")
+        updated = True
+    
+    # Update acquisition_source_unique_id from program_id or event_id
+    acquisition_id = user_data.get("program_id") or user_data.get("event_id")
+    if acquisition_id:
+        ninja_profile.acquisition_source_unique_id = str(acquisition_id).upper()
+        updated = True
+    
+    # Save only if there were updates
+    if updated:
+        ninja_profile.save(ignore_permissions=True)
+
+def create_program_participation(user, program_unique_id):
+    """
+    Creates a Program Participation record for a user based on program unique_id.
+    
+    Args:
+        user (str): The name of the User document
+        program_unique_id (str): The unique_id of the Program
+    
+    Raises:
+        frappe.throw: If program with the given unique_id is not found
+    """
+    if not program_unique_id:
+        return
+    
+    program_name = frappe.db.get_value("Program", {"unique_id": program_unique_id}, "name")
+    if not program_name:
+        frappe.throw(f"Program with unique_id '{program_unique_id}' not found.")
+    
+    # Check if Program Participation already exists to avoid duplicates
+    if not frappe.db.exists("Program Participation", {"user": user, "program": program_name}):
+        program_participation = frappe.get_doc({
+            "doctype": "Program Participation",
+            "user": user,
+            "program": program_name
+        })
+        program_participation.insert(ignore_permissions=True)
+        logger.info(f"Created Program Participation for user {user} and program {program_name}")
 
 @frappe.whitelist()
 def get_action_count():

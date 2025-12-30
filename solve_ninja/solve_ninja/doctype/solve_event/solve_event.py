@@ -4,16 +4,28 @@
 import frappe
 import io
 from frappe.model.document import Document
+from solve_ninja.utils import is_unique_id_duplicate
 
 class SolveEvent(Document):
 	def validate(self):
 		"""Generate unique ID, update checkin_url from settings and generate QR code when URL changes"""
-		# Generate unique_id if not already set
-		if not self.unique_id:
+		doc_before_save = self.get_doc_before_save()
+		
+		# Check if fields that affect unique_id have changed
+		should_regenerate_id = False
+		if doc_before_save:
+			# Check if any field that affects unique_id generation has changed
+			fields_to_check = ["type", "sub_type", "city", "start_date_time"]
+			for field in fields_to_check:
+				if doc_before_save.get(field) != self.get(field):
+					should_regenerate_id = True
+					break
+		
+		# Generate unique_id if not already set or if relevant fields have changed
+		if not self.unique_id or should_regenerate_id:
 			self.generate_unique_id()
 		
 		# Check if unique_id has changed or if we need to update URL
-		doc_before_save = self.get_doc_before_save()
 		unique_id_changed = False
 		
 		if doc_before_save:
@@ -92,17 +104,22 @@ class SolveEvent(Document):
 					alert=True,
 					indicator="orange"
 				)
+				# Add comment about configuration issue
+				try:
+					self.add_comment("Comment", "Flow keyword update skipped: Flow ID not configured")
+				except:
+					pass  # Skip if document not saved yet
 				return
 			
 			# Get GlificSettings document
 			glific_settings = frappe.get_doc("Glific Settings")
 			
-			# Update flow with unique_id as keyword
+			# Update flow with unique_id as keyword (Glific stores keywords in lowercase)
 			unique_id = self.get("unique_id")
 			if unique_id:
 				response = glific_settings.update_flow(
 					flow_id=flow_id,
-					keywords=[unique_id]
+					keywords=[unique_id.lower()]
 				)
 				
 				# Check for errors in response
@@ -114,82 +131,86 @@ class SolveEvent(Document):
 					if errors:
 						error_messages = [err.get("message", "") for err in errors if err.get("message")]
 						if error_messages:
+							error_msg = ', '.join(error_messages)
 							frappe.log_error(
-								f"Error updating flow keywords: {', '.join(error_messages)}",
+								f"Error updating flow keywords: {error_msg}",
 								"Update Flow Keyword Error"
 							)
 							frappe.msgprint(
-								f"Failed to update flow keywords: {', '.join(error_messages)}",
+								f"Failed to update flow keywords: {error_msg}",
 								alert=True,
 								indicator="orange"
 							)
+							# Add comment about failure
+							try:
+								self.add_comment("Comment", f"Flow keyword update failed: {error_msg}")
+							except:
+								pass  # Skip if document not saved yet
+					else:
+						# Success - no errors in response
+						try:
+							self.add_comment("Comment", f"Flow keyword updated successfully: {unique_id}")
+						except:
+							pass  # Skip if document not saved yet
 		except Exception as e:
+			error_msg = str(e)
 			frappe.log_error(
-				f"Error updating flow keyword for Solve Event {self.name}: {str(e)}",
+				f"Error updating flow keyword for Solve Event {self.name}: {error_msg}",
 				"Update Flow Keyword Error"
 			)
 			frappe.msgprint(
-				f"Failed to update flow keyword: {str(e)}",
+				f"Failed to update flow keyword: {error_msg}",
 				alert=True,
 				indicator="orange"
 			)
+			# Add comment about exception
+			try:
+				self.add_comment("Comment", f"Flow keyword update failed: {error_msg}")
+			except:
+				pass  # Skip if document not saved yet
 	
 	def generate_qr_code(self, url):
 		"""Generate QR code from URL and save it to checkin_qr field"""
-		try:
-			from pyqrcode import create as qrcreate
-			from frappe.utils.file_manager import save_file
-			
-			# Get document name - autoname "hash" ensures name is available in validate()
-			doc_name = self.name or frappe.generate_hash(length=10)
-			
-			# Generate unique file name
-			file_name = f"qr_{doc_name}.png"
-			
-			# Generate QR code to BytesIO buffer
-			qr = qrcreate(url)
-			buffer = io.BytesIO()
-			qr.png(buffer, scale=8, module_color=[0, 0, 0, 180], background=[0xFF, 0xFF, 0xFF])
-			buffer.seek(0)
-			file_content = buffer.read()
-			
-			# Delete old QR code file if exists
-			if self.checkin_qr:
-				old_file = frappe.db.get_value("File", {"file_url": self.checkin_qr}, "name")
-				if old_file:
-					try:
-						frappe.delete_doc("File", old_file, ignore_permissions=True, force=True)
-					except:
-						pass  # Ignore errors when deleting old file
-			
-			# Save and attach file using Frappe's save_file utility
-			# This will create the File document and attach it to the document
-			file_doc = save_file(
-				fname=file_name,
-				content=file_content,
-				dt=self.doctype,
-				dn=doc_name,
-				folder=None,
-				is_private=0,
-				df="checkin_qr"  # Attach to checkin_qr field
-			)
-			
-			# Set the checkin_qr field to the file URL
-			self.checkin_qr = file_doc.file_url
-			
-		except ImportError:
-			frappe.log_error(
-				"pyqrcode library not found. Please install it using: pip install pyqrcode[png]",
-				"QR Code Generation Error"
-			)
-			frappe.throw("QR code generation failed: pyqrcode library not installed")
-		except Exception as e:
-			frappe.log_error(
-				f"Error generating QR code for Solve Event {self.name}: {str(e)}",
-				"QR Code Generation Error"
-			)
-			# Don't throw error, just log it so document can still be saved
-			frappe.msgprint(f"Failed to generate QR code: {str(e)}", alert=True, indicator="orange")
+		
+		from pyqrcode import create as qrcreate
+		from frappe.utils.file_manager import save_file
+		
+		# Get document name - autoname "hash" ensures name is available in validate()
+		doc_name = self.name or frappe.generate_hash(length=10)
+		
+		# Generate unique file name
+		file_name = f"qr_{doc_name}.png"
+		
+		# Generate QR code to BytesIO buffer
+		qr = qrcreate(url)
+		buffer = io.BytesIO()
+		qr.png(buffer, scale=8, module_color=[0, 0, 0, 180], background=[0xFF, 0xFF, 0xFF])
+		buffer.seek(0)
+		file_content = buffer.read()
+		
+		# Delete old QR code file if exists
+		if self.checkin_qr:
+			old_file = frappe.db.get_value("File", {"file_url": self.checkin_qr}, "name")
+			if old_file:
+				try:
+					frappe.delete_doc("File", old_file, ignore_permissions=True, force=True)
+				except:
+					pass  # Ignore errors when deleting old file
+		
+		# Save and attach file using Frappe's save_file utility
+		# This will create the File document and attach it to the document
+		file_doc = save_file(
+			fname=file_name,
+			content=file_content,
+			dt=self.doctype,
+			dn=doc_name,
+			folder=None,
+			is_private=0,
+			df="checkin_qr"  # Attach to checkin_qr field
+		)
+		
+		# Set the checkin_qr field to the file URL
+		self.checkin_qr = file_doc.file_url
 	
 	def subtype_code(self, value):
 		"""Convert subtype to code"""
@@ -298,16 +319,23 @@ class SolveEvent(Document):
 			return None
 	
 	def make_unique(self, base, doctype, fieldname):
-		"""Ensure unique ID by appending number if needed"""
+		"""Ensure unique ID by appending number if needed, checking across all doctypes"""
 		if not base:
 			return None
 		
-		# Check if the exact base exists
-		if frappe.db.exists(doctype, {fieldname: base, "name": ["!=", self.name]}):
+		# Check if the exact base exists across all doctypes
+		exclude_name = None if self.is_new() else self.name
+		duplicate = is_unique_id_duplicate(base, exclude_doctype=doctype, exclude_name=exclude_name)
+		
+		if duplicate:
+			# Base exists, append number suffix and check again
 			i = 2
-			while frappe.db.exists(doctype, {fieldname: base + "-" + str(i)}):
+			while True:
+				candidate = base + "-" + str(i)
+				duplicate = is_unique_id_duplicate(candidate, exclude_doctype=doctype, exclude_name=exclude_name)
+				if not duplicate:
+					return candidate
 				i = i + 1
-			return base + "-" + str(i)
 		
 		return base
 	
@@ -343,3 +371,93 @@ class SolveEvent(Document):
 				f"Error generating unique ID for Solve Event {self.name}: {str(e)}",
 				"Unique ID Generation Error"
 			)
+
+
+def cleanup_completed_event_keywords():
+	"""
+	Daily scheduled task to remove keywords from Glific checkin flow for completed solve events.
+	An event is considered complete when its end_date_time has passed.
+	"""
+	try:
+		from frappe.utils import now_datetime
+		
+		# Get event_checkin_flow_id from Solve Ninja Settings
+		flow_id = frappe.db.get_single_value("Solve Ninja Settings", "event_checkin_flow_id")
+		
+		if not flow_id:
+			frappe.log_error(
+				"Event Checkin Flow ID not configured in Solve Ninja Settings",
+				"Cleanup Completed Event Keywords Error"
+			)
+			return
+		
+		# Find all solve events that are complete (end_date_time < now) and have a unique_id
+		current_time = now_datetime()
+		completed_events = frappe.get_all(
+			"Solve Event",
+			filters={
+				"end_date_time": ["<", current_time],
+				"unique_id": ["!=", ""]
+			},
+			fields=["name", "unique_id", "title"]
+		)
+		
+		if not completed_events:
+			frappe.logger("scheduler").info("No completed solve events found for keyword cleanup")
+			return
+		
+		# Get GlificSettings document
+		glific_settings = frappe.get_doc("Glific Settings")
+		
+		# Collect all unique_ids to remove (convert to lowercase for Glific)
+		keywords_to_remove = []
+		event_names = []
+		
+		for event in completed_events:
+			if event.get("unique_id"):
+				# Glific stores keywords in lowercase
+				keywords_to_remove.append(event["unique_id"].lower())
+				event_names.append(f"{event['name']} ({event.get('title', 'N/A')})")
+		
+		if not keywords_to_remove:
+			frappe.logger("scheduler").info("No keywords to remove from completed solve events")
+			return
+		
+		# Remove keywords from flow
+		response = glific_settings.update_flow(
+			flow_id=flow_id,
+			remove_keywords=keywords_to_remove
+		)
+		
+		# Check for errors in response
+		if response and "data" in response:
+			data = response.get("data", {})
+			update_flow_data = data.get("updateFlow", {})
+			errors = update_flow_data.get("errors", [])
+			
+			if errors:
+				error_messages = [err.get("message", "") for err in errors if err.get("message")]
+				if error_messages:
+					frappe.log_error(
+						f"Error removing keywords from flow: {', '.join(error_messages)}\n"
+						f"Events processed: {', '.join(event_names)}",
+						"Cleanup Completed Event Keywords Error"
+					)
+			else:
+				# Success - log the cleanup
+				frappe.logger("scheduler").info(
+					f"Successfully removed keywords for {len(keywords_to_remove)} completed solve events: "
+					f"{', '.join(event_names)}"
+				)
+		else:
+			frappe.log_error(
+				f"Unexpected response format when removing keywords from flow. "
+				f"Events attempted: {', '.join(event_names)}",
+				"Cleanup Completed Event Keywords Error"
+			)
+			
+	except Exception as e:
+		frappe.log_error(
+			f"Error cleaning up completed event keywords: {str(e)}\n{frappe.get_traceback()}",
+			"Cleanup Completed Event Keywords Error"
+		)

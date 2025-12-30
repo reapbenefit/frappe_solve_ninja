@@ -50,6 +50,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 			.join(UserMetadata).on(User.name == UserMetadata.name)
 			.join(Events).on(User.name == Events.user)
 			.select(
+				User.name,
 				User.username,
 				User.user_image,
 				User.headline,
@@ -146,10 +147,41 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 		count_result = count_query.run()
 		total_count = len(count_result) if count_result else 0
 
-		# Assign Serial Numbers (Recent Rank)
+		# Fetch tags from User Tag Detail child table
+		user_tags_map = {}
+		if users:
+			user_names = [user.get("name") for user in users if user.get("name")]
+			if user_names:
+				UserTagDetail = DocType("User Tag Detail")
+				tags_query = (
+					frappe.qb.from_(UserTagDetail)
+					.select(UserTagDetail.parent, UserTagDetail.tag)
+					.where(
+						(UserTagDetail.parent.isin(user_names)) &
+						(UserTagDetail.parenttype == "User Metadata") &
+						(UserTagDetail.parentfield == "tags")
+					)
+				)
+				tags_results = tags_query.run(as_dict=True)
+				
+				# Group tags by user name
+				for tag_row in tags_results:
+					parent_name = tag_row.get("parent")
+					tag_value = tag_row.get("tag")
+					if parent_name:
+						if parent_name not in user_tags_map:
+							user_tags_map[parent_name] = []
+						if tag_value:
+							user_tags_map[parent_name].append(tag_value)
+
+		# Assign Serial Numbers (Recent Rank) and add tags
 		for count, data in enumerate(users, start + 1):
 			data["user_image"] = f"{frappe.utils.get_url()}{data.user_image}" if data.user_image else None
 			data["recent_rank"] = count
+			# Add tags to user data
+			user_name = data.get("name")
+			data.pop("name", None)
+			data["tags"] = user_tags_map.get(user_name, [])
 
 
 		return custom_response(

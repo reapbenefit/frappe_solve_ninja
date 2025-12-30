@@ -1,8 +1,10 @@
 import frappe
+import json
 from frappe import qb
 from frappe.query_builder.functions import Count
 from samaaja.api.common import custom_response
 from frappe.utils import now_datetime
+from solve_ninja.utils import find_user_by_mobile, find_or_create_user_by_mobile, update_ninja_profile_unique_id, log_integration_request
 
 @frappe.whitelist(allow_guest=True)
 def get_upcoming_events(page_length=10, start=0, city=None, event_type=None):
@@ -308,15 +310,33 @@ def get_solve_events(page_length=10, start=0, solve_event_type = None):
 			error=str(e)
 		)
 
+def log_event_checkin_integration_request(request_data, response_data, error_data=None, user_name=None, solve_event=None, participation=None):
+	"""
+	Log the event_checkin API request to Integration Request doctype.
+	"""
+	reference_doctype = "Solve Event Participation" if participation else ("User" if user_name else None)
+	reference_docname = participation if participation else (user_name if user_name else None)
+	
+	log_integration_request(
+		request_data=request_data,
+		response_data=response_data,
+		service_name="Event Checkin API",
+		request_description="Event checkin via API",
+		error_data=error_data,
+		reference_doctype=reference_doctype,
+		reference_docname=reference_docname,
+		error_title="Event Checkin"
+	)
+
 @frappe.whitelist(allow_guest=True)
-def event_checkin(mobile, event_id, whatsapp_name=None):
+def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 	"""
 	Event checkin API endpoint.
 	Creates Solve Event Participation for user.
 	Checks if Solve Event Registration exists, if not creates it.
 	Checks if user exists or creates user -> Solve Event Registration -> Solve Event Participation.
 	
-	Args:
+	Args (can be passed as function parameters or in JSON request body):
 	- mobile: Mobile number (10 or 12 digits, default country code 91)
 	- event_id: Solve Event ID (name or unique_id)
 	- whatsapp_name: WhatsApp name (optional)
@@ -324,54 +344,109 @@ def event_checkin(mobile, event_id, whatsapp_name=None):
 	Returns:
 	- Success response with participation details
 	"""
+	request_data = {}
+	error_data = None
+	user_name = None
+	solve_event = None
+	participation = None
+	
 	try:
+		# Parse request data from JSON body if available
+		if frappe.request.data:
+			data = json.loads(frappe.request.data)
+			# Override function parameters with data from request body if provided
+			mobile = data.get("mobile") or mobile
+			event_id = data.get("event_id") or event_id
+			whatsapp_name = data.get("whatsapp_name") or whatsapp_name
+		
+		# Store request data for logging
+		request_data = {
+			"mobile": mobile,
+			"event_id": event_id,
+			"whatsapp_name": whatsapp_name
+		}
+		
 		# Validate inputs
 		if not mobile:
-			return custom_response(
+			response = custom_response(
 				message="Mobile number is required",
 				data=None,
 				status_code=400,
 				error="Mobile number is required"
 			)
+			response_data = {
+				"message": "Mobile number is required",
+				"status": "error",
+				"data": None,
+				"status_code": 400
+			}
+			log_event_checkin_integration_request(request_data, response_data, {"error": "Mobile number is required"})
+			return response
 		
 		if not event_id:
-			return custom_response(
+			response = custom_response(
 				message="Event ID is required",
 				data=None,
 				status_code=400,
 				error="Event ID is required"
 			)
+			response_data = {
+				"message": "Event ID is required",
+				"status": "error",
+				"data": None,
+				"status_code": 400
+			}
+			log_event_checkin_integration_request(request_data, response_data, {"error": "Event ID is required"})
+			return response
 		
 		# Normalize mobile number (handle 10 or 12 digits, default country code 91)
 		mobile = ''.join(filter(str.isdigit, str(mobile)))
 		
 		if len(mobile) not in [10, 12] or not mobile.isdigit():
-			return custom_response(
+			response = custom_response(
 				message="Mobile number must be either 10 or 12 digits",
 				data=None,
 				status_code=400,
 				error="Invalid mobile number format"
 			)
+			response_data = {
+				"message": "Mobile number must be either 10 or 12 digits",
+				"status": "error",
+				"data": None,
+				"status_code": 400
+			}
+			log_event_checkin_integration_request(request_data, response_data, {"error": "Invalid mobile number format"})
+			return response
 		
 		# Add country code if 10 digits
 		if len(mobile) == 10:
 			mobile = "91" + mobile
 		
+		# Update request_data with normalized mobile
+		request_data["mobile"] = mobile
+		
 		# Find Solve Event by name or unique_id
-		solve_event = None
 		if frappe.db.exists("Solve Event", event_id):
 			solve_event = event_id
 		else:
 			# Try finding by unique_id
-			solve_event = frappe.db.get_value("Solve Event", {"unique_id": event_id}, "name")
+			solve_event = frappe.db.get_value("Solve Event", {"unique_id": event_id.upper()}, "name")
 		
 		if not solve_event:
-			return custom_response(
+			response = custom_response(
 				message="Event not found",
 				data=None,
 				status_code=404,
 				error=f"Event with ID {event_id} not found"
 			)
+			response_data = {
+				"message": "Event not found",
+				"status": "error",
+				"data": None,
+				"status_code": 404
+			}
+			log_event_checkin_integration_request(request_data, response_data, {"error": f"Event with ID {event_id} not found"})
+			return response
 		
 		# Get event details for participation
 		event_doc = frappe.get_doc("Solve Event", solve_event)
@@ -388,8 +463,15 @@ def event_checkin(mobile, event_id, whatsapp_name=None):
 			)
 		
 		user = user_result["user"]
+		user_name = user
 		is_new_user = user_result.get("is_new_user", False)
 		name_used = user_result.get("name_used", None)
+		
+		# Update Ninja Profile with event unique_id (only for new users)
+		if is_new_user:
+			event_unique_id = event_doc.get("unique_id")
+			if event_unique_id:
+				update_ninja_profile_unique_id(user, event_unique_id)
 		
 		# Check if Solve Event Registration exists, if not create it
 		registration = find_or_create_registration(user, solve_event)
@@ -398,7 +480,7 @@ def event_checkin(mobile, event_id, whatsapp_name=None):
 		participation = create_participation(user, solve_event, event_doc)
 		
 		# Build response data
-		response_data = {
+		response_data_dict = {
 			"user": user,
 			"event": solve_event,
 			"event_title": event_doc.title,
@@ -409,114 +491,56 @@ def event_checkin(mobile, event_id, whatsapp_name=None):
 		
 		# Add user creation info if new user was created
 		if is_new_user:
-			response_data["new_user_created"] = True
-			response_data["name_used"] = name_used
-			response_data["name_source"] = "whatsapp_name" if whatsapp_name and name_used == whatsapp_name else "mobile_number"
+			response_data_dict["new_user_created"] = True
+			response_data_dict["name_used"] = name_used
+			response_data_dict["name_source"] = "whatsapp_name" if whatsapp_name and name_used == whatsapp_name else "mobile_number"
 		else:
-			response_data["new_user_created"] = False
+			response_data_dict["new_user_created"] = False
 		
-		return custom_response(
+		response = custom_response(
 			message="Event checkin successful",
-			data=response_data,
+			data=response_data_dict,
 			status_code=200,
 			error=None
 		)
 		
+		# Log to Integration Request
+		response_data = {
+			"message": "Event checkin successful",
+			"status": "success",
+			"data": response_data_dict,
+			"status_code": 200
+		}
+		log_event_checkin_integration_request(request_data, response_data, None, user_name, solve_event, participation)
+		
+		return response
+		
 	except Exception as e:
 		frappe.log_error(f"Error in event_checkin: {str(e)}", "Event Checkin Error")
-		return custom_response(
+		error_data = {
+			"error": str(e),
+			"traceback": frappe.get_traceback()
+		}
+		response = custom_response(
 			message="Failed to process event checkin",
 			data=None,
 			status_code=500,
 			error=str(e)
 		)
+		response_data = {
+			"message": "Failed to process event checkin",
+			"status": "error",
+			"data": None,
+			"status_code": 500
+		}
+		log_event_checkin_integration_request(request_data, response_data, error_data, user_name, solve_event, participation)
+		return response
 
-def find_or_create_user_by_mobile(mobile, whatsapp_name=None):
-	"""
-	Find existing user by mobile number (checking both 10 and 12 digit formats).
-	If not found, create a new user.
-	
-	Args:
-	- mobile: Normalized mobile number (12 digits with country code)
-	- whatsapp_name: WhatsApp name for new user creation
-	
-	Returns:
-	- dict with keys: user (email), is_new_user (bool), name_used (str)
-	"""
-	# Check with country code first
-	existing_user = frappe.db.get_value("User", {"mobile_no": mobile}, "name")
-	if existing_user:
-		return {
-			"user": existing_user,
-			"is_new_user": False,
-			"name_used": None
-		}
-	
-	# If mobile has country code, also check without it
-	if len(mobile) == 12 and mobile.startswith("91"):
-		mobile_without_code = mobile[2:]  # Remove "91" prefix
-		existing_user = frappe.db.get_value("User", {"mobile_no": mobile_without_code}, "name")
-		if existing_user:
-			return {
-				"user": existing_user,
-				"is_new_user": False,
-				"name_used": None
-			}
-	
-	# If mobile is 10 digits, also check with country code (shouldn't happen as we normalize, but just in case)
-	if len(mobile) == 10:
-		mobile_with_code = "91" + mobile
-		existing_user = frappe.db.get_value("User", {"mobile_no": mobile_with_code}, "name")
-		if existing_user:
-			return {
-				"user": existing_user,
-				"is_new_user": False,
-				"name_used": None
-			}
-	
-	# User doesn't exist, create new user
-	try:
-		# Determine what name to use
-		if whatsapp_name and whatsapp_name.strip():
-			user_name = whatsapp_name.strip()
-			name_used = whatsapp_name.strip()
-		else:
-			user_name = mobile  # Use mobile number as name when whatsapp_name not provided
-			name_used = mobile
-		
-		user_doc = frappe.get_doc({
-			'doctype': 'User',
-			'mobile': mobile,
-			'email': f"{mobile}@solveninja.org",
-			'mobile_no': mobile,
-			'first_name': user_name,
-			'new_password': mobile
-		})
-		user_doc.append("roles", {"role": "Solve Ninja"})
-		user_doc.insert(ignore_permissions=True)
-		
-		# Enqueue background tasks for profile updates if needed
-		frappe.enqueue(
-			"solve_ninja.api.common.update_ninja_profile",
-			user=user_doc.name,
-			user_data={"mobile": mobile, "first_name": user_name},
-			queue='default',
-			job_name=f"Update ninja profile for {user_doc.name}",
-			now=False
-		)
-		
-		return {
-			"user": user_doc.name,
-			"is_new_user": True,
-			"name_used": name_used
-		}
-	except Exception as e:
-		frappe.log_error(f"Error creating user: {str(e)}", "User Creation Error")
-		return None
 
 def find_or_create_registration(user, solve_event):
 	"""
 	Find existing Solve Event Registration or create a new one.
+	Prevents duplicate registrations by checking for any existing registration first.
 	
 	Args:
 	- user: User name (email)
@@ -525,17 +549,23 @@ def find_or_create_registration(user, solve_event):
 	Returns:
 	- Registration name
 	"""
-	# Check if registration already exists
+	# First, check if ANY registration already exists (regardless of status)
+	# This prevents creating duplicates when called multiple times
 	existing_registration = frappe.db.get_value(
 		"Solve Event Registration",
-		{"user": user, "solve_event": solve_event},
+		{
+			"user": user,
+			"solve_event": solve_event
+		},
 		"name"
 	)
 	
 	if existing_registration:
+		# Return existing registration to prevent duplicates
+		# This works regardless of status (including None/empty or Rejected)
 		return existing_registration
 	
-	# Create new registration
+	# No existing registration found, create new one
 	try:
 		registration_doc = frappe.get_doc({
 			"doctype": "Solve Event Registration",
@@ -544,9 +574,40 @@ def find_or_create_registration(user, solve_event):
 			"source": "snbot"
 		})
 		registration_doc.insert(ignore_permissions=True)
+		
+		# After insertion, check if it was marked as rejected due to duplicate check
+		# This handles race conditions where two API calls happen simultaneously
+		if registration_doc.status == "Rejected":
+			# Reload to get the latest status
+			registration_doc.reload()
+			# Find the original registration that caused this to be rejected
+			original_registration = frappe.db.get_value(
+				"Solve Event Registration",
+				{
+					"user": user,
+					"solve_event": solve_event,
+					"name": ["!=", registration_doc.name]
+				},
+				"name",
+				order_by="creation asc"
+			)
+			if original_registration:
+				return original_registration
+		
 		return registration_doc.name
 	except Exception as e:
 		frappe.log_error(f"Error creating registration: {str(e)}", "Registration Creation Error")
+		# If there's a duplicate key error or similar, try to find existing registration
+		existing_registration = frappe.db.get_value(
+			"Solve Event Registration",
+			{
+				"user": user,
+				"solve_event": solve_event
+			},
+			"name"
+		)
+		if existing_registration:
+			return existing_registration
 		# Don't fail the checkin if registration creation fails
 		return None
 
@@ -563,6 +624,17 @@ def create_participation(user, solve_event, event_doc):
 	- Participation name
 	"""
 	try:
+		# Check if participation already exists
+		existing_participation = frappe.db.get_value(
+			"Solve Event Participation",
+			{"user": user, "solve_event": solve_event},
+			"name"
+		)
+		
+		if existing_participation:
+			return existing_participation
+		
+		# Create new participation
 		participation_doc = frappe.get_doc({
 			"doctype": "Solve Event Participation",
 			"user": user,
@@ -579,13 +651,13 @@ def create_participation(user, solve_event, event_doc):
 		frappe.throw(f"Failed to create participation: {str(e)}")
 
 @frappe.whitelist(allow_guest=True)
-def program_checkin(mobile, program_id, whatsapp_name=None):
+def program_checkin(mobile=None, program_id=None, whatsapp_name=None):
 	"""
 	Program checkin API endpoint.
 	Creates Program Participation for user.
 	Checks if user exists or creates user -> Program Participation.
 	
-	Args:
+	Args (can be passed as function parameters or in JSON request body):
 	- mobile: Mobile number (10 or 12 digits, default country code 91)
 	- program_id: Program ID (name or unique_id)
 	- whatsapp_name: WhatsApp name (optional)
@@ -594,6 +666,14 @@ def program_checkin(mobile, program_id, whatsapp_name=None):
 	- Success response with participation details
 	"""
 	try:
+		# Parse request data from JSON body if available
+		if frappe.request.data:
+			data = json.loads(frappe.request.data)
+			# Override function parameters with data from request body if provided
+			mobile = data.get("mobile") or mobile
+			program_id = data.get("program_id") or program_id
+			whatsapp_name = data.get("whatsapp_name") or whatsapp_name
+		
 		# Validate inputs
 		if not mobile:
 			return custom_response(
@@ -632,7 +712,7 @@ def program_checkin(mobile, program_id, whatsapp_name=None):
 			program = program_id
 		else:
 			# Try finding by unique_id
-			program = frappe.db.get_value("Program", {"unique_id": program_id}, "name")
+			program = frappe.db.get_value("Program", {"unique_id": program_id.upper()}, "name")
 		
 		if not program:
 			return custom_response(
@@ -659,6 +739,12 @@ def program_checkin(mobile, program_id, whatsapp_name=None):
 		user = user_result["user"]
 		is_new_user = user_result.get("is_new_user", False)
 		name_used = user_result.get("name_used", None)
+		
+		# Update Ninja Profile with program unique_id (only for new users)
+		if is_new_user:
+			program_unique_id = program_doc.get("unique_id")
+			if program_unique_id:
+				update_ninja_profile_unique_id(user, program_unique_id)
 		
 		# Create Program Participation
 		participation = create_program_participation(user, program)

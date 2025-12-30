@@ -6,7 +6,7 @@ from frappe.model.document import Document
 from frappe import _
 
 class SolveEventRegistration(Document):
-	def before_validate(self):
+	def validate(self):
 		"""
 		Handle user creation/linking and prevent duplicate registrations.
 		"""
@@ -16,8 +16,9 @@ class SolveEventRegistration(Document):
 			if not self.user:
 				self.user = frappe.session.user
 			
-			# Populate user data from logged-in user
-			self.populate_user_data_from_session()
+				# Populate user data from logged-in user
+				self.populate_user_data_from_session()
+
 		else:
 			# User is not logged in, handle user creation/linking
 			if not self.user and self.mobile:

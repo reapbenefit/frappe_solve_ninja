@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-26 10:48:43.768844",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "platform",
+  "campaign_name",
+  "column_break_bfwnp",
+  "city",
+  "section_break_kpajy",
+  "checkin_url",
+  "unique_id",
+  "column_break_afws0",
+  "qr"
+ ],
+ "fields": [
+  {
+   "fieldname": "platform",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Platform",
+   "options": "\nLinkedIn\nInstagram\nFacebook",
+   "reqd": 1
+  },
+  {
+   "fieldname": "campaign_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Campaign Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "unique_id",
+   "fieldtype": "Data",
+   "label": "Unique ID",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_bfwnp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "City",
+   "options": "Samaaja Cities"
+  },
+  {
+   "fieldname": "section_break_kpajy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_afws0",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qr",
+   "fieldtype": "Attach Image",
+   "label": "QR",
+   "read_only": 1
+  },
+  {
+   "fieldname": "checkin_url",
+   "fieldtype": "Small Text",
+   "label": "URL",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-12-28 02:23:27.526642",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Social Media",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
