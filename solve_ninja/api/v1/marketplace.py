@@ -202,6 +202,7 @@ def get_ninjas_in_focus(page_length=50, start=0):
 			frappe.qb.from_(UserMetadata)
 			.join(User).on(User.name == UserMetadata.name)
 			.select(
+				UserMetadata.name,
 				UserMetadata.is_ninja_in_focus,
 				UserMetadata.media,
 				UserMetadata.testimonial,
@@ -210,7 +211,8 @@ def get_ninjas_in_focus(page_length=50, start=0):
 				User.full_name,
 				User.username,
 				User.user_image,
-				User.headline
+				User.headline,
+				User.interest
 			)
 			.where(base_conditions)
 			.orderby(UserMetadata.modified, order=frappe.qb.desc)
@@ -228,10 +230,41 @@ def get_ninjas_in_focus(page_length=50, start=0):
 		
 		result = query.run(as_dict=True)
 
+		# Fetch tags from User Tag Detail child table
+		user_tags_map = {}
+		if result:
+			user_names = [row.get("name") for row in result if row.get("name")]
+			if user_names:
+				UserTagDetail = frappe.qb.DocType("User Tag Detail")
+				tags_query = (
+					frappe.qb.from_(UserTagDetail)
+					.select(UserTagDetail.parent, UserTagDetail.tag)
+					.where(
+						(UserTagDetail.parent.isin(user_names)) &
+						(UserTagDetail.parenttype == "User Metadata") &
+						(UserTagDetail.parentfield == "tags")
+					)
+				)
+				tags_results = tags_query.run(as_dict=True)
+				
+				# Group tags by user name
+				for tag_row in tags_results:
+					parent_name = tag_row.get("parent")
+					tag_value = tag_row.get("tag")
+					if parent_name:
+						if parent_name not in user_tags_map:
+							user_tags_map[parent_name] = []
+						if tag_value:
+							user_tags_map[parent_name].append(tag_value)
+
 		for row in result:
 			# row.profile_url = f"{frappe.utils.get_url()}/user-profile/{row.username}"
 			row.user_image = f"{frappe.utils.get_url()}{row.user_image}" if row.user_image else None
 			row.media = f"{frappe.utils.get_url()}{row.media}" if row.media else None
+			# Add tags to user data
+			user_name = row.get("name")
+			row.pop("name", None)
+			row["tags"] = user_tags_map.get(user_name, [])
 
 		count_result = count_query.run()
 		total_count = count_result[0][0] if count_result else 0

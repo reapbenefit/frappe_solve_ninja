@@ -9,6 +9,7 @@
  "engine": "InnoDB",
  "field_order": [
   "user",
+  "ninja_name",
   "rank",
   "column_break_3h5n7",
   "contributions",
@@ -22,7 +23,13 @@
   "column_break_ll50x",
   "last_action_type",
   "last_action_sub_type",
-  "last_action_category"
+  "last_action_category",
+  "acquisition_detail_section",
+  "acquisition_source_category",
+  "acquisition_source_subcategory",
+  "column_break_njnxn",
+  "acquisition_source_name",
+  "acquisition_source_unique_id"
  ],
  "fields": [
   {
@@ -103,6 +110,45 @@
    "fieldname": "wa_id",
    "fieldtype": "Data",
    "label": "WhatsApp ID"
+  },
+  {
+   "fetch_from": "user.full_name",
+   "fieldname": "ninja_name",
+   "fieldtype": "Data",
+   "label": "Ninja Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "acquisition_detail_section",
+   "fieldtype": "Section Break",
+   "label": "Acquisition Detail"
+  },
+  {
+   "fieldname": "acquisition_source_category",
+   "fieldtype": "Select",
+   "label": "Acquisition Source Category",
+   "options": "\nSolve Event\nSocial Media\nProgram\nWebsite Direct\nDirect"
+  },
+  {
+   "fieldname": "acquisition_source_subcategory",
+   "fieldtype": "Data",
+   "label": "Acquisition Source Subcategory"
+  },
+  {
+   "fieldname": "column_break_njnxn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "acquisition_source_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Acquisition Source Name",
+   "options": "acquisition_source_category",
+   "read_only": 1
+  },
+  {
+   "fieldname": "acquisition_source_unique_id",
+   "fieldtype": "Data",
+   "label": "Acquisition Source Unique ID"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -112,7 +158,7 @@
    "link_fieldname": "user"
   }
  ],
- "modified": "2025-05-20 09:40:54.625918",
+ "modified": "2025-12-30 00:07:30.776971",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Ninja Profile",
@@ -145,5 +191,5 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "user"
+ "title_field": "ninja_name"
 }

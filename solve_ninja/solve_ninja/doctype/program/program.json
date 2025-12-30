@@ -9,10 +9,12 @@
  "engine": "InnoDB",
  "field_order": [
   "program_name",
-  "start_date",
-  "end_date",
+  "college_name",
   "city",
   "mode",
+  "column_break_mpdhg",
+  "start_date",
+  "end_date",
   "description",
   "program_source",
   "program_sub_source",
@@ -62,7 +64,8 @@
   {
    "fieldname": "description",
    "fieldtype": "Long Text",
-   "label": "Description"
+   "label": "Description",
+   "max_height": "7rem"
   },
   {
    "fieldname": "checkin_section",
@@ -108,11 +111,25 @@
    "label": "Program Sub Source",
    "options": "Program Sub Source",
    "reqd": 1
+  },
+  {
+   "fieldname": "college_name",
+   "fieldtype": "Data",
+   "label": "College Name"
+  },
+  {
+   "fieldname": "column_break_mpdhg",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-12-12 16:39:46.469579",
+ "links": [
+  {
+   "link_doctype": "Program Participation",
+   "link_fieldname": "program"
+  }
+ ],
+ "modified": "2025-12-30 00:59:21.111250",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Program",

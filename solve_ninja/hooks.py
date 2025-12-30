@@ -135,6 +135,7 @@ scheduler_events = {
         "solve_ninja.api.leaderboard.update_user_rank",
         "solve_ninja.api.glific_sync.sync_metadata_from_bigquery",
         "solve_ninja.doc_events.events.update_all_user_headlines_daily",
+        "solve_ninja.solve_ninja.doctype.solve_event.solve_event.cleanup_completed_event_keywords",
     ]
 #	"hourly": [
 #		"solve_ninja.tasks.hourly"

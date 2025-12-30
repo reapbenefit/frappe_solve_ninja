@@ -360,15 +360,16 @@ class GlificSettings(Document):
         }
         return self._api_graphql_post_with_reauth(payload)
 
-    def update_flow(self, flow_id, name=None, keywords=None):
+    def update_flow(self, flow_id, name=None, keywords=None, remove_keywords=None):
         """
-        Update flow in Glific. Adds keywords to existing keywords list (avoiding duplicates).
+        Update flow in Glific. Adds or removes keywords from existing keywords list.
         If name is not provided, preserves existing flow name.
 
         Args:
             flow_id (int or str): Flow ID
             name (str, optional): Flow name. If None, uses existing name.
             keywords (list, optional): Keywords to add to existing keywords list.
+            remove_keywords (list, optional): Keywords to remove from existing keywords list.
 
         Returns:
             dict: Updated flow details from Glific
@@ -390,20 +391,41 @@ class GlificSettings(Document):
         # Use existing name if name not provided
         flow_name = name if name is not None else existing_flow.get("name", "")
         
-        # Merge keywords: start with existing keywords, add new ones (avoiding duplicates)
+        # Start with existing keywords (Glific stores keywords in lowercase)
         existing_keywords = existing_flow.get("keywords") or []
         if not isinstance(existing_keywords, list):
             existing_keywords = []
         
-        merged_keywords = list(existing_keywords)  # Copy existing keywords
+        # Normalize existing keywords to lowercase for comparison
+        existing_keywords_lower = [kw.lower() if isinstance(kw, str) else kw for kw in existing_keywords]
         
+        # Remove keywords first if specified
+        if remove_keywords:
+            if not isinstance(remove_keywords, list):
+                remove_keywords = [remove_keywords]
+            # Convert remove_keywords to lowercase for comparison
+            remove_keywords_lower = [kw.lower() if isinstance(kw, str) else kw for kw in remove_keywords]
+            # Build new list excluding keywords to remove (case-insensitive)
+            merged_keywords = []
+            for i, existing_kw in enumerate(existing_keywords):
+                existing_kw_lower = existing_keywords_lower[i]
+                if existing_kw_lower not in remove_keywords_lower:
+                    merged_keywords.append(existing_kw)
+        else:
+            merged_keywords = list(existing_keywords)  # Keep original format from Glific
+        
+        # Add new keywords if specified (convert to lowercase for Glific)
         if keywords:
             if not isinstance(keywords, list):
                 keywords = [keywords]
-            # Add new keywords, avoiding duplicates
+            # Convert merged_keywords to lowercase list for comparison
+            merged_keywords_lower = [kw.lower() if isinstance(kw, str) else kw for kw in merged_keywords]
+            # Add new keywords, avoiding duplicates (compare in lowercase)
             for keyword in keywords:
-                if keyword not in merged_keywords:
-                    merged_keywords.append(keyword)
+                keyword_lower = keyword.lower() if isinstance(keyword, str) else keyword
+                if keyword_lower not in merged_keywords_lower:
+                    merged_keywords.append(keyword_lower)
+                    merged_keywords_lower.append(keyword_lower)
 
         payload = {
             "query": """
