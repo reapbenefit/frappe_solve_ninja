@@ -10,6 +10,13 @@
   "whatsapp_bot_url",
   "event_checkin_flow_id",
   "program_checkin_flow_id",
+  "social_media_checkin_flow_id",
+  "mentor_request_template_id",
+  "mentor_assignment_notification_template",
+  "mentee_dropout_notification_template",
+  "mentor_completion_template",
+  "mentee_completion_template",
+  "invalid_request_notification_template",
   "column_break_zo08w",
   "checkin_url",
   "whatsapp__glific_settings_section",
@@ -75,12 +82,47 @@
    "fieldname": "program_checkin_flow_id",
    "fieldtype": "Int",
    "label": "Program Checkin Flow ID"
+  },
+  {
+   "fieldname": "mentor_request_template_id",
+   "fieldtype": "Int",
+   "label": "Mentor Request Template ID"
+  },
+  {
+   "fieldname": "mentor_assignment_notification_template",
+   "fieldtype": "Int",
+   "label": "Mentor Assignment Notification Template"
+  },
+  {
+   "fieldname": "invalid_request_notification_template",
+   "fieldtype": "Int",
+   "label": "Invalid Request Notification Template"
+  },
+  {
+   "fieldname": "mentor_completion_template",
+   "fieldtype": "Int",
+   "label": "Completion Template To Mentor"
+  },
+  {
+   "fieldname": "mentee_completion_template",
+   "fieldtype": "Int",
+   "label": "Completion Template To Mentee"
+  },
+  {
+   "fieldname": "social_media_checkin_flow_id",
+   "fieldtype": "Int",
+   "label": "Social Media Checkin Flow ID"
+  },
+  {
+   "fieldname": "mentee_dropout_notification_template",
+   "fieldtype": "Int",
+   "label": "Mentee Droppout Notification Template"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-12-11 23:43:35.590995",
+ "modified": "2026-01-16 15:02:11.685789",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Ninja Settings",

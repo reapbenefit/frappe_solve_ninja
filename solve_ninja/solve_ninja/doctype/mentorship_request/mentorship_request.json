@@ -1,0 +1,287 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "format:MR-{YYYY}-{####}",
+ "creation": "2026-01-08 10:48:43.234894",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "mentee",
+  "mentee_user",
+  "mentee_age",
+  "column_break_jdwrs",
+  "mentee_whatsapp_id",
+  "phone",
+  "section_break_ysj2u",
+  "discovered_problem",
+  "column_break_8x7gj",
+  "why_personal",
+  "section_break_vbwns",
+  "investigation_status",
+  "investigation_response",
+  "column_break_78viv",
+  "solving_status",
+  "solve_action",
+  "section_break_2bhvj",
+  "guidance_needed",
+  "guidance_details",
+  "column_break_x0krk",
+  "mentor_skills",
+  "anything_else",
+  "section_break_7ucm5",
+  "mentor_name",
+  "assigned_mentor",
+  "comments_manager",
+  "section_break_yx7tz",
+  "public_view_token",
+  "public_view_enabled"
+ ],
+ "fields": [
+  {
+   "fieldname": "mentee",
+   "fieldtype": "Data",
+   "label": "Mentee Name",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Mentee Contact",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "discovered_problem",
+   "fieldtype": "Long Text",
+   "label": "Discovered Problem",
+   "max_height": "10rem",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "investigation_status",
+   "fieldtype": "Select",
+   "label": "Investigation Status",
+   "options": "Yes\nNo",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "investigation_response",
+   "fieldtype": "Long Text",
+   "label": "Investigation Response",
+   "max_height": "10rem",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "solving_status",
+   "fieldtype": "Select",
+   "label": "Solving Status",
+   "options": "Yes\nNo",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "solve_action",
+   "fieldtype": "Long Text",
+   "label": "Solve Action",
+   "max_height": "10rem",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "guidance_needed",
+   "fieldtype": "Select",
+   "label": "Guidance Needed",
+   "options": "Need Clarity\nWant to Brainstorm\nSpecific Ask",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "mentor_skills",
+   "fieldtype": "Select",
+   "label": "Skills from Mentor",
+   "options": "Community Mobilization\nFinancial Planning\nCommunication & Story Telling\nTech Solution\nData Analysis\nOther\nProject Management\nStrategy",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "anything_else",
+   "fieldtype": "Long Text",
+   "label": "Anything Else",
+   "max_height": "6rem",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "mentee_age",
+   "fieldtype": "Data",
+   "label": "Age",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "assigned_mentor",
+   "fieldtype": "Link",
+   "label": "Mentor Assigned",
+   "options": "User Metadata",
+   "read_only_depends_on": "eval: doc.workflow_state !== \"Valid Request\";\n"
+  },
+  {
+   "fieldname": "mentee_user",
+   "fieldtype": "Link",
+   "label": "Mentee User",
+   "options": "User",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "mentee_whatsapp_id",
+   "fieldtype": "Data",
+   "label": "Mentee WhatsApp ID",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "section_break_7ucm5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "mentor_name",
+   "fieldtype": "Data",
+   "label": "Mentor Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_jdwrs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ysj2u",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_8x7gj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_vbwns",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_78viv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_2bhvj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_x0krk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "guidance_details",
+   "fieldtype": "Long Text",
+   "label": "Details of the needed guidance",
+   "max_height": "10rem",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "fieldname": "why_personal",
+   "fieldtype": "Long Text",
+   "label": "Why Personal Problem",
+   "max_height": "10rem",
+   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
+  },
+  {
+   "depends_on": "eval: doc.workflow_state == \"Invalid Request\"",
+   "fieldname": "comments_manager",
+   "fieldtype": "Long Text",
+   "label": "MM Comments",
+   "read_only_depends_on": "eval: doc.comments_manager"
+  },
+  {
+   "fieldname": "section_break_yx7tz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "public_view_token",
+   "fieldtype": "Data",
+   "label": "Public View Token",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "public_view_enabled",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Public View Enabled"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-15 23:38:19.633902",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Mentorship Request",
+ "name_case": "UPPER CASE",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "select": 1,
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Mentorship Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Mentor",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Guest",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "New"
+  }
+ ],
+ "track_changes": 1,
+ "track_views": 1
+}

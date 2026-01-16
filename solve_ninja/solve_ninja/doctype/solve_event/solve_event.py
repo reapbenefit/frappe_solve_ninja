@@ -378,86 +378,77 @@ def cleanup_completed_event_keywords():
 	Daily scheduled task to remove keywords from Glific checkin flow for completed solve events.
 	An event is considered complete when its end_date_time has passed.
 	"""
-	try:
-		from frappe.utils import now_datetime
-		
-		# Get event_checkin_flow_id from Solve Ninja Settings
-		flow_id = frappe.db.get_single_value("Solve Ninja Settings", "event_checkin_flow_id")
-		
-		if not flow_id:
-			frappe.log_error(
-				"Event Checkin Flow ID not configured in Solve Ninja Settings",
-				"Cleanup Completed Event Keywords Error"
-			)
-			return
-		
-		# Find all solve events that are complete (end_date_time < now) and have a unique_id
-		current_time = now_datetime()
-		completed_events = frappe.get_all(
-			"Solve Event",
-			filters={
-				"end_date_time": ["<", current_time],
-				"unique_id": ["!=", ""]
-			},
-			fields=["name", "unique_id", "title"]
+	# Get event_checkin_flow_id from Solve Ninja Settings
+	flow_id = frappe.db.get_single_value("Solve Ninja Settings", "event_checkin_flow_id")
+	
+	if not flow_id:
+		frappe.log_error(
+			"Event Checkin Flow ID not configured in Solve Ninja Settings",
+			"Cleanup Completed Event Keywords Error"
 		)
+		return
+	
+
+	date_time = frappe.utils.add_to_date(frappe.utils.now_datetime(), days=-2)
+	completed_events = frappe.get_all(
+		"Solve Event",
+		filters={
+			"end_date_time": ["<", date_time],
+			"unique_id": ["!=", ""]
+		},
+		fields=["name", "unique_id", "title"]
+	)
+	
+	if not completed_events:
+		frappe.logger("scheduler").info("No completed solve events found for keyword cleanup")
+		return
+	
+	# Get GlificSettings document
+	glific_settings = frappe.get_doc("Glific Settings")
+	
+	# Collect all unique_ids to remove (convert to lowercase for Glific)
+	keywords_to_remove = []
+	event_names = []
+	
+	for event in completed_events:
+		if event.get("unique_id"):
+			# Glific stores keywords in lowercase
+			keywords_to_remove.append(event["unique_id"].lower())
+			event_names.append(f"{event['name']} ({event.get('title', 'N/A')})")
+	
+	if not keywords_to_remove:
+		frappe.logger("scheduler").info("No keywords to remove from completed solve events")
+		return
+	
+	# Remove keywords from flow
+	response = glific_settings.update_flow(
+		flow_id=flow_id,
+		remove_keywords=keywords_to_remove
+	)
+	
+	# Check for errors in response
+	if response and "data" in response:
+		data = response.get("data", {})
+		update_flow_data = data.get("updateFlow", {})
+		errors = update_flow_data.get("errors", [])
 		
-		if not completed_events:
-			frappe.logger("scheduler").info("No completed solve events found for keyword cleanup")
-			return
-		
-		# Get GlificSettings document
-		glific_settings = frappe.get_doc("Glific Settings")
-		
-		# Collect all unique_ids to remove (convert to lowercase for Glific)
-		keywords_to_remove = []
-		event_names = []
-		
-		for event in completed_events:
-			if event.get("unique_id"):
-				# Glific stores keywords in lowercase
-				keywords_to_remove.append(event["unique_id"].lower())
-				event_names.append(f"{event['name']} ({event.get('title', 'N/A')})")
-		
-		if not keywords_to_remove:
-			frappe.logger("scheduler").info("No keywords to remove from completed solve events")
-			return
-		
-		# Remove keywords from flow
-		response = glific_settings.update_flow(
-			flow_id=flow_id,
-			remove_keywords=keywords_to_remove
-		)
-		
-		# Check for errors in response
-		if response and "data" in response:
-			data = response.get("data", {})
-			update_flow_data = data.get("updateFlow", {})
-			errors = update_flow_data.get("errors", [])
-			
-			if errors:
-				error_messages = [err.get("message", "") for err in errors if err.get("message")]
-				if error_messages:
-					frappe.log_error(
-						f"Error removing keywords from flow: {', '.join(error_messages)}\n"
-						f"Events processed: {', '.join(event_names)}",
-						"Cleanup Completed Event Keywords Error"
-					)
-			else:
-				# Success - log the cleanup
-				frappe.logger("scheduler").info(
-					f"Successfully removed keywords for {len(keywords_to_remove)} completed solve events: "
-					f"{', '.join(event_names)}"
+		if errors:
+			error_messages = [err.get("message", "") for err in errors if err.get("message")]
+			if error_messages:
+				frappe.log_error(
+					f"Error removing keywords from flow: {', '.join(error_messages)}\n"
+					f"Events processed: {', '.join(event_names)}",
+					"Cleanup Completed Event Keywords Error"
 				)
 		else:
-			frappe.log_error(
-				f"Unexpected response format when removing keywords from flow. "
-				f"Events attempted: {', '.join(event_names)}",
-				"Cleanup Completed Event Keywords Error"
+			# Success - log the cleanup
+			frappe.logger("scheduler").info(
+				f"Successfully removed keywords for {len(keywords_to_remove)} completed solve events: "
+				f"{', '.join(event_names)}"
 			)
-			
-	except Exception as e:
+	else:
 		frappe.log_error(
-			f"Error cleaning up completed event keywords: {str(e)}\n{frappe.get_traceback()}",
+			f"Unexpected response format when removing keywords from flow. "
+			f"Events attempted: {', '.join(event_names)}",
 			"Cleanup Completed Event Keywords Error"
 		)
