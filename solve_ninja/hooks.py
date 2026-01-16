@@ -95,13 +95,13 @@ website_route_rules = [
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+permission_query_conditions = {
+	"Mentorship Request": "solve_ninja.solve_ninja.doctype.mentorship_request.mentorship_request.get_permission_query_conditions",
+}
+
+has_permission = {
+	"Mentorship Request": "solve_ninja.solve_ninja.doctype.mentorship_request.mentorship_request.has_permission",
+}
 
 # DocType Class
 # ---------------
