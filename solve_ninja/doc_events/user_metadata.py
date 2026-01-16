@@ -30,5 +30,27 @@ def on_save(doc, method):
     Hook to update location fields when User Metadata is saved.
     """
     if doc.pincode and (not doc.city or not doc.state):
-        update_user_metadata_location(doc)
+        try:
+            update_user_metadata_location(doc)
+        except Exception as e:
+            frappe.log_error(message=f"Error updating user metadata location: {e}", title="Update User Metadata Location Error")
+    
+    update_mentor_role(doc)
+
+def update_mentor_role(doc):
+    """
+    Syncs the 'Mentor' role on the User document based on the 'is_mentor' field.
+    """
+    user_roles = frappe.get_roles(doc.user)
+    has_mentor_role = "Mentor" in user_roles
+
+    if doc.is_mentor and not has_mentor_role:
+        user = frappe.get_doc("User", doc.user)
+        user.module_profile = "Mentor"
+        user.save(ignore_permissions=True)
+        user.add_roles("Mentor")
+    
+    elif not doc.is_mentor and has_mentor_role:
+        user = frappe.get_doc("User", doc.user)
+        user.remove_roles("Mentor")
         
