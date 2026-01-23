@@ -5,6 +5,8 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import get_url_to_form
 from solve_ninja.utils import find_or_create_user_by_mobile, validate_and_normalize_mobile
+from frappe.model.workflow import apply_workflow
+
 
 class MentorshipRequest(Document):
 	def validate(self):
@@ -82,6 +84,8 @@ class MentorshipRequest(Document):
 					except Exception as e:
 						# Log error but don't prevent document save
 						frappe.log_error(message=f"Error sending completion notification: {str(e)}", title="Completion Notification Error")
+
+		self.auto_assign_mentor()
 	
 	def send_mentorship_assignment_notification(self):
 		"""
@@ -394,6 +398,11 @@ class MentorshipRequest(Document):
 		# Get Glific Settings
 		glific_settings = frappe.get_doc("Glific Settings")
 		
+		# Prepare feedback URLs (separate for mentor and mentee)
+		base_url = frappe.utils.get_url()
+		mentor_feedback_url = f"{base_url}/mentor-feedback/new?request_id={self.name}"
+		mentee_feedback_url = f"{base_url}/mentee-feedback/new?request_id={self.name}"
+		
 		# Track success for both notifications
 		mentor_success = False
 		mentee_success = False
@@ -406,9 +415,16 @@ class MentorshipRequest(Document):
 				if mentor_contact_id:
 					# Prepare parameters based on workflow state
 					mentor_parameters = []
+					
 					if workflow_state == "Mentee Dropped-Out":
-						# For mentee dropped out, pass mentee name as parameter
-						mentor_parameters = [self.mentee or "N/A"]
+						# For mentee dropped out, pass mentee name and mentor feedback URL as parameters
+						mentor_parameters = [
+							self.mentee or "N/A",  # {{1}} Mentee name
+							mentor_feedback_url  # {{2}} Mentor feedback URL
+						]
+					elif workflow_state == "Mentorship Completed":
+						# For mentorship completed, pass mentor feedback URL as parameter
+						mentor_parameters = [mentor_feedback_url]  # {{1}} Mentor feedback URL
 					
 					response = glific_settings.send_hsm_message(mentor_contact_id, mentor_template_id, mentor_parameters)
 					if response and response.get("data") and response["data"].get("sendHsmMessage"):
@@ -439,7 +455,13 @@ class MentorshipRequest(Document):
 				try:
 					mentee_contact_id = self._get_mentee_contact_id()
 					if mentee_contact_id:
-						response = glific_settings.send_hsm_message(mentee_contact_id, mentee_template_id, [])
+						# Prepare parameters for mentee notification
+						mentee_parameters = []
+						if workflow_state == "Mentorship Completed":
+							# For mentorship completed, pass mentee feedback URL as parameter
+							mentee_parameters = [mentee_feedback_url]  # {{1}} Mentee feedback URL
+						
+						response = glific_settings.send_hsm_message(mentee_contact_id, mentee_template_id, mentee_parameters)
 						if response and response.get("data") and response["data"].get("sendHsmMessage"):
 							message_data = response["data"]["sendHsmMessage"]
 							if message_data.get("message") and not message_data.get("errors"):
@@ -537,6 +559,14 @@ class MentorshipRequest(Document):
 			self.db_set("mentee_whatsapp_id", contact_id, commit=False)
 		
 		return contact_id
+	
+	def auto_assign_mentor(self):
+		if (
+			self.workflow_state == "Valid Request"
+			and self.assigned_mentor
+		):
+			frappe.db.commit()
+			apply_workflow(self, "Assign Mentor")
 
 def get_permission_query_conditions(user):
 	"""

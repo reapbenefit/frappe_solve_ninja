@@ -7,30 +7,40 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "project_title",
-  "image",
+  "project_name",
+  "project_image",
+  "column_break_0roop",
+  "project_status",
+  "project_tags",
+  "section_break_j8dod",
+  "overview",
+  "column_break_qdjrh",
+  "detailed_description_title",
+  "detailed_description_content",
+  "section_break_yqklm",
+  "key_objectives",
+  "section_break_mslsr",
+  "column_break_i69ir",
+  "start_date",
+  "end_date",
+  "section_break_ixqab",
+  "participation_count",
+  "time_spent_value",
+  "column_break_fmxbm",
+  "completion_count",
+  "column_break_lqf4d",
+  "actions_taken_value",
+  "section_break_gn2oc",
+  "impact_metric",
+  "section_break_glkt3",
+  "visibility_control",
+  "column_break_nmsoz",
+  "average_rating_value",
+  "section_break_blnqy",
   "skill",
-  "no_of_members_needed",
-  "city",
-  "join_link",
-  "whatsapp_keyword",
-  "description"
+  "city"
  ],
  "fields": [
-  {
-   "fieldname": "project_title",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Project Title",
-   "reqd": 1
-  },
-  {
-   "fieldname": "image",
-   "fieldtype": "Attach",
-   "in_list_view": 1,
-   "label": "Image",
-   "reqd": 1
-  },
   {
    "fieldname": "skill",
    "fieldtype": "Link",
@@ -38,11 +48,6 @@
    "label": "Skill",
    "options": "Badge",
    "reqd": 1
-  },
-  {
-   "fieldname": "no_of_members_needed",
-   "fieldtype": "Int",
-   "label": "No of members needed"
   },
   {
    "fieldname": "city",
@@ -53,27 +58,160 @@
    "reqd": 1
   },
   {
-   "fieldname": "join_link",
+   "fieldname": "project_name",
    "fieldtype": "Data",
-   "label": "Join link",
-   "options": "URL",
+   "in_list_view": 1,
+   "label": "Project Name",
    "reqd": 1
   },
   {
-   "fieldname": "whatsapp_keyword",
-   "fieldtype": "Data",
-   "label": "Whatsapp Keyword"
+   "fieldname": "project_image",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Project Image",
+   "reqd": 1
   },
   {
-   "fieldname": "description",
+   "fieldname": "column_break_0roop",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project_status",
+   "fieldtype": "Select",
+   "label": "Project Status",
+   "options": "\nLive\nCompleted"
+  },
+  {
+   "fieldname": "project_tags",
+   "fieldtype": "Table MultiSelect",
+   "label": "Project Tags",
+   "options": "Skill Based Projects Tag Detail"
+  },
+  {
+   "fieldname": "section_break_j8dod",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "overview",
    "fieldtype": "Text",
-   "label": "Description",
+   "label": "Overview",
+   "max_height": "13rem",
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_qdjrh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "detailed_description_title",
+   "fieldtype": "Data",
+   "label": "Detailed Description Title"
+  },
+  {
+   "fieldname": "detailed_description_content",
+   "fieldtype": "Text",
+   "label": "Detailed Description content",
+   "max_height": "10rem"
+  },
+  {
+   "fieldname": "section_break_yqklm",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "key_objectives",
+   "fieldtype": "Table",
+   "label": "Key Objectives",
+   "options": "Skill Based Projects Objective"
+  },
+  {
+   "fieldname": "section_break_mslsr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_i69ir",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "section_break_ixqab",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "participation_count",
+   "fieldtype": "Int",
+   "label": "Participation Count"
+  },
+  {
+   "fieldname": "time_spent_value",
+   "fieldtype": "Data",
+   "label": "Time Spent Value"
+  },
+  {
+   "fieldname": "column_break_fmxbm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "completion_count",
+   "fieldtype": "Int",
+   "label": "Completion Count"
+  },
+  {
+   "fieldname": "column_break_lqf4d",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "actions_taken_value",
+   "fieldtype": "Data",
+   "label": "Actions Taken Value"
+  },
+  {
+   "fieldname": "section_break_gn2oc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "columns": 3,
+   "fieldname": "impact_metric",
+   "fieldtype": "Table",
+   "ignore_user_permissions": 1,
+   "label": "Impact Metric",
+   "options": "Skill Based Projects Impact Metric"
+  },
+  {
+   "fieldname": "section_break_glkt3",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "visibility_control",
+   "fieldtype": "Select",
+   "label": "Visibility Control",
+   "options": "Show\nJide"
+  },
+  {
+   "fieldname": "column_break_nmsoz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "average_rating_value",
+   "fieldtype": "Data",
+   "label": "Average Rating Value"
+  },
+  {
+   "fieldname": "section_break_blnqy",
+   "fieldtype": "Section Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-22 18:01:42.813530",
+ "modified": "2026-01-09 21:29:53.463297",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Skill Based Projects",
@@ -90,6 +228,16 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Guest",
+   "select": 1,
+   "share": 1
   }
  ],
  "sort_field": "modified",

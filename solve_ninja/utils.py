@@ -132,19 +132,24 @@ def is_unique_id_duplicate(unique_id, exclude_doctype=None, exclude_name=None):
 	# No duplicate found
 	return None
 
-def update_ninja_profile_unique_id(user, event_unique_id):
+def update_ninja_profile_unique_id(user, event_unique_id=None, solve_event=None):
 	"""
-	Update acquisition_source_unique_id in Ninja Profile with event_unique_id.
+	Update acquisition_source_unique_id in Ninja Profile with event_unique_id or solve_event.
 	Uses save() method with ignore_permissions to trigger on_update hooks.
 	
 	Args:
 	- user: User name (email)
 	- event_unique_id: Event unique_id to set in Ninja Profile
+	- solve_event: Solve Event document to set in Ninja Profile
 	"""
 	try:
-		if event_unique_id and frappe.db.exists("Ninja Profile", user):
+		if (event_unique_id or solve_event) and frappe.db.exists("Ninja Profile", user):
 			ninja_profile = frappe.get_doc("Ninja Profile", user)
-			ninja_profile.acquisition_source_unique_id = event_unique_id.upper()
+			if event_unique_id:
+				ninja_profile.acquisition_source_unique_id = event_unique_id.upper()
+			if solve_event:
+				ninja_profile.acquisition_source_category = "Solve Event"
+				ninja_profile.acquisition_source_name = solve_event
 			ninja_profile.save(ignore_permissions=True)
 
 	except Exception as e:
@@ -193,7 +198,8 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 			'mobile': mobile,
 			'email': f"{mobile}@solveninja.org",
 			'mobile_no': mobile,
-			'first_name': user_name
+			'first_name': user_name,
+			'send_welcome_email': 0
 		})
 		user_doc.append("roles", {"role": "Solve Ninja"})
 		user_doc.insert(ignore_permissions=True)

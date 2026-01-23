@@ -6,6 +6,9 @@ from frappe.model.document import Document
 import requests
 import json
 from frappe.utils import logger
+import time
+import random
+from psycopg2.errors import SerializationFailure
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -65,10 +68,44 @@ class GlificSettings(Document):
             return {"error": str(e)}
 
     def _save_tokens(self, data):
-        self.access_token = data["access_token"]
-        self.renewal_token = data["renewal_token"]
-        self.token_expiry_time = data["token_expiry_time"]
-        self.save(ignore_permissions=True)
+        # Single DocType -> shared row. Protect with a distributed lock.
+        lock_name = "glific_settings:token_update"
+        lock_timeout = 30  # seconds
+
+        def _attempt_save():
+            self.access_token = data["access_token"]
+            self.renewal_token = data["renewal_token"]
+            self.token_expiry_time = data["token_expiry_time"]
+            self.save(ignore_permissions=True)
+
+        # Use redis lock if available
+        lock = None
+        try:
+            lock = frappe.cache().lock(lock_name, timeout=lock_timeout)
+        except Exception:
+            lock = None  # if lock API not available in your Frappe version
+
+        # If lock exists, use it; otherwise fallback to retry-only
+        if lock:
+            with lock:
+                self._save_with_retry(_attempt_save)
+        else:
+            self._save_with_retry(_attempt_save)
+
+    def _save_with_retry(self, fn, attempts=5):
+        for i in range(attempts):
+            try:
+                fn()
+                return
+            except SerializationFailure:
+                frappe.db.rollback()
+                # small jitter to avoid thundering herd
+                time.sleep(0.1 + random.random() * 0.3)
+            except Exception:
+                # if it's something else, don't mask it
+                raise
+
+        frappe.throw("Failed to save Glific tokens due to repeated concurrent updates. Please retry.")
 
     def _api_post_with_reauth(self, endpoint, payload, headers=None, retry=True):
         """

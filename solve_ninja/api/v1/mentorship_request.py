@@ -134,3 +134,43 @@ def create_mentorship_request():
 		error=error
 	)
 
+
+@frappe.whitelist(allow_guest=True)
+def get_mentorship_request_for_feedback(request_id):
+	"""
+	Get mentorship request data for feedback forms.
+	This endpoint is whitelisted for guest access to allow feedback forms to prefill data.
+	
+	Args:
+	- request_id (string, required): The mentorship request ID (e.g., MR-2026-0071)
+	
+	Returns:
+	- mentor_name: Full name of the assigned mentor
+	- mentee: Name of the mentee (note: field name is 'mentee' not 'mentee_name')
+	"""
+	try:
+		if not request_id:
+			frappe.throw("Request ID is required", frappe.ValidationError)
+		
+		# Check if mentorship request exists
+		if not frappe.db.exists("Mentorship Request", request_id):
+			frappe.throw("Mentorship request not found", frappe.DoesNotExistError)
+		
+		# Get mentorship request data
+		mentorship_request = frappe.get_doc("Mentorship Request", request_id)
+		
+		# Return data in format compatible with frappe.call (similar to frappe.client.get)
+		return {
+			"mentor_name": mentorship_request.mentor_name or "",
+			"mentee": mentorship_request.mentee or "",
+			"mentee_name": mentorship_request.mentee or "",  # Alias for compatibility
+			"request_id": request_id
+		}
+		
+	except Exception as e:
+		frappe.log_error(
+			f"Error in get_mentorship_request_for_feedback: {str(e)}\n{frappe.get_traceback()}",
+			"Mentorship Request Feedback API Error"
+		)
+		frappe.throw(f"Failed to retrieve mentorship request data: {str(e)}")
+

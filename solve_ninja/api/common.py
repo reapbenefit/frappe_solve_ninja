@@ -282,7 +282,7 @@ def add_user():
 def update_user():
     """
     Public endpoint to update user profile information using mobile number.
-    Updates: first_name, age, dob/birth_date, gender, city
+    Updates: first_name, age, dob/birth_date, gender, city, year_of_birth
     """
     message = 'User updated successfully'
     status_code = 200
@@ -336,6 +336,21 @@ def update_user():
         # Update city if provided (using assign_city logic)
         if user_data.get("city"):
             assign_city(user_doc, user_data.get("city"))
+            # Update/create User Metadata with city
+            # User Metadata name equals user_doc.name (via autoname: "field:user")
+            # assign_city ensures the city exists in Samaaja Cities, so use the city value directly
+            
+            if frappe.db.exists("User Metadata", user_doc.name):
+                user_metadata = frappe.get_doc("User Metadata", user_doc.name)
+                user_metadata.city = user_doc.city
+                user_metadata.year_of_birth = user_data.get("year_of_birth") if user_data.get("year_of_birth") else user_metadata.year_of_birth
+                user_metadata.save(ignore_permissions=True)
+            else:
+                frappe.get_doc({
+                    "doctype": "User Metadata",
+                    "user": user_doc.name,
+                    "city": user_doc.city
+                }).insert(ignore_permissions=True)
 
         # Save user document
         user_doc.save(ignore_permissions=True)
