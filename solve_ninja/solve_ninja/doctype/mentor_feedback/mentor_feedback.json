@@ -1,0 +1,128 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-08 17:10:20.716048",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "request_id",
+  "mentor_fullname",
+  "mentee_fullname",
+  "overall_rating_mentor",
+  "rate_matchingprocess",
+  "rate_communication",
+  "rate_support",
+  "rate_engagement",
+  "rate_sharefeedback",
+  "challenges_faced",
+  "one_change_suggestion",
+  "willingness_continue",
+  "additional_comments"
+ ],
+ "fields": [
+  {
+   "fieldname": "request_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Mentorship Request ID",
+   "options": "Mentorship Request",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.mentor_name",
+   "fieldname": "mentor_fullname",
+   "fieldtype": "Data",
+   "label": "Mentor Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "request_id.mentee",
+   "fieldname": "mentee_fullname",
+   "fieldtype": "Data",
+   "label": "Mentee Name"
+  },
+  {
+   "fieldname": "overall_rating_mentor",
+   "fieldtype": "Select",
+   "label": "Rate Your Exp As A Mentor",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "rate_matchingprocess",
+   "fieldtype": "Select",
+   "label": "Rate Mentor Matching Process",
+   "options": "1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "rate_communication",
+   "fieldtype": "Select",
+   "label": "Rate Communication From RB Team",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "rate_support",
+   "fieldtype": "Select",
+   "label": "Rate  Support Provided",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "rate_engagement",
+   "fieldtype": "Select",
+   "label": "Rate Mentee Engagement",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "rate_sharefeedback",
+   "fieldtype": "Select",
+   "label": "Rate Opportunities For Feedback",
+   "options": "\n1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "challenges_faced",
+   "fieldtype": "Long Text",
+   "label": "Challenges Faced"
+  },
+  {
+   "fieldname": "one_change_suggestion",
+   "fieldtype": "Small Text",
+   "label": "One Change Suggestion"
+  },
+  {
+   "fieldname": "willingness_continue",
+   "fieldtype": "Select",
+   "label": "Willingness To Continue",
+   "options": "\nYes\nNot Right Now"
+  },
+  {
+   "fieldname": "additional_comments",
+   "fieldtype": "Small Text",
+   "label": "Additional Comments"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-23 16:14:28.317473",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Mentor Feedback",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

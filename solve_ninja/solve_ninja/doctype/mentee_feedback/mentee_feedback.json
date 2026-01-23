@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-08 17:19:16.411911",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "request_id",
+  "mentee_fullname",
+  "mentor_fullname",
+  "overall_rating",
+  "mentorship_journey_desc",
+  "mentorship_takeaway",
+  "mentorship_can_be_better",
+  "mentee_message_to_mentor"
+ ],
+ "fields": [
+  {
+   "fieldname": "request_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Mentorship ID",
+   "options": "Mentorship Request",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.mentee",
+   "fieldname": "mentee_fullname",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Mentee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "request_id.mentor_name",
+   "fieldname": "mentor_fullname",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Mentor Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overall_rating",
+   "fieldtype": "Select",
+   "label": "Rating For Mentorship",
+   "options": "1\n2\n3\n4\n5"
+  },
+  {
+   "fieldname": "mentorship_journey_desc",
+   "fieldtype": "Long Text",
+   "label": "Mentorship Journey Description"
+  },
+  {
+   "fieldname": "mentorship_takeaway",
+   "fieldtype": "Long Text",
+   "label": "Takeaway From Mentorship"
+  },
+  {
+   "fieldname": "mentorship_can_be_better",
+   "fieldtype": "Long Text",
+   "label": "Can Be Better"
+  },
+  {
+   "fieldname": "mentee_message_to_mentor",
+   "fieldtype": "Small Text",
+   "label": "Message To The Mentor"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-23 16:14:39.584518",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Mentee Feedback",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
