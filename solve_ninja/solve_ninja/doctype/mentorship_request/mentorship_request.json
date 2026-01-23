@@ -14,6 +14,9 @@
   "column_break_jdwrs",
   "mentee_whatsapp_id",
   "phone",
+  "column_break_gq9jj",
+  "assigned_mentor",
+  "mentor_name",
   "section_break_ysj2u",
   "discovered_problem",
   "column_break_8x7gj",
@@ -31,12 +34,11 @@
   "mentor_skills",
   "anything_else",
   "section_break_7ucm5",
-  "mentor_name",
-  "assigned_mentor",
   "comments_manager",
   "section_break_yx7tz",
   "public_view_token",
-  "public_view_enabled"
+  "public_view_enabled",
+  "is_keyword_deleted"
  ],
  "fields": [
   {
@@ -208,11 +210,23 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Public View Enabled"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_keyword_deleted",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Is Keyword Deleted",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_gq9jj",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-15 23:38:19.633902",
+ "modified": "2026-01-23 12:11:49.055852",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Mentorship Request",

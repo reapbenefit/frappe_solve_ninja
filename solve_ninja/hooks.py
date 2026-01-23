@@ -32,7 +32,10 @@ web_include_js = "/assets/solve_ninja/js/solve_ninja.js"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+    "User": "public/js/user.js",
+    "User Metadata": "public/js/user_metadata.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -216,7 +219,8 @@ doc_events = {
     },
     "User": {
        "after_insert": "solve_ninja.doc_events.user.after_insert",
-        "on_trash": "solve_ninja.doc_events.user.on_trash"
+        "on_trash": "solve_ninja.doc_events.user.on_trash",
+        "after_rename": "solve_ninja.doc_events.user.after_rename"
     },
     "Organization":{
         
