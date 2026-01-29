@@ -174,8 +174,8 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 	
 	if user_name:
 		# Update Ninja Profile unique_id if event_unique_id is provided
-		if event_unique_id:
-			update_ninja_profile_unique_id(user_name, event_unique_id)
+		# if event_unique_id:
+		# 	update_ninja_profile_unique_id(user_name, event_unique_id)
 		
 		return {
 			"user": user_name,
@@ -205,8 +205,8 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 		user_doc.insert(ignore_permissions=True)
 		
 		# Update Ninja Profile unique_id if event_unique_id is provided
-		if event_unique_id:
-			update_ninja_profile_unique_id(user_doc.name, event_unique_id)
+		# if event_unique_id:
+		#	update_ninja_profile_unique_id(user_doc.name, event_unique_id)
 		
 		# Enqueue background tasks for profile updates if needed
 		frappe.enqueue(
