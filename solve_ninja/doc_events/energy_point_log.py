@@ -1,7 +1,7 @@
 import frappe
 import requests
 import json
-from solve_ninja.utils import validate_and_normalize_mobile
+from solve_ninja.api.user import validate_and_normalize_mobile
 from time import sleep
 
 def handle_energy_point_log(doc, method):

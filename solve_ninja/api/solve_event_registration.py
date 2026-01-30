@@ -1,6 +1,6 @@
 import frappe
 from frappe.model.document import get_doc
-from solve_ninja.utils import find_or_create_user_by_mobile, update_ninja_profile_unique_id
+from solve_ninja.api.user import find_or_create_user_by_mobile, update_ninja_profile_unique_id
 
 @frappe.whitelist(allow_guest=True)
 def register_solve_event():
@@ -23,7 +23,7 @@ def register_solve_event():
         frappe.throw("Mobile/User number is required.")
 
     # Find or create user by mobile number
-    user_result = find_or_create_user_by_mobile(mobile, whatsapp_name)
+    user_result = find_or_create_user_by_mobile(mobile, whatsapp_name, event_unique_id)
     
     if not user_result or not user_result.get("user"):
         frappe.throw("Failed to create or find user")

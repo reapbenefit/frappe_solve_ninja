@@ -1,7 +1,7 @@
 import frappe
 import random
 from frappe.utils import now_datetime, add_to_date
-from solve_ninja.utils import validate_and_normalize_mobile
+from solve_ninja.api.user import validate_and_normalize_mobile
 
 
 @frappe.whitelist(allow_guest=True)

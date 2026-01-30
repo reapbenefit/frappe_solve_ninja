@@ -80,7 +80,8 @@ website_route_rules = [
 # ------------
 
 # before_install = "solve_ninja.install.before_install"
-# after_install = "solve_ninja.install.after_install"
+after_install = "solve_ninja.install.after_install"
+after_migrate = "solve_ninja.install.after_migrate"
 
 # Uninstallation
 # ------------
@@ -104,6 +105,21 @@ permission_query_conditions = {
 
 has_permission = {
 	"Mentorship Request": "solve_ninja.solve_ninja.doctype.mentorship_request.mentorship_request.has_permission",
+}
+
+# Custom Fields
+# ------------
+
+custom_fields = {
+	"User": [
+		{
+			"fieldname": "source_of_acquisition",
+			"fieldtype": "Data",
+			"label": "Source of Acquisition",
+			"insert_after": "username",
+			"module": "Solve Ninja"
+		}
+	]
 }
 
 # DocType Class

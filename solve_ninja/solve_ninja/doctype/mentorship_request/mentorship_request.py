@@ -4,7 +4,8 @@
 import frappe
 from frappe.model.document import Document
 from frappe.utils import get_url_to_form
-from solve_ninja.utils import find_or_create_user_by_mobile, validate_and_normalize_mobile
+from solve_ninja.api.user import find_or_create_user_by_mobile
+from solve_ninja.api.user import validate_and_normalize_mobile
 from frappe.model.workflow import apply_workflow
 
 

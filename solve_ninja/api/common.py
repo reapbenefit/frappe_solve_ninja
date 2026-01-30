@@ -13,7 +13,8 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 import requests
-from solve_ninja.utils import find_user_by_mobile, log_integration_request
+from solve_ninja.api.user import find_user_by_mobile, update_user_detail, create_user, validate_and_normalize_mobile
+from solve_ninja.utils import log_integration_request
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -225,33 +226,35 @@ def add_user():
         if frappe.db.exists("User", {"mobile_no": mobile}):
             frappe.throw(f"User with mobile number {mobile} already exists.", frappe.DuplicateEntryError)
 
-        user_doc = build_user_doc(user_data, mobile)
-        user_doc.insert(ignore_permissions=True)
+        # Call the core user creation logic from user.py
+        user_data["source_of_acquisition"] = user_data.get("program_id") or user_data.get("event_id")
+        user_doc = create_user(user_data, mobile)
         user_name = user_doc.name
+        username = user_doc.username
 
         # Create Program Participation if program unique_id is provided
         if user_data.get("program_id"):
-            create_program_participation(user_doc.name, user_data.get("program_id").upper())
+            create_program_participation(user_name, user_data.get("program_id").upper())
 
         # Enqueue ninja profile update in background
         frappe.enqueue(
-            "solve_ninja.api.common.update_ninja_profile",
-            user=user_doc.name,
+            "solve_ninja.api.user.update_ninja_profile",
+            user=user_name,
             user_data=user_data,
             queue='default',
-            job_name=f"Update ninja profile for {user_doc.name}",
+            job_name=f"Update ninja profile for {user_name}",
             now=False
         )
         frappe.enqueue(
-            "solve_ninja.api.common.update_user_metadata",
-            user=user_doc.name,
+            "solve_ninja.api.user.update_user_metadata",
+            user=user_name,
             user_data=user_data,
             queue='default',
-            job_name=f"Update user metadata for {user_doc.name}",
+            job_name=f"Update user metadata for {user_name}",
             now=False
         )
         
-        data = f"https://solveninja.org/user-profile/{user_doc.username}"
+        data = f"https://solveninja.org/user-profile/{username}"
 
     except Exception as e:
         logger.error(f"Error occurred while registering user with mobile - {mobile}")
@@ -291,6 +294,7 @@ def update_user():
     mobile = ''
 
     try:
+        # Parse request data
         user_data = frappe.local.form_dict or {}
         if not user_data and frappe.request.data:
             user_data = json.loads(frappe.request.data)
@@ -314,49 +318,11 @@ def update_user():
             logger.warning(message)
             return custom_response(message, data, status_code, error)
 
-        # Get existing User document
-        user_doc = frappe.get_doc("User", user_name)
-
-        # Update first_name if provided
-        if user_data.get("first_name"):
-            user_doc.first_name = user_data.get("first_name")
-
-        # Update age/birth_date if provided
-        # Prefer age if both are provided
-        if user_data.get("age"):
-            user_doc.age = user_data.get("age")
-        elif user_data.get("dob") or user_data.get("birth_date"):
-            dob_value = user_data.get("dob") or user_data.get("birth_date")
-            user_doc.birth_date = frappe.utils.getdate(dob_value)
-
-        # Update gender if provided
-        if user_data.get("gender"):
-            user_doc.gender = user_data.get("gender")
-
-        # Update city if provided (using assign_city logic)
-        if user_data.get("city"):
-            assign_city(user_doc, user_data.get("city"))
-            # Update/create User Metadata with city
-            # User Metadata name equals user_doc.name (via autoname: "field:user")
-            # assign_city ensures the city exists in Samaaja Cities, so use the city value directly
-            
-            if frappe.db.exists("User Metadata", user_doc.name):
-                user_metadata = frappe.get_doc("User Metadata", user_doc.name)
-                user_metadata.city = user_doc.city
-                user_metadata.year_of_birth = user_data.get("year_of_birth") if user_data.get("year_of_birth") else user_metadata.year_of_birth
-                user_metadata.save(ignore_permissions=True)
-            else:
-                frappe.get_doc({
-                    "doctype": "User Metadata",
-                    "user": user_doc.name,
-                    "city": user_doc.city
-                }).insert(ignore_permissions=True)
-
-        # Save user document
-        user_doc.save(ignore_permissions=True)
-        frappe.db.commit()
-
-        data = f"https://solveninja.org/user-profile/{user_doc.username}"
+        # Call the core update logic from user.py
+        username = update_user_detail(user_name, user_data)
+        
+        # Build response data
+        data = f"https://solveninja.org/user-profile/{username}"
         logger.info(f"Successfully updated user {user_name}")
 
     except Exception as e:
@@ -391,15 +357,6 @@ def validate_pincode(pincode):
 
     if not pincode_str.isdigit() or len(pincode_str) != 6:
         frappe.throw("Pincode must be a 6-digit number.")
-
-def validate_and_normalize_mobile(mobile):
-    if not mobile or len(mobile) not in [10, 12] or not mobile.isdigit():
-        frappe.throw("Mobile number must be either 10 or 12 digits and numeric.")
-
-    if len(mobile) == 10:
-        mobile = "91" + mobile
-
-    return mobile
 
 
 @frappe.whitelist()
@@ -937,106 +894,6 @@ def fetch_data_gov_in(pincode):
         return response.json()
     except requests.exceptions.RequestException as e:
         frappe.throw(f"Error fetching data: {e}")
-
-def build_user_doc(user_data, mobile):
-    """
-    Creates and returns a new User Doc with provided user_data and mobile.
-    Also handles org, language, and city validation.
-    """
-    user_doc = frappe.get_doc({
-        'doctype': 'User',
-        'mobile': mobile,
-        'email': f"{mobile}@solveninja.org",
-        'mobile_no': mobile,
-        'first_name': user_data.get("first_name"),
-        'wa_id': user_data.get("wa_id"),
-        'gender': user_data.get("gender"),
-        'age': user_data.get("age"),
-        'birth_date': frappe.utils.getdate(user_data.get("dob")) if user_data.get("dob") else None,
-        'new_password': mobile
-    })
-
-    assign_org(user_doc, user_data.get("org_id"))
-    assign_language(user_doc, user_data.get("language"))
-
-    return user_doc
-
-def assign_org(user_doc, org_id):
-    if not org_id:
-        return
-
-    org_id = str(org_id).upper()
-    org_docs = frappe.get_all('User Organization', filters={'org_id': org_id}, fields=['name'])
-    if org_docs:
-        user_doc.org_id = org_docs[0].name
-    else:
-        logger.warning(f"Organization ID '{org_id}' not found while registering user {user_doc.mobile}")
-
-def assign_language(user_doc, language_code):
-    if not language_code:
-        return
-
-    language_docs = frappe.get_all('Language', filters={'language_code': language_code}, fields=['name'])
-    if language_docs:
-        user_doc.language = language_docs[0].name
-    else:
-        logger.warning(f"Language code '{language_code}' not found while registering user {user_doc.mobile}")
-
-def assign_city(user_doc, district):
-    if not district:
-        return
-
-    city_exists = frappe.get_all('Samaaja Cities', filters={'city_name': district})
-    if city_exists:
-        user_doc.city_name = district
-    else:
-        frappe.get_doc({
-            'doctype': 'Samaaja Cities',
-            'city_name': district
-        }).insert(ignore_permissions=True)
-        user_doc.city_name = district
-
-def update_user_metadata(user, user_data):
-    """
-    Updates or creates User Metadata record with pincode if available.
-    """
-
-    # Check if metadata already exists
-    if frappe.db.exists("User Metadata", user):
-        user_metadata = frappe.get_doc("User Metadata", user)
-        user_metadata.pincode = user_data.get("pincode")
-        user_metadata.city = user_data.get("city")
-        user_metadata.state = user_data.get("state")
-        user_metadata.year_of_birth = user_data.get("year_of_birth")
-        if user_data.get("org_id") and frappe.db.exists("User Organization", user_data.get("org_id")):
-            user_metadata.org_id = user_data.get("org_id")
-        user_metadata.save(ignore_permissions=True)
-    
-def update_ninja_profile(user, user_data):
-    """
-    Updates Ninja Profile record with wa_id and acquisition_source_unique_id if available.
-    Checks program_id or event_id to update acquisition_source_unique_id.
-    """
-    if not frappe.db.exists("Ninja Profile", user):
-        return
-    
-    ninja_profile = frappe.get_doc("Ninja Profile", user)
-    updated = False
-    
-    # Update wa_id if provided
-    if user_data.get("wa_id"):
-        ninja_profile.wa_id = user_data.get("wa_id")
-        updated = True
-    
-    # Update acquisition_source_unique_id from program_id or event_id
-    acquisition_id = user_data.get("program_id") or user_data.get("event_id")
-    if acquisition_id:
-        ninja_profile.acquisition_source_unique_id = str(acquisition_id).upper()
-        updated = True
-    
-    # Save only if there were updates
-    if updated:
-        ninja_profile.save(ignore_permissions=True)
 
 def create_program_participation(user, program_unique_id):
     """

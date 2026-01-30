@@ -1,14 +1,23 @@
 import frappe
 import json
+from frappe import _
 from samaaja.api.common import custom_response
 from frappe.query_builder.functions import Count, Sum
-from solve_ninja.api.common import validate_and_normalize_mobile
 from frappe.sessions import delete_session
 from frappe.query_builder import Order
 from frappe.handler import logout as frappe_logout
 from frappe.utils import logger
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
+
+def validate_and_normalize_mobile(mobile):
+    if not mobile or len(mobile) not in [10, 12] or not mobile.isdigit():
+        frappe.throw(_("Mobile number must be either 10 or 12 digits and numeric."))
+
+    if len(mobile) == 10:
+        mobile = "91" + mobile
+
+    return mobile
 
 @frappe.whitelist()
 def new():
@@ -375,3 +384,350 @@ def get_sessions_to_clear(user=None, keep_current=False, device=None):
 	)
 
 	return query.run(pluck=True)
+
+def find_user_by_mobile(mobile_input):
+	"""
+	Generic method to find user by mobile number.
+	Tries both 10-digit and 12-digit formats (with/without country code).
+	
+	Args:
+		mobile_input (str): Mobile number (10 or 12 digits)
+	
+	Returns:
+		tuple: (user_name, actual_mobile_format) if found, (None, None) if not found
+	"""
+	if not mobile_input or len(mobile_input) not in [10, 12] or not mobile_input.isdigit():
+		return None, None
+	
+	user_name = None
+	actual_mobile = None
+	
+	if len(mobile_input) == 10:
+		# Try with 10-digit first
+		user_name = frappe.db.get_value("User", {"mobile_no": mobile_input}, "name")
+		if user_name:
+			actual_mobile = mobile_input
+		else:
+			# Try with 91 prefix
+			mobile_with_prefix = "91" + mobile_input
+			user_name = frappe.db.get_value("User", {"mobile_no": mobile_with_prefix}, "name")
+			if user_name:
+				actual_mobile = mobile_with_prefix
+			else:
+				actual_mobile = mobile_input
+	else:
+		# 12-digit provided, try with country code first, then without
+		user_name = frappe.db.get_value("User", {"mobile_no": mobile_input}, "name")
+		if user_name:
+			actual_mobile = mobile_input
+		else:
+			# Try without country code (last 10 digits)
+			mobile_without_prefix = mobile_input[2:] if mobile_input.startswith("91") else mobile_input
+			user_name = frappe.db.get_value("User", {"mobile_no": mobile_without_prefix}, "name")
+			if user_name:
+				actual_mobile = mobile_without_prefix
+			else:
+				actual_mobile = mobile_input
+	
+	return user_name, actual_mobile
+
+def update_ninja_profile_unique_id(user, event_unique_id=None, solve_event=None):
+	"""
+	Update acquisition_source_unique_id in Ninja Profile with event_unique_id or solve_event.
+	Uses save() method with ignore_permissions to trigger on_update hooks.
+	
+	Args:
+	- user: User name (email)
+	- event_unique_id: Event unique_id to set in Ninja Profile
+	- solve_event: Solve Event document to set in Ninja Profile
+	"""
+	try:
+		if (event_unique_id or solve_event) and frappe.db.exists("Ninja Profile", user):
+			ninja_profile = frappe.get_doc("Ninja Profile", user)
+			if event_unique_id:
+				ninja_profile.acquisition_source_unique_id = event_unique_id.upper()
+			if solve_event:
+				ninja_profile.acquisition_source_category = "Solve Event"
+				ninja_profile.acquisition_source_name = solve_event
+			ninja_profile.save(ignore_permissions=True)
+
+	except Exception as e:
+		frappe.log_error(f"Error updating Ninja Profile acquisition_source_unique_id for user {user}: {str(e)}", "Update Ninja Profile Unique ID Error")
+
+def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=None):
+	"""
+	Find existing user by mobile number (checking both 10 and 12 digit formats).
+	If not found, create a new user.
+	Updates Ninja Profile unique_id with event_unique_id if provided.
+	
+	Args:
+	- mobile: Normalized mobile number (12 digits with country code)
+	- whatsapp_name: WhatsApp name for new user creation
+	- event_unique_id: Event unique_id to update in Ninja Profile (optional)
+	
+	Returns:
+	- dict with keys: user (email), is_new_user (bool), name_used (str)
+	"""
+	# Use find_user_by_mobile to check if user exists
+	user_name, actual_mobile = find_user_by_mobile(mobile)
+	
+	if user_name:
+		# Update Ninja Profile unique_id if event_unique_id is provided
+		# if event_unique_id:
+		# 	update_ninja_profile_unique_id(user_name, event_unique_id)
+		
+		return {
+			"user": user_name,
+			"is_new_user": False,
+			"name_used": None
+		}
+	
+	# User doesn't exist, create new user
+	try:
+		# Determine what name to use
+		if whatsapp_name and whatsapp_name.strip():
+			user_name = whatsapp_name.strip()
+			name_used = whatsapp_name.strip()
+		else:
+			user_name = mobile  # Use mobile number as name when whatsapp_name not provided
+			name_used = mobile
+		
+		# Prepare user_data for create_user
+		user_data = {
+			"first_name": user_name,
+			"source_of_acquisition": event_unique_id
+		}
+		
+		# Create user using create_user method
+		user_doc = create_user(user_data, mobile)
+		
+		# Add "Solve Ninja" role and set send_welcome_email
+		user_doc.append("roles", {"role": "Solve Ninja"})
+		user_doc.send_welcome_email = 0
+		user_doc.save(ignore_permissions=True)
+		
+		# Update Ninja Profile unique_id if event_unique_id is provided
+		# if event_unique_id:
+		#	update_ninja_profile_unique_id(user_doc.name, event_unique_id)
+		
+		# Enqueue background tasks for profile updates if needed
+		frappe.enqueue(
+			"solve_ninja.api.user.update_ninja_profile",
+			user=user_doc.name,
+			user_data={"mobile": mobile, "first_name": user_name, "event_id": event_unique_id} if event_unique_id else {"mobile": mobile, "first_name": user_name},
+			queue='default',
+			job_name=f"Update ninja profile for {user_doc.name}",
+			now=False
+		)
+		
+		return {
+			"user": user_doc.name,
+			"is_new_user": True,
+			"name_used": name_used
+		}
+	except Exception as e:
+		frappe.log_error(f"Error creating user: {str(e)}", "User Creation Error")
+		return None
+
+def update_user_metadata(user, user_data):
+	"""
+	Updates or creates User Metadata record with pincode if available.
+	"""
+
+	# Check if metadata already exists
+	if frappe.db.exists("User Metadata", user):
+		user_metadata = frappe.get_doc("User Metadata", user)
+		user_metadata.pincode = user_data.get("pincode")
+		user_metadata.city = user_data.get("city")
+		user_metadata.state = user_data.get("state")
+		user_metadata.year_of_birth = user_data.get("year_of_birth")
+		if user_data.get("org_id") and frappe.db.exists("User Organization", user_data.get("org_id")):
+			user_metadata.org_id = user_data.get("org_id")
+		user_metadata.save(ignore_permissions=True)
+	
+def update_ninja_profile(user, user_data):
+	"""
+	Updates Ninja Profile record with wa_id and acquisition_source_unique_id if available.
+	Checks program_id or event_id to update acquisition_source_unique_id.
+	"""
+	if not frappe.db.exists("Ninja Profile", user):
+		return
+	
+	ninja_profile = frappe.get_doc("Ninja Profile", user)
+	updated = False
+	
+	# Update wa_id if provided
+	if user_data.get("wa_id"):
+		ninja_profile.wa_id = user_data.get("wa_id")
+		updated = True
+	
+	# Update acquisition_source_unique_id from program_id or event_id
+	acquisition_id = user_data.get("program_id") or user_data.get("event_id")
+	if acquisition_id:
+		ninja_profile.acquisition_source_unique_id = str(acquisition_id).upper()
+		updated = True
+	
+	# Save only if there were updates
+	if updated:
+		ninja_profile.save(ignore_permissions=True)
+
+def assign_city(user_doc, district):
+	"""
+	Assign city to user document. Creates city in Samaaja Cities if it doesn't exist.
+	
+	Args:
+		user_doc: User document to update
+		district: City/district name to assign
+	"""
+	if not district:
+		return
+
+	city_exists = frappe.get_all('Samaaja Cities', filters={'city_name': district})
+	if city_exists:
+		user_doc.city_name = district
+	else:
+		frappe.get_doc({
+			'doctype': 'Samaaja Cities',
+			'city_name': district
+		}).insert(ignore_permissions=True)
+		user_doc.city_name = district
+
+def update_user_detail(user_name, user_data):
+	"""
+	Update user profile fields. Assumes user exists and validations are done.
+	Updates: first_name, age, dob/birth_date, gender, city, year_of_birth
+	
+	Args:
+		user_name (str): User document name (email)
+		user_data (dict): Dictionary containing user update data
+		
+	Returns:
+		str: Username of the updated user
+	"""
+	# Get existing User document
+	user_doc = frappe.get_doc("User", user_name)
+
+	# Update first_name if provided
+	if user_data.get("first_name"):
+		user_doc.first_name = user_data.get("first_name")
+
+	# Update age/birth_date if provided
+	# Prefer age if both are provided
+	if user_data.get("age"):
+		user_doc.age = user_data.get("age")
+	elif user_data.get("dob") or user_data.get("birth_date"):
+		dob_value = user_data.get("dob") or user_data.get("birth_date")
+		user_doc.birth_date = frappe.utils.getdate(dob_value)
+
+	# Update gender if provided
+	if user_data.get("gender"):
+		user_doc.gender = user_data.get("gender")
+
+	# Update city if provided (using assign_city logic)
+	if user_data.get("city"):
+		assign_city(user_doc, user_data.get("city"))
+		# Update/create User Metadata with city
+		# User Metadata name equals user_doc.name (via autoname: "field:user")
+		# assign_city ensures the city exists in Samaaja Cities, so use the city value directly
+		
+		if frappe.db.exists("User Metadata", user_doc.name):
+			user_metadata = frappe.get_doc("User Metadata", user_doc.name)
+			user_metadata.city = user_doc.city
+			user_metadata.year_of_birth = user_data.get("year_of_birth") if user_data.get("year_of_birth") else user_metadata.year_of_birth
+			user_metadata.save(ignore_permissions=True)
+		else:
+			frappe.get_doc({
+				"doctype": "User Metadata",
+				"user": user_doc.name,
+				"city": user_doc.city
+			}).insert(ignore_permissions=True)
+
+	# Save user document
+	user_doc.save(ignore_permissions=True)
+	frappe.db.commit()
+
+	logger.info(f"Successfully updated user {user_name}")
+	return user_doc.username
+
+def assign_org(user_doc, org_id):
+	"""
+	Assign organization to user document.
+	
+	Args:
+		user_doc: User document to update
+		org_id: Organization ID to assign
+	"""
+	if not org_id:
+		return
+
+	org_id = str(org_id).upper()
+	org_docs = frappe.get_all('User Organization', filters={'org_id': org_id}, fields=['name'])
+	if org_docs:
+		user_doc.org_id = org_docs[0].name
+	else:
+		logger.warning(f"Organization ID '{org_id}' not found while registering user {user_doc.mobile}")
+
+def assign_language(user_doc, language_code):
+	"""
+	Assign language to user document.
+	
+	Args:
+		user_doc: User document to update
+		language_code: Language code to assign
+	"""
+	if not language_code:
+		return
+
+	language_docs = frappe.get_all('Language', filters={'language_code': language_code}, fields=['name'])
+	if language_docs:
+		user_doc.language = language_docs[0].name
+	else:
+		logger.warning(f"Language code '{language_code}' not found while registering user {user_doc.mobile}")
+
+def build_user_doc(user_data, mobile):
+	"""
+	Creates and returns a new User Doc with provided user_data and mobile.
+	Also handles org, language, and city validation.
+	
+	Args:
+		user_data (dict): Dictionary containing user data
+		mobile (str): Normalized mobile number
+		
+	Returns:
+		User document (not yet inserted)
+	"""
+	user_doc = frappe.get_doc({
+		'doctype': 'User',
+		'mobile': mobile,
+		'email': f"{mobile}@solveninja.org",
+		'mobile_no': mobile,
+		'first_name': user_data.get("first_name"),
+		'gender': user_data.get("gender"),
+		'age': user_data.get("age"),
+		'birth_date': frappe.utils.getdate(user_data.get("dob")) if user_data.get("dob") else None,
+		'new_password': mobile,
+		'source_of_acquisition': user_data.get("source_of_acquisition"),
+		'send_welcome_email': 0
+	})
+
+	assign_org(user_doc, user_data.get("org_id"))
+	assign_language(user_doc, user_data.get("language"))
+
+	return user_doc
+
+def create_user(user_data, mobile):
+	"""
+	Create a new user. Assumes validations are already done (user doesn't exist, mobile is valid).
+	
+	Args:
+		user_data (dict): Dictionary containing user data (already validated)
+		mobile (str): Normalized mobile number (already validated)
+		
+	Returns:
+		User document: The created user document
+	"""
+	# Create user document
+	user_doc = build_user_doc(user_data, mobile)
+	user_doc.insert(ignore_permissions=True)
+	
+	return user_doc
