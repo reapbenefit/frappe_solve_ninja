@@ -54,7 +54,10 @@
   "learn_skill_based_projects_members_needed_label",
   "learn_skill_based_projects_members_description_label",
   "learn_skill_based_projects_members_popup_close_label",
-  "learn_ninjas_of_month_action_taken_label"
+  "learn_skill_based_projects_view_more_label",
+  "learn_skill_based_projects_view_less_label",
+  "learn_ninjas_of_month_action_taken_label",
+  "learn_skill_based_projects_average_rating_label"
  ],
  "fields": [
   {
@@ -251,26 +254,26 @@
    "label": "View Profile"
   },
   {
-    "fieldname": "learn_ninjas_of_month_city_filter",
-    "fieldtype": "Small Text",
-    "label": "City Filter",
-    "default": "City",
-    "description": "Text for city filter"
-},
-{
-    "fieldname": "learn_ninjas_of_month_search_placeholder",
-    "fieldtype": "Small Text",
-    "label": "Search Placeholder",
-    "default": "Enter text to search name",
-    "description": "Text for search placeholder"
-},
-{
-    "fieldname": "learn_ninjas_of_month_clear_filters",
-    "fieldtype": "Small Text",
-    "label": "Clear Filters",
-    "default": "Clear",
-    "description": "Text for clear filters button"
-},
+   "default": "City",
+   "description": "Text for city filter",
+   "fieldname": "learn_ninjas_of_month_city_filter",
+   "fieldtype": "Small Text",
+   "label": "City Filter"
+  },
+  {
+   "default": "Enter text to search name",
+   "description": "Text for search placeholder",
+   "fieldname": "learn_ninjas_of_month_search_placeholder",
+   "fieldtype": "Small Text",
+   "label": "Search Placeholder"
+  },
+  {
+   "default": "Clear",
+   "description": "Text for clear filters button",
+   "fieldname": "learn_ninjas_of_month_clear_filters",
+   "fieldtype": "Small Text",
+   "label": "Clear Filters"
+  },
   {
    "fieldname": "section_break_cta",
    "fieldtype": "Section Break",
@@ -364,11 +367,27 @@
    "fieldname": "learn_ninjas_of_month_action_taken_label",
    "fieldtype": "Data",
    "label": "Ninjas of the month actions taken label"
+  },
+  {
+   "fieldname": "learn_skill_based_projects_view_more_label",
+   "fieldtype": "Data",
+   "label": "Skill based projects view more label"
+  },
+  {
+   "fieldname": "learn_skill_based_projects_view_less_label",
+   "fieldtype": "Data",
+   "label": "Skill based projects view less label"
+  },
+  {
+   "default": "Average Program Rating",
+   "fieldname": "learn_skill_based_projects_average_rating_label",
+   "fieldtype": "Data",
+   "label": "Skill Based Projects Average Rating Label"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-10 18:11:49.938611",
+ "modified": "2026-01-30 12:48:20.476780",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Learn Page Content",

@@ -113,7 +113,7 @@ def async_post_job(payload, url, paramters=None, **kwargs):
 
 def async_get_job(url, paramters=None, **kwargs):
     headers = {"Content-Type": "application/json"}
-    with httpx.Client(timeout=20.0) as client:
+    with httpx.Client(timeout=40.0) as client:
         response = client.get(url, headers=headers)
         if response.status_code == 200:
             result = response.json()

@@ -23,6 +23,7 @@
   "column_break_i69ir",
   "start_date",
   "end_date",
+  "action_summary",
   "section_break_ixqab",
   "participation_count",
   "time_spent_value",
@@ -31,8 +32,6 @@
   "column_break_lqf4d",
   "actions_taken_value",
   "section_break_gn2oc",
-  "impact_metric",
-  "section_break_glkt3",
   "visibility_control",
   "column_break_nmsoz",
   "average_rating_value",
@@ -46,16 +45,14 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Skill",
-   "options": "Badge",
-   "reqd": 1
+   "options": "Badge"
   },
   {
    "fieldname": "city",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "City",
-   "options": "Samaaja Cities",
-   "reqd": 1
+   "options": "Samaaja Cities"
   },
   {
    "fieldname": "project_name",
@@ -79,13 +76,15 @@
    "fieldname": "project_status",
    "fieldtype": "Select",
    "label": "Project Status",
-   "options": "\nLive\nCompleted"
+   "options": "\nLive\nCompleted",
+   "reqd": 1
   },
   {
    "fieldname": "project_tags",
    "fieldtype": "Table MultiSelect",
    "label": "Project Tags",
-   "options": "Skill Based Projects Tag Detail"
+   "options": "Skill Based Projects Tag Detail",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_j8dod",
@@ -105,13 +104,15 @@
   {
    "fieldname": "detailed_description_title",
    "fieldtype": "Data",
-   "label": "Detailed Description Title"
+   "label": "Detailed Description Title",
+   "reqd": 1
   },
   {
    "fieldname": "detailed_description_content",
    "fieldtype": "Text",
    "label": "Detailed Description content",
-   "max_height": "10rem"
+   "max_height": "10rem",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_yqklm",
@@ -121,7 +122,8 @@
    "fieldname": "key_objectives",
    "fieldtype": "Table",
    "label": "Key Objectives",
-   "options": "Skill Based Projects Objective"
+   "options": "Skill Based Projects Objective",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_mslsr",
@@ -134,7 +136,8 @@
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
-   "label": "Start Date"
+   "label": "Start Date",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_ixqab",
@@ -148,12 +151,14 @@
   {
    "fieldname": "participation_count",
    "fieldtype": "Int",
-   "label": "Participation Count"
+   "label": "Participation Count",
+   "reqd": 1
   },
   {
    "fieldname": "time_spent_value",
    "fieldtype": "Data",
-   "label": "Time Spent Value"
+   "label": "Time Spent Value",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_fmxbm",
@@ -171,29 +176,19 @@
   {
    "fieldname": "actions_taken_value",
    "fieldtype": "Data",
-   "label": "Actions Taken Value"
+   "label": "Actions Taken Value",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_gn2oc",
    "fieldtype": "Section Break"
   },
   {
-   "columns": 3,
-   "fieldname": "impact_metric",
-   "fieldtype": "Table",
-   "ignore_user_permissions": 1,
-   "label": "Impact Metric",
-   "options": "Skill Based Projects Impact Metric"
-  },
-  {
-   "fieldname": "section_break_glkt3",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "visibility_control",
    "fieldtype": "Select",
    "label": "Visibility Control",
-   "options": "Show\nJide"
+   "options": "Show\nHide",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_nmsoz",
@@ -207,11 +202,16 @@
   {
    "fieldname": "section_break_blnqy",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "action_summary",
+   "fieldtype": "Markdown Editor",
+   "label": "Action Summary"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-09 21:29:53.463297",
+ "modified": "2026-01-30 15:32:02.776585",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Skill Based Projects",

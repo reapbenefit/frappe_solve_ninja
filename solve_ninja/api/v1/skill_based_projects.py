@@ -225,6 +225,7 @@ def get_projects(page_length=10, start=0, project_name=None, status=None, tags=N
 				SkillBasedProjects.actions_taken_value,
 				SkillBasedProjects.skill,
 				SkillBasedProjects.city,
+				SkillBasedProjects.action_summary,
 				status_order
 			)
 		)

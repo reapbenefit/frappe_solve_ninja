@@ -157,7 +157,7 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
     out["json_output"] = json_content
     out["saved_folder"] = private_dir
     out["saved_json_file"] = json_files[0] if json_files else None
-    tj.respomse_json = json.dumps(out, indent=2)
+    tj.response_json = json.dumps(out, indent=2)
     tj.save()
 
 
