@@ -136,6 +136,7 @@ login.bind_events = function () {
 		args.pincode = pincode;
 		args.gender =	gender;
 		args.year_of_birth = year_of_birth;
+		args.acquisition_source_category = "Website Direct";
 
 		login.set_status("Verifying...", 'blue');
 

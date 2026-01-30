@@ -110,9 +110,9 @@ has_permission = {
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-# 	"Energy Point Rule": "solve_ninja.overrides.energy_point_rule.CustomEnergyPointRule"
-# }
+override_doctype_class = {
+	"User": "solve_ninja.overrides.user.CustomUser"
+}
 
 # Document Events
 # ---------------
@@ -218,8 +218,7 @@ doc_events = {
         "on_trash": "solve_ninja.doc_events.events.on_trash",
     },
     "User": {
-       "after_insert": "solve_ninja.doc_events.user.after_insert",
-        "on_trash": "solve_ninja.doc_events.user.on_trash",
+        "after_insert": "solve_ninja.doc_events.user.after_insert",
         "after_rename": "solve_ninja.doc_events.user.after_rename"
     },
     "Organization":{
@@ -240,4 +239,7 @@ has_permission = {
 
 ignore_links_on_delete = [
     "Event Source Metadata",
+    "Login OTP",
+    "Chat History",
+    "OAuth Bearer Token"
 ]

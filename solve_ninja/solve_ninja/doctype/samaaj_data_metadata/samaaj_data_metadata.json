@@ -8,7 +8,8 @@
  "engine": "InnoDB",
  "field_order": [
   "dataset_description",
-  "geography",
+  "state",
+  "city",
   "disaggregation_level",
   "start_date",
   "end_date",
@@ -34,27 +35,17 @@
    "reqd": 1
   },
   {
-   "fieldname": "geography",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Geography",
-   "options": "Samaaja Cities",
-   "reqd": 1
-  },
-  {
    "fieldname": "disaggregation_level",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Disaggregation level",
-   "options": "State\nCity\nBlock\nVillage",
-   "reqd": 1
+   "options": "State\nCity\nBlock\nVillage"
   },
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Data collection start date",
-   "reqd": 1
+   "label": "Data collection start date"
   },
   {
    "fieldname": "end_date",
@@ -65,15 +56,13 @@
    "fieldname": "data_category",
    "fieldtype": "Select",
    "label": "Data category",
-   "options": "Socioeconomic",
-   "reqd": 1
+   "options": "Socioeconomic"
   },
   {
    "fieldname": "data_collection_methodology",
    "fieldtype": "Select",
    "label": "Data collection methodology",
-   "options": "Inference",
-   "reqd": 1
+   "options": "Inference"
   },
   {
    "fieldname": "update_frequency",
@@ -84,14 +73,12 @@
   {
    "fieldname": "data_producer",
    "fieldtype": "Data",
-   "label": "Data producer",
-   "reqd": 1
+   "label": "Data producer"
   },
   {
    "fieldname": "data_source",
    "fieldtype": "Data",
-   "label": "Data source",
-   "reqd": 1
+   "label": "Data source"
   },
   {
    "fieldname": "imagevideo_details",
@@ -106,8 +93,7 @@
   {
    "fieldname": "known_issues_with_data",
    "fieldtype": "Text",
-   "label": "Known issues with data",
-   "reqd": 1
+   "label": "Known issues with data"
   },
   {
    "fieldname": "missing_data",
@@ -128,13 +114,23 @@
    "fieldname": "is_clean",
    "fieldtype": "Select",
    "label": "Is data clean ?",
-   "options": "Yes\nNo",
-   "reqd": 1
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Data",
+   "label": "State"
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "City"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-11 13:44:50.913034",
+ "modified": "2025-12-19 16:25:04.592050",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Samaaj Data Metadata",

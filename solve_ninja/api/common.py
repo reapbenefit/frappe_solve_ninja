@@ -1014,7 +1014,7 @@ def update_user_metadata(user, user_data):
     
 def update_ninja_profile(user, user_data):
     """
-    Updates Ninja Profile record with wa_id and acquisition_source_unique_id if available.
+    Updates Ninja Profile record with wa_id, acquisition_source_category, and acquisition_source_unique_id if available.
     Checks program_id or event_id to update acquisition_source_unique_id.
     """
     if not frappe.db.exists("Ninja Profile", user):
@@ -1034,6 +1034,15 @@ def update_ninja_profile(user, user_data):
         ninja_profile.acquisition_source_unique_id = str(acquisition_id).upper()
         updated = True
     
+    # Update acquisition_source_category if explicitly provided
+    if user_data.get("acquisition_source_category"):
+        ninja_profile.acquisition_source_category = user_data.get("acquisition_source_category")
+        updated = True
+    elif not acquisition_id:
+        # Fallback: Set "Direct" only if no category provided AND no program/event linked
+        ninja_profile.acquisition_source_category = "Direct"
+        updated = True
+        
     # Save only if there were updates
     if updated:
         ninja_profile.save(ignore_permissions=True)

@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "creation": "2025-10-28 11:07:43.624752",
  "default_view": "List",
@@ -30,7 +31,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-08 13:11:00.805065",
+ "modified": "2026-01-12 12:51:24.734962",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Program Participation",

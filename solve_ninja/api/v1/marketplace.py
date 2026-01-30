@@ -525,6 +525,9 @@ def get_learn_page_content(language='en'):
 			'learn_skill_based_projects_members_needed_label': learn_content.learn_skill_based_projects_members_needed_label,
 			'learn_skill_based_projects_members_description_label': learn_content.learn_skill_based_projects_members_description_label,
 			'learn_skill_based_projects_members_popup_close_label': learn_content.learn_skill_based_projects_members_popup_close_label,
+			'learn_skill_based_projects_view_more_label': learn_content.learn_skill_based_projects_view_more_label,
+            'learn_skill_based_projects_view_less_label': learn_content.learn_skill_based_projects_view_less_label,
+			'learn_skill_based_projects_average_rating_label': learn_content.learn_skill_based_projects_average_rating_label,
 
             # Solver Jam Section
             'learn_solver_jam_title': learn_content.learn_solver_jam_title,

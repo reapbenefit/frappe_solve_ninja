@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "user",
+  "participant_name",
   "solve_event",
   "solve_event_date",
   "column_break_rzjsw",
@@ -58,11 +59,18 @@
   {
    "fieldname": "column_break_rzjsw",
    "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "user.full_name",
+   "fieldname": "participant_name",
+   "fieldtype": "Data",
+   "label": "Participant Name",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-29 00:54:28.729271",
+ "modified": "2026-01-19 23:18:22.157084",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event Participation",

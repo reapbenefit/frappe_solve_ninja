@@ -1,0 +1,33 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"fHwa5gRVVg\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Mentorship</span>\",\"col\":12}},{\"id\":\"QehH1u3V_F\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Mentorship Request\",\"col\":4}}]",
+ "creation": "2026-01-10 12:53:15.087045",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "users",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Mentorship",
+ "links": [],
+ "modified": "2026-01-20 11:14:50.185648",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Mentorship",
+ "number_cards": [
+  {
+   "label": "Mentorship Request",
+   "number_card_name": "Mentorship Request"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 23.0,
+ "shortcuts": [],
+ "title": "Mentorship"
+}
