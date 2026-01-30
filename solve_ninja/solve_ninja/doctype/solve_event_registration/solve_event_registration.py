@@ -82,7 +82,7 @@ class SolveEventRegistration(Document):
 				
 				# Enqueue background tasks for profile and metadata updates
 				frappe.enqueue(
-					"solve_ninja.api.common.update_ninja_profile",
+					"solve_ninja.api.user.update_ninja_profile",
 					user=user_doc.name,
 					user_data=user_data,
 					queue='default',
@@ -90,7 +90,7 @@ class SolveEventRegistration(Document):
 					now=False
 				)
 				frappe.enqueue(
-					"solve_ninja.api.common.update_user_metadata",
+					"solve_ninja.api.user.update_user_metadata",
 					user=user_doc.name,
 					user_data=user_data,
 					queue='default',

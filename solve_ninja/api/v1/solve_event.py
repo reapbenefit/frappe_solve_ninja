@@ -4,7 +4,8 @@ from frappe import qb
 from frappe.query_builder.functions import Count
 from samaaja.api.common import custom_response
 from frappe.utils import now_datetime
-from solve_ninja.utils import find_user_by_mobile, find_or_create_user_by_mobile, update_ninja_profile_unique_id, log_integration_request
+from solve_ninja.api.user import find_user_by_mobile, find_or_create_user_by_mobile, update_ninja_profile_unique_id
+from solve_ninja.utils import log_integration_request
 
 @frappe.whitelist(allow_guest=True)
 def get_upcoming_events(page_length=10, start=0, city=None, event_type=None):
@@ -452,7 +453,7 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		event_doc = frappe.get_doc("Solve Event", solve_event)
 		
 		# Find or create user by mobile number
-		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name)
+		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name, event_doc.get("unique_id"))
 		
 		if not user_result or not user_result.get("user"):
 			return custom_response(
@@ -466,12 +467,6 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		user_name = user
 		is_new_user = user_result.get("is_new_user", False)
 		name_used = user_result.get("name_used", None)
-		
-		# Update Ninja Profile with event unique_id (only for new users)
-		if is_new_user:
-			event_unique_id = event_doc.get("unique_id")
-			if event_unique_id:
-				update_ninja_profile_unique_id(user, event_unique_id)
 		
 		# Check if Solve Event Registration exists, if not create it
 		registration = find_or_create_registration(user, solve_event)
@@ -726,7 +721,7 @@ def program_checkin(mobile=None, program_id=None, whatsapp_name=None):
 		program_doc = frappe.get_doc("Program", program)
 		
 		# Find or create user by mobile number
-		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name)
+		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name, program_doc.get("unique_id"))
 		
 		if not user_result or not user_result.get("user"):
 			return custom_response(
