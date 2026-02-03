@@ -57,6 +57,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				UserMetadata.city,
 				UserMetadata.summary,
 				Coalesce(NinjaProfile.rank, user_count).as_("rank"),
+				NinjaProfile.last_action_date.as_("last_action_date"),
 				User.full_name,
 				Coalesce(hours_invested_sum, 0).as_("hours_invested"),
 				Coalesce(contribution_count, 0).as_("contribution_count")
@@ -75,9 +76,10 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				User.full_name,
 				UserMetadata.city,
 				UserMetadata.summary,
-				NinjaProfile.rank
+				NinjaProfile.rank,
+				NinjaProfile.last_action_date
 			)
-			.orderby(Coalesce(contribution_count, 0), order=Order.desc)
+			.orderby(NinjaProfile.last_action_date, order=Order.desc)
 			.orderby(User.full_name, order=Order.asc)
 		)
 		
