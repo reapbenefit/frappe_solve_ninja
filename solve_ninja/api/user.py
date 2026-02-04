@@ -9,6 +9,31 @@ from frappe.handler import logout as frappe_logout
 from frappe.utils import logger
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
+from solve_ninja.utils import find_user_by_mobile
+import requests
+
+@frappe.whitelist()
+def update_user_summary(mobile=None):
+	if not mobile:
+		frappe.throw("Mobile number is mandatory")
+
+	_, _, username = find_user_by_mobile(mobile)
+	if not username:
+		frappe.throw("User not found with mobile number {mobile}")
+
+	#call an API endpoint to update the user summary
+	try:
+		response = requests.post(
+		f"{frappe.conf.get('cmp_backend_base_url')}/ai/profile_summary/{username}",
+			headers={"Content-Type": "application/json"}
+		)
+		if response.status_code != 200:
+			frappe.log_error(response.text, "Update User Summary Error")
+			return custom_response("Failed to update user summary", None, 500, True)
+		return custom_response("User summary updated successfully", None, 200, False)
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "Update User Summary Error")
+		return custom_response("Failed to update user summary", None, 500, True)
 
 @frappe.whitelist()
 def new():

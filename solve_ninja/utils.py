@@ -46,7 +46,7 @@ def get_doc_by_unique_id(unique_id):
 	# No match found
 	return None
 
-def find_user_by_mobile(mobile_input):
+def find_user_by_mobile(mobile_input): #returns name, actual_mobile, username
 	"""
 	Generic method to find user by mobile number.
 	Tries both 10-digit and 12-digit formats (with/without country code).
@@ -58,22 +58,24 @@ def find_user_by_mobile(mobile_input):
 		tuple: (user_name, actual_mobile_format) if found, (None, None) if not found
 	"""
 	if not mobile_input or len(mobile_input) not in [10, 12] or not mobile_input.isdigit():
-		return None, None
+		return None, None, None
 	
 	user_name = None
 	actual_mobile = None
-	
+	username = None
 	if len(mobile_input) == 10:
 		# Try with 10-digit first
 		user_name = frappe.db.get_value("User", {"mobile_no": mobile_input}, "name")
 		if user_name:
 			actual_mobile = mobile_input
+			username = frappe.db.get_value("User", {"mobile_no": mobile_input}, "username")
 		else:
 			# Try with 91 prefix
 			mobile_with_prefix = "91" + mobile_input
 			user_name = frappe.db.get_value("User", {"mobile_no": mobile_with_prefix}, "name")
 			if user_name:
 				actual_mobile = mobile_with_prefix
+				username = frappe.db.get_value("User", {"mobile_no": mobile_with_prefix}, "username")
 			else:
 				actual_mobile = mobile_input
 	else:
@@ -81,16 +83,18 @@ def find_user_by_mobile(mobile_input):
 		user_name = frappe.db.get_value("User", {"mobile_no": mobile_input}, "name")
 		if user_name:
 			actual_mobile = mobile_input
+			username = frappe.db.get_value("User", {"mobile_no": mobile_input}, "username")
 		else:
 			# Try without country code (last 10 digits)
 			mobile_without_prefix = mobile_input[2:] if mobile_input.startswith("91") else mobile_input
 			user_name = frappe.db.get_value("User", {"mobile_no": mobile_without_prefix}, "name")
 			if user_name:
 				actual_mobile = mobile_without_prefix
+				username = frappe.db.get_value("User", {"mobile_no": mobile_without_prefix}, "username")
 			else:
 				actual_mobile = mobile_input
 	
-	return user_name, actual_mobile
+	return user_name, actual_mobile, username
 
 def is_unique_id_duplicate(unique_id, exclude_doctype=None, exclude_name=None):
 	"""
@@ -170,7 +174,7 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 	- dict with keys: user (email), is_new_user (bool), name_used (str)
 	"""
 	# Use find_user_by_mobile to check if user exists
-	user_name, actual_mobile = find_user_by_mobile(mobile)
+	user_name, *_ = find_user_by_mobile(mobile)
 	
 	if user_name:
 		# Update Ninja Profile unique_id if event_unique_id is provided
