@@ -305,7 +305,7 @@ def update_user():
             frappe.throw("Mobile number must be either 10 or 12 digits and numeric.")
 
         # Find user by mobile number using generic method
-        user_name, mobile = find_user_by_mobile(mobile_input)
+        user_name, mobile, _ = find_user_by_mobile(mobile_input)
         
         if not user_name:
             message = f"User not found with mobile number {mobile_input}"

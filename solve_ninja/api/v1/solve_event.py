@@ -4,7 +4,7 @@ from frappe import qb
 from frappe.query_builder.functions import Count
 from samaaja.api.common import custom_response
 from frappe.utils import now_datetime
-from solve_ninja.utils import find_user_by_mobile, find_or_create_user_by_mobile, update_ninja_profile_unique_id, log_integration_request
+from solve_ninja.utils import find_or_create_user_by_mobile, update_ninja_profile_unique_id, log_integration_request
 
 @frappe.whitelist(allow_guest=True)
 def get_upcoming_events(page_length=10, start=0, city=None, event_type=None):
