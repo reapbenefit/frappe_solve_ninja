@@ -13,14 +13,20 @@ from solve_ninja.utils import find_user_by_mobile
 import requests
 
 @frappe.whitelist()
-def update_user_summary(mobile=None):
-	if not mobile:
-		frappe.throw("Mobile number is mandatory")
+def update_user_summary(mobile=None, username=None):
+	if mobile and username:
+		frappe.throw("Provide either mobile number or username, not both")
+	if not mobile and not username:
+		frappe.throw("Mobile number or username is mandatory")
 
-	_, _, username = find_user_by_mobile(mobile)
 	if not username:
-		frappe.throw("User not found with mobile number {mobile}")
-
+		_, _, username = find_user_by_mobile(mobile)
+		if not username:
+			frappe.throw(f"User not found with mobile number {mobile}")
+	elif username:
+		if not frappe.db.exists("User", {"username": username}):
+			frappe.throw(f"User not found with username {username}")
+			
 	#call an API endpoint to update the user summary
 	try:
 		response = requests.post(
