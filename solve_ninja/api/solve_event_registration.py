@@ -23,7 +23,7 @@ def register_solve_event():
         frappe.throw("Mobile/User number is required.")
 
     # Find or create user by mobile number
-    user_result = find_or_create_user_by_mobile(mobile, whatsapp_name)
+    user_result = find_or_create_user_by_mobile(mobile, whatsapp_name, solve_event)
     
     if not user_result or not user_result.get("user"):
         frappe.throw("Failed to create or find user")
@@ -32,7 +32,7 @@ def register_solve_event():
 
     # Update Ninja Profile with event unique_id
     
-    update_ninja_profile_unique_id(user, event_unique_id, solve_event)
+    #update_ninja_profile_unique_id(user, event_unique_id, solve_event)
 
     # Set user in data for registration
     data["user"] = user
