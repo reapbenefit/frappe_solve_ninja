@@ -216,7 +216,7 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 		frappe.enqueue(
 			"solve_ninja.api.common.update_ninja_profile",
 			user=user_doc.name,
-			user_data={"mobile": mobile, "first_name": user_name, "event_id": event_unique_id} if event_unique_id else {"mobile": mobile, "first_name": user_name},
+			user_data={"mobile": mobile, "first_name": user_name, "event_id": event_unique_id, "acquisition_source_category": "Solve Event"} if event_unique_id else {"mobile": mobile, "first_name": user_name},
 			queue='default',
 			job_name=f"Update ninja profile for {user_doc.name}",
 			now=False
