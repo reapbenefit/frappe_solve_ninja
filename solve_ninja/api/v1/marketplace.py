@@ -5,23 +5,20 @@ from frappe.query_builder.functions import Count, Sum
 from samaaja.api.common import custom_response
 
 @frappe.whitelist(allow_guest=True)
-def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
+def get_city_wise_ninja_stats(page_length=10, start=0, start_date=None):
 	"""
 	Get city-wise statistics including active ninjas, hours invested, and action count.
 	
 	Args:
 	- page_length: Number of results per page (default: 10)
 	- start: Starting index for pagination (default: 0)
-	- month: Filter by month (1-12, optional but must be provided with year)
-	- year: Filter by year (1900-2100, optional but must be provided with month)
-	
-	Note: Both month and year must be provided together, or neither should be provided.
+	- start_date: Filter by start date (DD-MM-YYYY)
 	
 	Returns:
 	- city: City name from User Metadata
-	- active_ninjas: Count of ninjas with contributions > 0
-	- hours_invested: Sum of hours_invested from Ninja Profile
-	- action_count: Count of events
+	- active_ninjas: Count of ninjas with contributions > 0 in the given start date
+	- hours_invested: Sum of hours_invested from Ninja Profile in the given start date
+	- action_count: Count of events in the given start date
 	"""
 	try:
 		from datetime import datetime
@@ -33,35 +30,18 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 		start = int(start)
 		
 		# Validate month and year - both must be provided together or neither
-		month_provided = month is not None and month != ""
-		year_provided = year is not None and year != ""
+		start_date_provided = start_date is not None and start_date != ""
 		
-		if month_provided != year_provided:
-			return custom_response(
-				message="Both month and year must be provided together, or neither should be provided",
-				data=None,
-				status_code=400,
-				error="Invalid month/year parameter combination"
-			)
-		
-		if month_provided and year_provided:
-			month = int(month)
-			year = int(year)
+		if start_date_provided:
+			start_date = datetime.strptime(start_date, "%d-%m-%Y")
 			
-			if month < 1 or month > 12:
+			now = datetime.now()
+			if start_date < datetime(1900, 1, 1) or start_date > now:
 				return custom_response(
-					message="Invalid month. Must be between 1 and 12",
+					message="Invalid start date. Must be between 1900 and today",
 					data=None,
 					status_code=400,
-					error="Invalid month parameter"
-				)
-			
-			if year < 1900 or year > 2100:
-				return custom_response(
-					message="Invalid year. Must be between 1900 and 2100",
-					data=None,
-					status_code=400,
-					error="Invalid year parameter"
+					error="Invalid start date parameter"
 				)
 		
 		UserMetadata = frappe.qb.DocType("User Metadata")
@@ -79,22 +59,8 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 		# Build date range for Events if month/year provided (more efficient than Extract())
 		# Use date range filtering which can use indexes
 		event_date_condition = None
-		if month_provided and year_provided:
-			# Calculate start and end of month for efficient date range filtering
-			start_date = datetime(year, month, 1)
-			if month == 12:
-				end_date = datetime(year + 1, 1, 1)
-			else:
-				end_date = datetime(year, month + 1, 1)
-			
-			# Format dates for SQL (use Frappe's format_datetime for consistency)
-			start_date_str = format_datetime(start_date, "yyyy-MM-dd HH:mm:ss")
-			end_date_str = format_datetime(end_date, "yyyy-MM-dd HH:mm:ss")
-			
-			event_date_condition = (
-				(Events.creation >= start_date_str) &
-				(Events.creation < end_date_str)
-			)
+		if start_date_provided:
+			event_date_condition = Events.creation >= start_date
 		
 		# Build JOIN condition for Events - include date filter in JOIN for efficiency
 		# This prevents joining all events before filtering
@@ -147,8 +113,7 @@ def get_city_wise_ninja_stats(page_length=10, start=0, month=None, year=None):
 					"has_prev": start > 0
 				},
 				"filters": {
-					"month": month,
-					"year": year
+					"start_date": start_date
 				}
 			},
 			status_code=200,
