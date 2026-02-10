@@ -68,24 +68,22 @@ class GlificSettings(Document):
             return {"error": str(e)}
 
     def _save_tokens(self, data):
-        # Single DocType -> shared row. Protect with a distributed lock.
         lock_name = "glific_settings:token_update"
-        lock_timeout = 30  # seconds
-
+        lock_timeout = 30
         def _attempt_save():
-            self.access_token = data["access_token"]
-            self.renewal_token = data["renewal_token"]
-            self.token_expiry_time = data["token_expiry_time"]
-            self.save(ignore_permissions=True)
+            fresh = frappe.get_doc("Glific Settings")
+            fresh.access_token = data["access_token"]
+            fresh.renewal_token = data["renewal_token"]
+            fresh.token_expiry_time = data["token_expiry_time"]
+            fresh.last_login_time = data.get("last_login_time")
+            fresh.save(ignore_permissions=True)
 
-        # Use redis lock if available
         lock = None
         try:
             lock = frappe.cache().lock(lock_name, timeout=lock_timeout)
         except Exception:
-            lock = None  # if lock API not available in your Frappe version
+            pass
 
-        # If lock exists, use it; otherwise fallback to retry-only
         if lock:
             with lock:
                 self._save_with_retry(_attempt_save)
