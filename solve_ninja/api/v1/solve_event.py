@@ -474,7 +474,10 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 				update_ninja_profile_unique_id(user, event_unique_id)
 		
 		# Check if Solve Event Registration exists, if not create it
-		registration = find_or_create_registration(user, solve_event)
+		if event_doc.get("ignore_reg") == "No" or event_doc.get("ignore_reg") is None or event_doc.get("ignore_reg") == "":	
+			registration = find_or_create_registration(user, solve_event)
+		else:
+			registration = None
 		
 		# Create Solve Event Participation
 		participation = create_participation(user, solve_event, event_doc)
