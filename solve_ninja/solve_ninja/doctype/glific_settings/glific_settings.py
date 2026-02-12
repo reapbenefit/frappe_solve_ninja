@@ -90,6 +90,12 @@ class GlificSettings(Document):
         else:
             self._save_with_retry(_attempt_save)
 
+        # Ensure current instance uses the latest tokens for immediate retries
+        self.access_token = data.get("access_token")
+        self.renewal_token = data.get("renewal_token")
+        self.token_expiry_time = data.get("token_expiry_time")
+        self.last_login_time = data.get("last_login_time")
+
     def _save_with_retry(self, fn, attempts=5):
         for i in range(attempts):
             try:
