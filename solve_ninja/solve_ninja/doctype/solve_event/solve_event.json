@@ -19,8 +19,10 @@
   "end_date_time",
   "location_details_section",
   "city",
+  "venue_details",
   "column_break_3",
   "mode",
+  "additional_notification_emails",
   "additional_information_section",
   "unique_id",
   "column_break_4",
@@ -28,7 +30,8 @@
   "checkin_section",
   "checkin_url",
   "column_break_zvyo6",
-  "checkin_qr"
+  "checkin_qr",
+  "ignore_reg"
  ],
  "fields": [
   {
@@ -151,6 +154,25 @@
    "fieldtype": "Attach Image",
    "label": "QR",
    "read_only": 1
+  },
+  {
+   "fieldname": "venue_details",
+   "fieldtype": "Data",
+   "label": "Venue Details"
+  },
+  {
+   "description": "Comma-separated emails. Example: a@x.com, b@y.com",
+   "fieldname": "additional_notification_emails",
+   "fieldtype": "Data",
+   "label": "Notify These Emails",
+   "options": "Email"
+  },
+  {
+   "default": "No",
+   "fieldname": "ignore_reg",
+   "fieldtype": "Select",
+   "label": "Ignore Registration While CheckIn",
+   "options": "Yes\nNo"
   }
  ],
  "image_field": "cover_image",
@@ -165,7 +187,7 @@
    "link_fieldname": "solve_event"
   }
  ],
- "modified": "2025-12-12 14:21:22.199763",
+ "modified": "2026-02-12 16:49:37.972184",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event",
