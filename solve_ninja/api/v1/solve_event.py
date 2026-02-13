@@ -47,6 +47,9 @@ def get_upcoming_events(page_length=10, start=0, city=None, event_type=None):
 		if event_type:
 			base_conditions = base_conditions & SolveEvent.type.isin(event_type)
 		
+		# Condition to not include events with ignore_reg = Yes
+		base_conditions = base_conditions & SolveEvent.ignore_reg == "No"
+		
 		# Build query
 		query = (
 			frappe.qb.from_(SolveEvent)
