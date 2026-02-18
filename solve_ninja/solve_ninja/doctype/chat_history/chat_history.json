@@ -11,7 +11,10 @@
   "user",
   "role",
   "content",
-  "response_type"
+  "response_type",
+  "session_id",
+  "use_case",
+  "sequence_number"
  ],
  "fields": [
   {
@@ -28,22 +31,42 @@
   {
    "fieldname": "role",
    "fieldtype": "Data",
-   "label": "Role"
+   "in_list_view": 1,
+   "label": "Role",
+   "reqd": 1
   },
   {
    "fieldname": "content",
    "fieldtype": "Text",
-   "label": "Content"
+   "in_list_view": 1,
+   "label": "Content",
+   "reqd": 1
   },
   {
    "fieldname": "response_type",
    "fieldtype": "Data",
    "label": "Response Type"
+  },
+  {
+   "fieldname": "session_id",
+   "fieldtype": "Data",
+   "label": "Session ID"
+  },
+  {
+   "fieldname": "use_case",
+   "fieldtype": "Select",
+   "label": "Use Case",
+   "options": "Mentorship Request\nAction Recording"
+  },
+  {
+   "fieldname": "sequence_number",
+   "fieldtype": "Int",
+   "label": "Sequence Number"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-11 14:37:51.908862",
+ "modified": "2026-02-16 12:05:07.406779",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Chat History",

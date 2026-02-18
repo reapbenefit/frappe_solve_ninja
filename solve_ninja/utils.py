@@ -1,5 +1,7 @@
 from math import log, floor
+import json
 import frappe
+from typing import Any, Dict
 from frappe import _
 
 def human_format(number):
@@ -16,6 +18,37 @@ def validate_and_normalize_mobile(mobile):
         mobile = "91" + mobile
 
     return mobile
+
+
+def parse_request_data():
+    """
+    Parse request data from JSON body or form/query params.
+    Raises ValueError for invalid JSON or missing body.
+    """
+    if frappe.request.data:
+        try:
+            return json.loads(frappe.request.data)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid JSON payload: {str(exc)}")
+
+    request_data = frappe.form_dict or {}
+    if request_data:
+        return request_data
+
+    raise ValueError("Request data is required")
+
+def safe_get(data: Dict[str, Any] | None, *keys: str) -> Any:
+    current: Any = data or {}
+    if not isinstance(current, dict) and hasattr(current, "json"):
+        try:
+            current = current.json()
+        except Exception:
+            return None
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
 
 def get_doc_by_unique_id(unique_id):
 	"""

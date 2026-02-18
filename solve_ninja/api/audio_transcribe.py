@@ -7,8 +7,13 @@ from frappe.utils.file_manager import save_file
 import mimetypes
 import requests
 from urllib.parse import urlparse
+from solve_ninja.services.speech_manager import SpeechManager
+from samaaja.api.common import custom_response
+from typing import Dict, Any
 
-
+@frappe.whitelist(allow_guest=True)
+def voice_to_text(file_url: str):
+    return SpeechManager.voice_to_text(file_url).to_custom_response()
 
 SARVAM_API_KEY = frappe.conf.get("sarvam_api_key")
 

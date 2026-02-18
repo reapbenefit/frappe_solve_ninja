@@ -77,6 +77,11 @@ class GlificSettings(Document):
             fresh.token_expiry_time = data["token_expiry_time"]
             fresh.last_login_time = data.get("last_login_time")
             fresh.save(ignore_permissions=True)
+            # Update in-memory doc so retries use the new token (fixes "Authentication failed after retries")
+            self.access_token = data["access_token"]
+            self.renewal_token = data["renewal_token"]
+            self.token_expiry_time = data.get("token_expiry_time")
+            self.last_login_time = data.get("last_login_time")
 
         lock = None
         try:
@@ -226,8 +231,8 @@ class GlificSettings(Document):
         """
         payload = {
             "query": """
-                mutation createContact($phone: String!, $name: String) {
-                    createContact(phone: $phone, name: $name) {
+                mutation createContact($input: ContactInput!) {
+                    createContact(input: $input) {
                         contact {
                             id
                             name
@@ -241,8 +246,10 @@ class GlificSettings(Document):
                 }
             """,
             "variables": {
-                "phone": phone,
-                "name": name or f"User {phone}"
+                "input": {
+                    "phone": phone,
+                    "name": name or f"User {phone}"
+                }
             }
         }
         return self._api_graphql_post_with_reauth(payload)
@@ -533,6 +540,34 @@ class GlificSettings(Document):
         
         return response_data
 
+    def optin_contact(self, phone, name):
+        """
+        Optin a contact in Glific
+        """
+        payload = {
+            "query": """
+                mutation optinContact($phone: String!, $name: String) {
+                    optinContact(phone: $phone, name: $name) {
+                        contact {
+                            id
+                            phone
+                            name
+                            optinTime
+                            bspStatus
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "phone": phone,
+                "name": name
+            }
+        }
+        return self._api_graphql_post_with_reauth(payload)
 
 @frappe.whitelist()
 def connect_to_glific():

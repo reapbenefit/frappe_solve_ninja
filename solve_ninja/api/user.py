@@ -11,6 +11,8 @@ logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 from solve_ninja.utils import find_user_by_mobile
 import requests
+from solve_ninja.utils import parse_request_data
+from solve_ninja.services.glific_manager import GlificManager
 
 @frappe.whitelist()
 def update_user_summary(mobile=None, username=None):
@@ -406,3 +408,20 @@ def get_sessions_to_clear(user=None, keep_current=False, device=None):
 	)
 
 	return query.run(pluck=True)
+
+
+@frappe.whitelist(allow_guest=True)
+def add_contact_to_glific():
+	try:
+		request_data = parse_request_data()
+		result = GlificManager.create_contact(request_data)
+		return custom_response(result.message, result.data, result.status_code, result.error)
+	except Exception as e:
+		frappe.log_error(f"Error in add_contact_to_glific: {str(e)}")
+		return custom_response(
+			message="Failed to add contact to Glific",
+			data={"error": str(e)},
+			status_code=500,
+			error=True,
+		)
+    

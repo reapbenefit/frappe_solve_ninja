@@ -22,23 +22,19 @@
   "column_break_8x7gj",
   "why_personal",
   "section_break_vbwns",
-  "investigation_status",
-  "investigation_response",
   "column_break_78viv",
-  "solving_status",
   "solve_action",
   "section_break_2bhvj",
-  "guidance_needed",
   "guidance_details",
   "column_break_x0krk",
-  "mentor_skills",
   "anything_else",
   "section_break_7ucm5",
   "comments_manager",
   "section_break_yx7tz",
   "public_view_token",
   "public_view_enabled",
-  "is_keyword_deleted"
+  "is_keyword_deleted",
+  "chat_session_id"
  ],
  "fields": [
   {
@@ -61,45 +57,10 @@
    "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
   },
   {
-   "fieldname": "investigation_status",
-   "fieldtype": "Select",
-   "label": "Investigation Status",
-   "options": "Yes\nNo",
-   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
-  },
-  {
-   "fieldname": "investigation_response",
-   "fieldtype": "Long Text",
-   "label": "Investigation Response",
-   "max_height": "10rem",
-   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
-  },
-  {
-   "fieldname": "solving_status",
-   "fieldtype": "Select",
-   "label": "Solving Status",
-   "options": "Yes\nNo",
-   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
-  },
-  {
    "fieldname": "solve_action",
    "fieldtype": "Long Text",
    "label": "Solve Action",
    "max_height": "10rem",
-   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
-  },
-  {
-   "fieldname": "guidance_needed",
-   "fieldtype": "Select",
-   "label": "Guidance Needed",
-   "options": "Need Clarity\nWant to Brainstorm\nSpecific Ask",
-   "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
-  },
-  {
-   "fieldname": "mentor_skills",
-   "fieldtype": "Select",
-   "label": "Skills from Mentor",
-   "options": "Community Mobilization\nFinancial Planning\nCommunication & Story Telling\nTech Solution\nData Analysis\nOther\nProject Management\nStrategy",
    "read_only_depends_on": "eval: doc.workflow_state == \"Invalid Request\"\n"
   },
   {
@@ -222,11 +183,18 @@
   {
    "fieldname": "column_break_gq9jj",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "chat_session_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Chat Session Id",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-23 12:11:49.055852",
+ "modified": "2026-02-05 11:58:10.078676",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Mentorship Request",

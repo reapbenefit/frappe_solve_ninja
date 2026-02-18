@@ -1,11 +1,12 @@
+import asyncio
 import frappe
 import json
 from samaaja.api.common import custom_response
-from solve_ninja.utils import log_integration_request
+from solve_ninja.services.mentorship_request_manager import MentorshipRequestManager
+from solve_ninja.utils import parse_request_data
 
-
-@frappe.whitelist()
-def create_mentorship_request():
+@frappe.whitelist(allow_guest=True)
+def create():
 	"""
 	Create a new Mentorship Request.
 	
@@ -31,146 +32,40 @@ def create_mentorship_request():
 	Returns:
 	- Success message with created record ID or error details
 	"""
-	message = "Mentorship request created successfully"
-	status_code = 200
-	error = None
-	data = None
-	request_data = {}
-	doc_name = None
-	error_data = None
-	
 	try:
-		# Parse request data
-		if frappe.request.data:
-			request_data = json.loads(frappe.request.data)
-		else:
-			request_data = frappe.local.form_dict or {}
-		
-		# Validate required fields
-		required_fields = ["mentee_name", "phone"]
-		missing_fields = [field for field in required_fields if not request_data.get(field)]
-		
-		if missing_fields:
-			message = f"Missing required fields: {', '.join(missing_fields)}"
-			status_code = 400
-			error = "Validation Error"
-			error_data = {
-				"error": message,
-				"missing_fields": missing_fields
-			}
-			raise ValueError(message)
-		
-		# Create Mentorship Request document with field mapping
-		mentorship_request = frappe.get_doc({
-			"doctype": "Mentorship Request",
-			"mentee": request_data.get("mentee_name"),
-			"phone": request_data.get("phone"),
-			"mentee_age": request_data.get("mentee_age"),
-			"mentee_whatsapp_id": request_data.get("mentee_whatsapp_id"),
-			"investigation_status": request_data.get("investigation_status"),
-			"problem_statement": request_data.get("problem_statement"),
-			"specific_ask": request_data.get("specific_ask"),
-			"guidance_details": "Not Provided" if request_data.get("guidance_details", "").startswith("@") else request_data.get("guidance_details"),
-			"solve_action": "Not Provided" if request_data.get("solve_action","").startswith("@") else request_data.get("solve_action"),
-			"why_personal": request_data.get("why_personal"),
-			"investigation_response": "Not Provided" if request_data.get("investigation_response", "").startswith("@") else request_data.get("investigation_response"),
-			"mentor_skills": request_data.get("mentor_skills"),
-			"anything_else": "Not Provided" if request_data.get("anything_else", "").startswith("@") else request_data.get("anything_else"),
-			"discovered_problem": request_data.get("discovered_problem"),
-			"solving_status": request_data.get("solving_status"),
-			"guidance_needed": "Not Provided" if request_data.get("guidance_needed", "").startswith("@") else request_data.get("guidance_needed")
-		})
-		
-		mentorship_request.insert(ignore_permissions=True)
-		frappe.db.commit()
-		
-		doc_name = mentorship_request.name
-		data = {
-			"id": mentorship_request.name,
-			"mentee": mentorship_request.mentee,
-			"phone": mentorship_request.phone
-		}
-		
-	except ValueError as e:
-		# Validation errors are already handled above
-		pass
-		
+		request_data = parse_request_data()
+		return MentorshipRequestManager.create(request_data).to_custom_response()
 	except Exception as e:
-		frappe.log_error(
-			f"Error in create_mentorship_request: {str(e)}\n{frappe.get_traceback()}",
-			"Mentorship Request API Error"
+		frappe.log_error(f"Error in parse_request_data: {str(e)}")
+		return custom_response(
+			message="Failed to parse request data",
+			data={"error": str(e)},
+			status_code=500,
+			error=True,
 		)
-		message = "Failed to create mentorship request"
-		status_code = 500
-		error = str(e)
-		error_data = {
-			"error": str(e),
-			"traceback": frappe.get_traceback()
-		}
-	
-	# Log to Integration Request
-	response_data = {
-		"message": message,
-		"status": "error" if error else "success",
-		"data": data,
-		"status_code": status_code
-	}
-	
-	log_integration_request(
-		request_data=request_data,
-		response_data=response_data,
-		service_name="Create Mentorship Request API",
-		request_description="Create new mentorship request via API",
-		error_data=error_data,
-		reference_doctype="Mentorship Request" if doc_name else None,
-		reference_docname=doc_name,
-		error_title="Create Mentorship Request"
-	)
-	
-	return custom_response(
-		message=message,
-		data=data,
-		status_code=status_code,
-		error=error
-	)
-
 
 @frappe.whitelist(allow_guest=True)
 def get_mentorship_request_for_feedback(request_id):
 	"""
 	Get mentorship request data for feedback forms.
-	This endpoint is whitelisted for guest access to allow feedback forms to prefill data.
-	
-	Args:
-	- request_id (string, required): The mentorship request ID (e.g., MR-2026-0071)
-	
-	Returns:
-	- mentor_name: Full name of the assigned mentor
-	- mentee: Name of the mentee (note: field name is 'mentee' not 'mentee_name')
+	Whitelisted for guest access so feedback forms can prefill data.
 	"""
 	try:
 		if not request_id:
 			frappe.throw("Request ID is required", frappe.ValidationError)
-		
-		# Check if mentorship request exists
 		if not frappe.db.exists("Mentorship Request", request_id):
 			frappe.throw("Mentorship request not found", frappe.DoesNotExistError)
-		
-		# Get mentorship request data
 		mentorship_request = frappe.get_doc("Mentorship Request", request_id)
-		
-		# Return data in format compatible with frappe.call (similar to frappe.client.get)
 		return {
 			"mentor_name": mentorship_request.mentor_name or "",
 			"mentee": mentorship_request.mentee or "",
-			"mentee_name": mentorship_request.mentee or "",  # Alias for compatibility
-			"request_id": request_id
+			"mentee_name": mentorship_request.mentee or "",
+			"request_id": request_id,
 		}
-		
 	except Exception as e:
 		frappe.log_error(
 			f"Error in get_mentorship_request_for_feedback: {str(e)}\n{frappe.get_traceback()}",
-			"Mentorship Request Feedback API Error"
+			"Mentorship Request Feedback API Error",
 		)
 		frappe.throw(f"Failed to retrieve mentorship request data: {str(e)}")
 
