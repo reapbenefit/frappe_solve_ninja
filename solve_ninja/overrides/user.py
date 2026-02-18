@@ -23,10 +23,10 @@ class CustomUser(BaseUser):
 					frappe.ValidationError
 				)
 			
-			if self.name not in approved_list:
+			if frappe.session.user not in approved_list:
 				frappe.throw(
-					f"User '{self.name}' is not in the approved deletion list. "
-					f"Only users in the approved list can be deleted in production environment.",
+					f"User '{frappe.session.user}' is not authorized to delete users. "
+					f"Only users in the approved deletion list can delete users in production.",
 					frappe.ValidationError
 				)
 		# Delete Login OTP records if they exist

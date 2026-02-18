@@ -243,3 +243,6 @@ ignore_links_on_delete = [
     "Chat History",
     "OAuth Bearer Token"
 ]
+
+# Exempt mentorship chatbot endpoints from CSRF (called from marketplace without token)
+from . import csrf_exempt  # noqa: F401

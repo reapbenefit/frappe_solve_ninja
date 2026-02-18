@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-16 12:04:06.862730",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "chat_history",
+  "chat_feedback",
+  "chat_feedback_comment"
+ ],
+ "fields": [
+  {
+   "fieldname": "chat_history",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Chat History",
+   "options": "Chat History",
+   "reqd": 1
+  },
+  {
+   "fieldname": "chat_feedback",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Chat Feedback",
+   "options": "1\n0",
+   "reqd": 1
+  },
+  {
+   "fieldname": "chat_feedback_comment",
+   "fieldtype": "Data",
+   "label": "Chat Feedback Comment"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-02-16 12:04:06.862730",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Chat Feedback",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

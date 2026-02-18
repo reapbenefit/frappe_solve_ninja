@@ -6,6 +6,51 @@ from samaaja.api.common import custom_response
 from werkzeug.wrappers import Response
 
 
+@frappe.whitelist(allow_guest=True)
+def get_list_skill_for_action_subtype(action_subtype: str):
+   
+    if not action_subtype:
+        return custom_response(message="Action subtype is required", status_code=400, error=True)
+    energy_point_rules = frappe.get_all("Energy Point Rule", fields=["badge","condition"], distinct=True)
+        
+    skills = [
+        {"name": energy_point_rule.badge, "condition": energy_point_rule.condition}
+        for energy_point_rule in energy_point_rules
+        if energy_point_rule.condition and action_subtype.lower()   in energy_point_rule.condition.lower()]
+
+    for skill in skills:
+        microskills = frappe.get_all("Microskill", fields=["level","title","description"], filters={"active": 1,"badge":skill["name"]}, distinct=True)
+        skill["microskills"] = microskills
+    
+    return custom_response(message="Skills fetched successfully", data={"skills": skills}, status_code=200, error=False)
+
+
+@frappe.whitelist(allow_guest=True)
+def get_list_event_type():
+    event_types = frappe.get_all("Event Type", fields=["name"], filters={"is_group": 1}, distinct=True)
+    event_types = [event_type.name for event_type in event_types]
+    return custom_response(message="Event types fetched successfully", data={"event_types": event_types}, status_code=200, error=False)
+
+@frappe.whitelist(allow_guest=True)
+def get_list_sub_event_type():
+    event_types = frappe.get_all("Event Type", fields=["name"], filters={"is_group": 0}, distinct=True)
+    event_types = [event_type.name for event_type in event_types]
+    return custom_response(message="Event types fetched successfully", data={"event_sub_types": event_types}, status_code=200, error=False)
+
+
+@frappe.whitelist(allow_guest=True)
+def get_list_event_category():
+    event_categories = frappe.get_all("Event Category", fields=["name"], distinct=True)
+    event_categories = [event_category.name for event_category in event_categories]
+    return custom_response(message="Event categories fetched successfully", data={"event_categories": event_categories}, status_code=200, error=False)
+
+@frappe.whitelist(allow_guest=True)
+def get_list_event_subcategory():
+    event_subcategories = frappe.get_all("Event Sub Category", fields=["name"], distinct=True)
+    event_subcategories = [event_subcategory.name for event_subcategory in event_subcategories]
+    return custom_response(message="Event subcategories fetched successfully", data={"event_sub_categories": event_subcategories}, status_code=200, error=False)
+
+
 @frappe.whitelist()
 def get_action_html(action):
     action = frappe.db.get_value('Events', action, ['*'], as_dict=1)

@@ -434,7 +434,7 @@ def fetch_profile():
     logger.info('ENDS - fetch profile ------------')
     return custom_response(message,data,status_code,error)
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def fetch_full_profile():
     logger.info('STARTS - fetch full profile ------------')
     message='success'
@@ -445,34 +445,33 @@ def fetch_full_profile():
     try:
         user_data = json.loads(frappe.request.data)
         mobile_no=user_data.get("mobile")
-        user_profile_link='https://solveninja.org/user-profile/'
-
-        if mobile_no:
-            user_doc = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['username','full_name','gender','birth_date','name'])
-            if len(user_doc) > 0 :
-                user_profile_link = user_profile_link + user_doc[0].username
-                
-                data["link"] = user_profile_link
-
-                if user_doc[0].full_name:
-                    data["full_name"] = user_doc[0].full_name
-
-                if user_doc[0].gender:
-                    data["gender"] = user_doc[0].gender
-
-                if user_doc[0].birth_date:
-                    data["dob"] = user_doc[0].birth_date
-
-                if frappe.db.exists("User Metadata", user_doc[0].name):
-                    user_meta_data = frappe.get_doc("User Metadata", user_doc[0].name)
-                    if user_meta_data.pincode:
-                        data["pin_code"] = user_meta_data.pincode
-            else:
-                message='User not found with mobile no '+mobile_no
-                status_code=400
-        else:
-            message='Mobile no is mandatory'
+        
+        user_name, mobile, username = find_user_by_mobile(mobile_no)
+        if not user_name:
+            message='User not found with mobile no '+mobile_no
             status_code=400
+            return custom_response(message,data,status_code,error)
+
+        user_profile_link='https://solveninja.org/user-profile/'
+        user_doc = frappe.get_doc("User", user_name)
+        user_profile_link = user_profile_link + username
+        data["link"] = user_profile_link
+
+        if user_doc.full_name:
+            data["full_name"] = user_doc.full_name
+
+        if user_doc.gender:
+            data["gender"] = user_doc.gender
+
+        if user_doc.birth_date:
+            data["dob"] = user_doc.birth_date
+
+        if frappe.db.exists("User Metadata", user_doc.name):
+            user_meta_data = frappe.get_doc("User Metadata", user_doc.name)
+            if user_meta_data.pincode:
+                data["pin_code"] = user_meta_data.pincode
+        data["mobile"] = mobile
+        data["name"] = user_doc.name
     except Exception as e:
         logger.error(e, exc_info=True)
         message=str(e)
