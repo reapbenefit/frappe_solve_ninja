@@ -414,8 +414,8 @@ def get_sessions_to_clear(user=None, keep_current=False, device=None):
 def add_contact_to_glific():
 	try:
 		request_data = parse_request_data()
-		result = GlificManager.create_contact(request_data)
-		return custom_response(result.message, result.data, result.status_code, result.error)
+		return GlificManager.create_contact(request_data).to_custom_response()
+		
 	except Exception as e:
 		frappe.log_error(f"Error in add_contact_to_glific: {str(e)}")
 		return custom_response(

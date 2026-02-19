@@ -163,6 +163,11 @@ scheduler_events = {
 #	"frappe.desk.doctype.event.event.get_events": "solve_ninja.event.get_events"
 # }
 #
+override_whitelisted_methods = {
+    "frappe.handler.upload_file": "solve_ninja.overrides.handle.upload_file"
+}
+
+
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps

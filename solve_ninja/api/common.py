@@ -21,6 +21,29 @@ API_KEY = "HeMflsqk-2yJu3Q5mDn9-C_LIasjTXF72n5qpae1GOQu-8Oe0i_Loc4wl3iJSBt-"
 INFERENCE_URL = "https://api.dhruva.ai4bharat.org/services/inference"
 
 
+import frappe
+from frappe.utils.file_manager import save_file
+
+@frappe.whitelist(allow_guest=True)
+def upload_audio():
+    file = frappe.request.files.get("file")
+
+    if not file:
+        frappe.throw("No file attached")
+
+    filename = file.filename
+    content = file.read()
+
+    return save_file(
+        filename,
+        content,
+        None,
+        None,
+        is_private=frappe.form_dict.get("is_private", 1)
+    )
+
+
+
 @frappe.whitelist()
 def add_event():
     """
