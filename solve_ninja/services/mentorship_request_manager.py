@@ -13,6 +13,7 @@ class MentorshipRequestManager:
         error_title = "Create Mentorship Request"
 
         result = Result.new()
+        doc_name: Optional[str] = None
 
         try:
             required_fields = ["mentee_name", "phone"]
