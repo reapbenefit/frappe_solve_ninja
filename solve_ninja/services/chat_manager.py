@@ -107,8 +107,8 @@ class ChatManager:
         chat_history_messages = frappe.get_all(
             "Chat History",
             filters={"session_id": session_id},
-            fields=["name", "content", "role", "response_type", "use_case", "session_id", "event_id", "user", "sequence_number"],
-            order_by="sequence_number desc",
+            fields=["name", "content", "role", "response_type", "use_case", "session_id", "event_id", "user", "sequence_number", "creation"],
+            order_by="sequence_number desc, creation asc",
         )
         return [
             ChatHistory(
