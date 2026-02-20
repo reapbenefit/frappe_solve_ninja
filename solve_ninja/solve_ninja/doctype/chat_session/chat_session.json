@@ -15,9 +15,10 @@
  "fields": [
   {
    "fieldname": "use_case",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Use Case",
+   "options": "Samaaj Data\nMentorship Request\nAction Recording",
    "reqd": 1
   },
   {
@@ -40,7 +41,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-16 11:55:16.278621",
+ "modified": "2026-02-20 12:10:51.673966",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Chat Session",

@@ -11,3 +11,5 @@ class ChatHistory(BaseModel):
     event_id: Optional[str] = None
     user: Optional[str] = None
     done_signal_count: Optional[int] = 0
+    name: Optional[str] = None
+    sequence_number: Optional[int] = 0
