@@ -41,14 +41,14 @@ def load_user(username):
 	if not username or username == "me":
 		username = frappe.session.user
 
-	if "@" in username:
-		if not frappe.db.exists("User", username):
-			raise frappe.DoesNotExistError(f"User '{username}' not found")
+	# Frappe uses email as `User.name`. Support both email and custom `username`.
+	if "@" in username and frappe.db.exists("User", username):
 		return frappe.db.get_value("User", username, user_fields, as_dict=True)
 
-	if not frappe.db.exists("User", {"username": username}):
-		raise frappe.DoesNotExistError(f"User '{username}' not found")
-	return frappe.get_value("User", {"username": username}, "*", as_dict=True)
+	if frappe.db.exists("User", {"username": username}):
+		return frappe.db.get_value("User", {"username": username}, user_fields, as_dict=True)
+
+	raise frappe.DoesNotExistError(f"User '{username}' not found")
 
 
 def disallow_special_users(user_name):
