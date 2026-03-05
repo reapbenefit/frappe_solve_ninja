@@ -223,6 +223,7 @@ doc_events = {
         "on_trash": "solve_ninja.doc_events.events.on_trash",
     },
     "User": {
+        "validate": "solve_ninja.doc_events.user.regenerate_username_on_firstname_change",
         "after_insert": "solve_ninja.doc_events.user.after_insert",
         "after_rename": "solve_ninja.doc_events.user.after_rename"
     },
