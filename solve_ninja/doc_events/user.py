@@ -1,6 +1,6 @@
 # Copyright (c) 2025, ReapBenefit and contributors
 # For license information, please see license.txt
-
+#included Samaaja's username logic for username regeneration on first name change
 import frappe
 from samaaja.overrides.user import username as samaaja_generate_username
 
