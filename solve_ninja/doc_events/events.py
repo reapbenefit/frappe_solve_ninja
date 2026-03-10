@@ -23,9 +23,11 @@ def after_insert(doc, method=None):
     Hook that runs after an Events document is inserted.
     - Updates last action metadata on the linked Ninja Profile.
     - Creates Event Source Metadata document.
+    - Enqueues user for summary update (pooled, hourly).
     """
     update_action_detail_in_ninja_profile(doc)
     create_events_metadata(doc)
+    enqueue_user_for_summary_update(doc.user, doc.name)
 
 def update_action_detail_in_ninja_profile(doc):
     """
@@ -104,8 +106,42 @@ def on_trash(doc, method=None):
 def update_ninja_profile_hook(doc, method=None):
     if doc.user:
         frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
+        enqueue_user_for_summary_update(doc.user, doc.name)
 
 
+
+
+def enqueue_user_for_summary_update(user: str, event_id: str = None):
+    """
+    Add user to User Summary Update Queue for hourly processing.
+    Only creates a new record if no Pending record exists for this user (pooling).
+    """
+    if not user or user in ("Administrator", "Guest"):
+        return
+    if not frappe.db.exists("User Metadata", user):
+        return
+    if not frappe.db.exists("DocType", "User Summary Update Queue"):
+        return
+    # Only add if no Pending record exists for this user
+    existing = frappe.db.exists(
+        "User Summary Update Queue",
+        {"user": user, "status": "Pending"}
+    )
+    if existing:
+        # Update trigger_event_id on existing record
+        frappe.db.set_value("User Summary Update Queue", existing, "trigger_event_id", event_id)
+        frappe.db.commit()
+        return
+    try:
+        frappe.get_doc({
+            "doctype": "User Summary Update Queue",
+            "user": user,
+            "status": "Pending",
+            "trigger_event_id": event_id,
+        }).insert(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error(f"Error enqueueing user for summary update: {str(e)}", "User Summary Update Queue Error")
 
 
 def create_events_metadata(doc):

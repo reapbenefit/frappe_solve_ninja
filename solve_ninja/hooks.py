@@ -111,7 +111,8 @@ has_permission = {
 # Override standard doctype classes
 
 override_doctype_class = {
-	"User": "solve_ninja.overrides.user.CustomUser"
+	"User": "solve_ninja.overrides.user.CustomUser",
+	"User Metadata": "solve_ninja.overrides.user_metadata.CustomUserMetadata",
 }
 
 # Document Events
@@ -139,10 +140,10 @@ scheduler_events = {
         "solve_ninja.api.glific_sync.sync_metadata_from_bigquery",
         "solve_ninja.doc_events.events.update_all_user_headlines_daily",
         "solve_ninja.solve_ninja.doctype.solve_event.solve_event.cleanup_completed_event_keywords",
-    ]
-#	"hourly": [
-#		"solve_ninja.tasks.hourly"
-#	],
+    ],
+    "hourly": [
+        "solve_ninja.services.profile_summary.process_user_summary_update_queue",
+    ],
 #	"weekly": [
 #		"solve_ninja.tasks.weekly"
 #	],

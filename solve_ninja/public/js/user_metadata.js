@@ -37,6 +37,22 @@ frappe.ui.form.on('User Metadata', {
                     }
                 });
             }, __('View'));
+
+            // AI action group: Generate AI Summary
+            frm.add_custom_button(__('Generate AI Summary'), function() {
+                frappe.call({
+                    method: 'generate_ai_summary',
+                    doc: frm.doc,
+                    freeze: true,
+                    freeze_message: __('Generating AI summary...'),
+                    callback: function(r) {
+                        if (!r.exc) {
+                            frm.reload_doc();
+                            frappe.show_alert({ message: __('Summary updated'), indicator: 'green' });
+                        }
+                    }
+                });
+            }, __('Actions'));
         }
     }
 });

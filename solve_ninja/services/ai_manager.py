@@ -1,10 +1,16 @@
+import asyncio
 import os
 from typing import Any, Dict, List, Optional, Type, TypedDict
 import instructor
 import backoff
 from pathlib import Path
 import frappe
-from solve_ninja.models.ai import BaseAIModel, MentorshipRequestModel, ActionRecordingModel
+from solve_ninja.models.ai import (
+    BaseAIModel,
+    MentorshipRequestModel,
+    ActionRecordingModel,
+    ProfileSummaryOutput,
+)
 from functools import lru_cache
 from solve_ninja.models.chat_history import ChatHistory
 import traceback
@@ -51,9 +57,13 @@ class AIManager:
     MAX_OUTPUT_TOKENS: int = 8096
     TEMPERATURE: float = 0.1
     RESPONSE_MODEL: Type[BaseAIModel] = BaseAIModel
-    API_KEY: Optional[str] = frappe.conf.get("openai_api_key")
     MODE = instructor.Mode.RESPONSES_TOOLS
     MAX_DONE_SIGNALS = 2
+
+    @classmethod
+    def get_api_key(cls) -> Optional[str]:
+        """Fetch at runtime to avoid frappe.conf access during RQ worker module import."""
+        return frappe.conf.get("openai_api_key")
 
     @classmethod
     def get_use_cases(cls) -> List[str]:
@@ -164,7 +174,7 @@ async def run_llm_responses_with_instructor(
     response_model: Type[BaseAIModel],
     **kwargs,
 ):
-    api_key = AIManager.API_KEY
+    api_key = AIManager.get_api_key()
     if not api_key:
         raise ValueError("Missing OpenAI API key. Set `openai_api_key` in your site config.")
     os.environ["OPENAI_API_KEY"] = api_key
@@ -189,3 +199,19 @@ async def run_llm_responses_with_instructor(
         store=True,
         **model_kwargs,
     )
+
+
+def run_llm_for_profile_summary(messages: List[dict]) -> str:
+    """
+    Sync wrapper for profile summary generation.
+    Uses AIManager config and returns the summary string.
+    """
+    async def _run():
+        response = await run_llm_responses_with_instructor(
+            input=messages,
+            response_model=ProfileSummaryOutput,
+            temperature=AIManager.TEMPERATURE,
+        )
+        return response.summary
+
+    return asyncio.run(_run())

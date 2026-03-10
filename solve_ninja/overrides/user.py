@@ -49,6 +49,8 @@ class CustomUser(BaseUser):
 		frappe.db.delete("User Review", filters={"user": self.name})
 		frappe.db.delete("User Profile QR", filters={"user": self.name})
 		frappe.db.delete("Notification Settings", filters={"user": self.name})
+		frappe.db.delete("User Badge", filters={"user": self.name})
+		frappe.db.delete("Energy Point Log", filters={"user": self.name})
 		# Delete Ninja Profile if it exists
 		if frappe.db.exists("Ninja Profile", self.name):
 			frappe.delete_doc("Ninja Profile", self.name, ignore_permissions=True)
