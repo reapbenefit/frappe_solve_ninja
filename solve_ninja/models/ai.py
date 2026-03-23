@@ -24,12 +24,6 @@ class BaseAIModel(BaseModel):
         description="The language of the student, give in the format of english, hindi, kannada, etc."
     )
     
-    village: str = Field(
-        description="Mandatory. The user's village, captured directly from the user during the conversation. Provide it in the user's language/script choice (e.g., English, Hindi, Kannada, etc.)."
-    )
-
-
-
 
 class MentorshipRequestModel(BaseAIModel):
     """LLM output for mentorship request use case."""

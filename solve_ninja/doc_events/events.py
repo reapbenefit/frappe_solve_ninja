@@ -106,7 +106,6 @@ def on_trash(doc, method=None):
 def update_ninja_profile_hook(doc, method=None):
     if doc.user:
         frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
-        enqueue_user_for_summary_update(doc.user, doc.name)
 
 
 

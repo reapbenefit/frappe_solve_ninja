@@ -9,7 +9,6 @@ from solve_ninja.models.ai import (
     BaseAIModel,
     MentorshipRequestModel,
     ActionRecordingModel,
-    ProfileSummaryOutput,
 )
 from functools import lru_cache
 from solve_ninja.models.chat_history import ChatHistory
@@ -201,17 +200,3 @@ async def run_llm_responses_with_instructor(
     )
 
 
-def run_llm_for_profile_summary(messages: List[dict]) -> str:
-    """
-    Sync wrapper for profile summary generation.
-    Uses AIManager config and returns the summary string.
-    """
-    async def _run():
-        response = await run_llm_responses_with_instructor(
-            input=messages,
-            response_model=ProfileSummaryOutput,
-            temperature=AIManager.TEMPERATURE,
-        )
-        return response.summary
-
-    return asyncio.run(_run())
