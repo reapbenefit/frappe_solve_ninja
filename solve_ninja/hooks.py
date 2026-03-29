@@ -142,7 +142,7 @@ scheduler_events = {
         "solve_ninja.solve_ninja.doctype.solve_event.solve_event.cleanup_completed_event_keywords",
     ],
     "hourly": [
-        "solve_ninja.services.profile_summary.process_user_summary_update_queue",
+        "solve_ninja.services.user.user_manager.generate_user_summary_scheduler",
     ],
 #	"weekly": [
 #		"solve_ninja.tasks.weekly"

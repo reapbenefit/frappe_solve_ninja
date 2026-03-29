@@ -3,19 +3,14 @@
 
 import frappe
 from samaaja.samaaja.doctype.user_metadata.user_metadata import UserMetadata as BaseUserMetadata
-
+from solve_ninja.services.user.user_manager import UserManager
 
 class CustomUserMetadata(BaseUserMetadata):
     @frappe.whitelist()
     def generate_ai_summary(self):
         """Generate AI summary from user's events and skills, update this doc's summary field."""
-        from solve_ninja.services.profile_summary import generate_profile_summary, update_user_summary_in_metadata
-
-        user = self.name
+        user = self.user
         if not user:
             frappe.throw("User is required")
 
-        summary = generate_profile_summary(user)
-        update_user_summary_in_metadata(user, summary)
-        self.reload()
-        return {"summary": summary}
+        return UserManager.generate_summary_for_user(user)
