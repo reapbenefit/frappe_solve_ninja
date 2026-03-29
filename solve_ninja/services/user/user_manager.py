@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from solve_ninja.services.user.profile_summary import ProfileSummary
+from solve_ninja.services.user.profile_summary import generate_profile_summary
 from datetime import timedelta
 
 class UserManager:
@@ -113,7 +113,7 @@ class UserManager:
                     "ai_summary_processing_started_at": frappe.utils.now_datetime()
                 }
             )
-            summary = ProfileSummary.generate_profile_summary(user_name)
+            summary = generate_profile_summary(user_name)
             
             frappe.db.set_value(
                 "User Metadata", user_metadata_name,
