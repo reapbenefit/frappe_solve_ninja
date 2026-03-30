@@ -11,7 +11,6 @@ import frappe
 from datetime import datetime
 from solve_ninja.services.ai_manager import _load_prompt, run_llm_responses_with_instructor, AIManager
 from solve_ninja.models.ai import ProfileSummaryOutput
-from solve_ninja.api.profile import get_user_profile
 
 PROFILE_SUMMARY_SYSTEM_PROMPT = _load_prompt("profile_summary.md")
 
@@ -83,34 +82,9 @@ def generate_profile_summary(user_name: str) -> str:
     Generate AI summary for user from their portfolio.
     Returns summary string; raises on error.
     """
-    profile = get_user_profile(user_name)
+    profile = get_user_portfolio(user_name)
     if not profile.get("actions"):
         return ""
-
-    actions = []
-    total_hours_invested = 0
-
-    for action in profile["actions"]:
-        action_skills = [
-            {
-                "name": skill["name"],
-                "label": skill["label"],
-                "relevance": skill["relevance"],
-            }
-            for skill in action["skills"]
-        ]
-        actions.append(
-            {
-                "title": action["title"],
-                "description": action["description"],
-                "hours_invested": action["hours_invested"],
-                "category": action["category"],
-                "type": action["type"],
-                "skills": action_skills,
-            }
-        )
-        total_hours_invested += action["hours_invested"]
-    
 
     messages = [
         {"role": "system", "content": PROFILE_SUMMARY_SYSTEM_PROMPT},
@@ -118,10 +92,10 @@ def generate_profile_summary(user_name: str) -> str:
             "role": "user",
             "content": (
                 f"user name: {profile.get('first_name', '')}\n"
-                f"total hours invested: {total_hours_invested}\n"
-                f"total number of actions: {len(actions)}\n"
+                f"total hours invested: {profile['total_hours_invested']}\n"
+                f"total number of actions: {profile['total_actions']}\n"
                 f"today's date: {datetime.now().strftime('%Y-%m-%d')}\n"
-                f"all_actions: {str(actions)}"
+                f"all_actions: {str(profile['actions'])}"
             ),
         },
     ]
@@ -132,85 +106,3 @@ def generate_profile_summary(user_name: str) -> str:
         temperature=AIManager.TEMPERATURE,
     ))
     return response.summary
-
-def process_user_summary_update_queue():
-    """
-    Hourly job: process all Pending users in User Summary Update Queue.
-    For each user: generate summary, update User Metadata, create Log, mark queue Completed/Failed.
-    """
-    if not frappe.db.exists("DocType", "User Summary Update Queue"):
-        return
-
-    queue_records = frappe.get_all(
-        "User Summary Update Queue",
-        filters={"status": "Pending"},
-        fields=["name", "user", "trigger_event_id"],
-    )
-    # Dedupe by user (multiple events = multiple queue entries for same user)
-    users_seen = set()
-    for rec in queue_records:
-        user = rec.get("user")
-        if not user or user in users_seen:
-            continue
-        users_seen.add(user)
-
-        # Process each user (enqueue to avoid blocking)
-        frappe.enqueue(
-            _process_single_user_summary,
-            queue="default",
-            user=user,
-            queue_record_names=[r["name"] for r in queue_records if r.get("user") == user],
-        )
-
-def _process_single_user_summary(user: str, queue_record_names: list):
-    """Process summary for one user; update queue and create log."""
-    from frappe.utils import now_datetime
-
-    portfolio = get_user_portfolio(user)
-    events_count = portfolio.get("total_actions", 0)
-    hours_invested = portfolio.get("total_hours_invested", 0)
-
-    for qname in queue_record_names:
-        try:
-            frappe.db.set_value("User Summary Update Queue", qname, "status", "Processing")
-        except Exception:
-            pass
-    frappe.db.commit()
-
-    try:
-        summary = generate_profile_summary(user)
-        update_user_summary_in_metadata(user, summary)
-
-        # Create log
-        frappe.get_doc({
-            "doctype": "User Summary Update Log",
-            "user": user,
-            "status": "Success",
-            "summary_preview": (summary or "")[:200],
-            "events_count": events_count,
-            "hours_invested": hours_invested,
-            "processed_at": now_datetime(),
-        }).insert(ignore_permissions=True)
-
-        for qname in queue_record_names:
-            frappe.db.set_value(
-                "User Summary Update Queue", qname,
-                {"status": "Completed", "processed_at": now_datetime(), "error_message": ""}
-            )
-    except Exception as e:
-        frappe.log_error(f"User summary update failed for {user}: {str(e)}", "User Summary Update Error")
-        frappe.get_doc({
-            "doctype": "User Summary Update Log",
-            "user": user,
-            "status": "Failed",
-            "error_message": str(e),
-            "events_count": events_count,
-            "hours_invested": hours_invested,
-            "processed_at": now_datetime(),
-        }).insert(ignore_permissions=True)
-        for qname in queue_record_names:
-            frappe.db.set_value(
-                "User Summary Update Queue", qname,
-                {"status": "Failed", "processed_at": now_datetime(), "error_message": str(e)}
-            )
-    frappe.db.commit()

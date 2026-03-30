@@ -19,11 +19,16 @@ class UserManager:
                 um.ai_summary_processing_started_at,
                 u.name as user_name,
                 u.email as user_email
-            FROM `tabEvent` e
+            FROM `tabEvents` e
             LEFT JOIN `tabUser` u ON u.email = e.user
             LEFT JOIN `tabUser Metadata` um ON um.name = u.name
             WHERE e.creation > COALESCE(um.ai_summary_last_updated, '1970-01-01')
-            GROUP BY e.user
+            GROUP BY 
+                e.user, u.name, u.email,
+                um.name,
+                um.ai_summary_status,
+                um.ai_summary_last_updated,
+                um.ai_summary_processing_started_at
         """, as_dict=True)
         for u in users:
             user_name = u.user_name
@@ -33,6 +38,9 @@ class UserManager:
             ai_summary_processing_started_at = u.ai_summary_processing_started_at
             ai_summary_last_updated = u.ai_summary_last_updated
             latest_event_creation = u.latest_event_creation
+
+            if not user_name or not user_metadata_name:
+                continue
 
             now = frappe.utils.now_datetime()
 
@@ -58,7 +66,7 @@ class UserManager:
             )
                         
             frappe.enqueue(
-            "solve_ninja.services.user.user_manager.generate_summary_for_user",
+            "solve_ninja.services.user.user_manager.generate_summary_for_user_",
                 user_name=user_name,
                 user_email=user_email,
                 user_metadata_name=user_metadata_name,
@@ -70,7 +78,8 @@ class UserManager:
     def generate_summary_for_user(
         user_name: str, 
         user_email: str|None = None,
-        user_metadata_name: str|None = None
+        user_metadata_name: str|None = None,
+        force: bool = False,
     ) -> None:
         try:
 
@@ -78,24 +87,18 @@ class UserManager:
                 user_email = frappe.db.get_value("User", user_name, "email")
             
             if not user_metadata_name:
-                result = frappe.db.sql("""
-                                    SELECT name
-                                    FROM `tabUser Metadata`
-                                    WHERE user = %s
-                                """, (user_name,), as_dict=True)
+                user_metadata_name = frappe.db.get_value("User Metadata", user_name, "name")
                 
-                if not result or len(result) == 0:
+                if not user_metadata_name:
                     return
-                user_metadata_name = result[0]["name"]
-            
-            result = frappe.db.sql("""
-                                    SELECT MAX(creation) as last_event_creation
-                                    FROM `tabEvent`
-                                    WHERE user = %s
-                                """, (user_email,), as_dict=True)
-            
-            last_event_creation = result[0]["last_event_creation"]
-            if not last_event_creation:
+
+            last_event_creation = frappe.db.get_value(
+                "Events",
+                filters={"user": user_email},
+                fieldname="creation",
+                order_by="creation desc",
+            )
+            if not last_event_creation and not force:
                 frappe.db.set_value(
                     "User Metadata",
                     user_metadata_name,
@@ -104,7 +107,7 @@ class UserManager:
                 )
                 frappe.db.commit()
                 return
-            
+
             frappe.db.set_value(
                 "User Metadata",
                 user_metadata_name,
@@ -113,13 +116,14 @@ class UserManager:
                     "ai_summary_processing_started_at": frappe.utils.now_datetime()
                 }
             )
+            frappe.db.commit()
             summary = generate_profile_summary(user_name)
             
             frappe.db.set_value(
                 "User Metadata", user_metadata_name,
                 {
                     "summary": summary, 
-                    "ai_summary_last_updated": last_event_creation,
+                    "ai_summary_last_updated": last_event_creation or frappe.utils.now_datetime(),
                     "ai_summary_status": "Success",
                     "ai_summary_processing_started_at": None
                 }
@@ -138,3 +142,14 @@ class UserManager:
                 )
                 frappe.db.commit()
             return
+
+def generate_user_summary_scheduler_():
+    UserManager.generate_user_summary_scheduler()
+
+def generate_summary_for_user_(
+        user_name: str, 
+        user_email: str|None = None,
+        user_metadata_name: str|None = None,
+        force: bool = False,
+    ):
+    UserManager.generate_summary_for_user(user_name=user_name, user_email=user_email, user_metadata_name=user_metadata_name, force=force)

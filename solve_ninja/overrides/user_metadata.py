@@ -9,8 +9,8 @@ class CustomUserMetadata(BaseUserMetadata):
     @frappe.whitelist()
     def generate_ai_summary(self):
         """Generate AI summary from user's events and skills, update this doc's summary field."""
-        user = self.user
+        user = self.name
         if not user:
             frappe.throw("User is required")
 
-        return UserManager.generate_summary_for_user(user)
+        return UserManager.generate_summary_for_user(user, force=True)
