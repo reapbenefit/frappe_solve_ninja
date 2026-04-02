@@ -23,7 +23,6 @@ def after_insert(doc, method=None):
     Hook that runs after an Events document is inserted.
     - Updates last action metadata on the linked Ninja Profile.
     - Creates Event Source Metadata document.
-    - Enqueues user for summary update (pooled, hourly).
     """
     update_action_detail_in_ninja_profile(doc)
     create_events_metadata(doc)
