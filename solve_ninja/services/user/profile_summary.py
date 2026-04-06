@@ -22,38 +22,10 @@ def generate_profile_summary(user_name: str) -> str:
     if not user_name or not frappe.db.exists("User", user_name):
         return ""
 
-    from solve_ninja.api.profile import get_user_actions, get_skill_assignment_log
+    from solve_ninja.api.profile import get_user_portfolio
 
-    user_doc = frappe.db.get_value("User", user_name, ["first_name"], as_dict=True)
-    first_name = (user_doc and user_doc.get("first_name")) or ""
-
-    actions_raw, _ = get_user_actions(user_name)
-
-    skills_by_event = {}
-    for log in get_skill_assignment_log(user_name):
-        ref = log.get("reference_name")
-        if ref not in skills_by_event:
-            skills_by_event[ref] = []
-        skills_by_event[ref].append({
-            "name": log.get("badge") or "",
-            "label": log.get("badge") or "",
-            "relevance": log.get("reason") or "",
-        })
-
-    actions = []
-    total_hours_invested = 0
-    for action in actions_raw:
-        actions.append({
-            "title": action.get("title") or "",
-            "description": (action.get("description") or "")[:500],
-            "hours_invested": float(action.get("hours_invested") or 0),
-            "category": action.get("category") or "",
-            "type": action.get("type") or "",
-            "skills": skills_by_event.get(action.get("event_id"), []),
-        })
-        total_hours_invested += actions[-1]["hours_invested"]
-
-    if not actions:
+    profile = get_user_portfolio(user_name)
+    if not profile.get("actions"):
         return ""
 
     messages = [
@@ -61,11 +33,11 @@ def generate_profile_summary(user_name: str) -> str:
         {
             "role": "user",
             "content": (
-                f"user name: {first_name}\n"
-                f"total hours invested: {total_hours_invested}\n"
-                f"total number of actions: {len(actions)}\n"
+                f"user name: {profile['first_name']}\n"
+                f"total hours invested: {profile['total_hours_invested']}\n"
+                f"total number of actions: {profile['total_actions']}\n"
                 f"today's date: {datetime.now().strftime('%Y-%m-%d')}\n"
-                f"all_actions: {str(actions)}"
+                f"all_actions: {str(profile['actions'])}"
             ),
         },
     ]

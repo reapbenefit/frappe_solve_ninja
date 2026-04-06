@@ -108,6 +108,48 @@ def get_skill_assignment_log(user):
 	
 	return skill_assignment_logs
 
+def get_user_portfolio(user_name: str) -> dict:
+	"""
+	Build a portfolio dict from a user's actions and skill assignment log.
+	Returns the format expected by generate_profile_summary and the CMP backend.
+	"""
+	user_doc = frappe.db.get_value("User", user_name, ["first_name"], as_dict=True)
+	first_name = (user_doc and user_doc.get("first_name")) or ""
+
+	actions_raw, _ = get_user_actions(user_name)
+
+	skills_by_event = {}
+	for log in get_skill_assignment_log(user_name):
+		ref = log.get("reference_name")
+		if ref not in skills_by_event:
+			skills_by_event[ref] = []
+		skills_by_event[ref].append({
+			"name": log.get("badge") or "",
+			"label": log.get("badge") or "",
+			"relevance": log.get("reason") or "",
+		})
+
+	actions = []
+	total_hours_invested = 0
+	for action in actions_raw:
+		actions.append({
+			"title": action.get("title") or "",
+			"description": (action.get("description") or "")[:500],
+			"hours_invested": float(action.get("hours_invested") or 0),
+			"category": action.get("category") or "",
+			"type": action.get("type") or "",
+			"skills": skills_by_event.get(action.get("event_id"), []),
+		})
+		total_hours_invested += actions[-1]["hours_invested"]
+
+	return {
+		"first_name": first_name,
+		"actions": actions,
+		"total_hours_invested": total_hours_invested,
+		"total_actions": len(actions),
+	}
+
+
 def get_user_badges(user_name):
 	user_badges = frappe.db.get_all(
 		'User badge',
