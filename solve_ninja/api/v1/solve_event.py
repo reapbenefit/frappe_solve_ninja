@@ -805,7 +805,7 @@ def create_program_participation(user, program):
 			"user": user,
 			"program": program
 		})
-		participation_doc.insert(ignore_permissions=True)
+		participation_doc.insert(ignore_permissions=True, ignore_links=True)
 		return participation_doc.name
 	except Exception as e:
 		frappe.log_error(f"Error creating program participation: {str(e)}", "Program Participation Creation Error")
