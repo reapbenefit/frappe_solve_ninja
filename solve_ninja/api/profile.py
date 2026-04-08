@@ -6,15 +6,15 @@ from frappe.utils import pretty_date
 from frappe import _
 from frappe.utils import logger
 
-from solve_ninja.models.user_portfolio import PortfolioAction, PortfolioSkill, UserPortfolio
+from solve_ninja.models.user_portfolio import UserPortfolio
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 
 @frappe.whitelist()
 def get_user_profile(username=None):
-	user = load_user(username)
-	disallow_special_users(user.name)
+	user = _load_user(username)
+	_disallow_special_users(user.name)
 
 	user_detail = frappe._dict()
 	user_detail.current_user = user
@@ -22,13 +22,13 @@ def get_user_profile(username=None):
 	user_detail.current_user.profile_url = f"{frappe.utils.get_url()}/user-profile/{user.username}"
 	user_detail.current_user.user_image = f"{frappe.utils.get_url()}{user.user_image}" if user.user_image else None
 	
-	user_detail.ninja_profile, user_detail.user_metadata, partner = get_user_related_docs(user.name)
-	user_detail.current_user.is_logged_in, user_detail.current_user.is_system_manager = get_user_flags(user)
-	user_detail.actions, user_detail.current_user.highlighted_action = get_user_actions(user.name)
-	user_detail.skills, user_detail.current_user.partners = get_user_badges(user.name)
-	user_detail.reviews = get_user_reviews(user.name)
-	user_detail.superheroes = get_user_superheroes(user.name)
-	user_detail.skill_assignment_log = get_skill_assignment_log(user.name)
+	user_detail.ninja_profile, user_detail.user_metadata, partner = _get_user_related_docs(user.name)
+	user_detail.current_user.is_logged_in, user_detail.current_user.is_system_manager = _get_user_flags(user)
+	user_detail.actions, user_detail.current_user.highlighted_action = _get_user_actions(user.name)
+	user_detail.skills, user_detail.current_user.partners = _get_user_badges(user.name)
+	user_detail.reviews = _get_user_reviews(user.name)
+	user_detail.superheroes = _get_user_superheroes(user.name)
+	user_detail.skill_assignment_log = _get_skill_assignment_log(user.name)
 	if partner and user_detail.user_metadata:
 		user_detail.current_user.partner = {
 			"partner_name": partner.partner_name if partner.partner_name else "",
@@ -38,7 +38,7 @@ def get_user_profile(username=None):
 		user_detail.current_user.partner = None
 	return user_detail
 
-def load_user(username):
+def _load_user(username):
 	user_fields = ["name", "first_name", "last_name", "full_name", "email", "username", "enabled", "user_image", "username", "birth_date", "gender", "banner_image", "mobile_no", "bio", "location"]
 	if not username or username == "me":
 		username = frappe.session.user
@@ -53,19 +53,19 @@ def load_user(username):
 	return frappe.get_value("User", {"username": username}, "*", as_dict=True)
 
 
-def disallow_special_users(user_name):
+def _disallow_special_users(user_name):
 	if user_name in ["Administrator", "Guest"]:
 		raise frappe.PermissionError(_("User not found or not allowed"))
 
 
-def get_user_flags(user):
+def _get_user_flags(user):
 	session_user = frappe.session.user
 	is_logged_in = session_user == user.name
 	is_system_manager = frappe.db.exists("Has Role", {"parent": session_user, "role": "System Manager"})
 	return is_logged_in, bool(is_system_manager)
 
 
-def get_user_related_docs(user_name):
+def _get_user_related_docs(user_name):
 	ninja_profile = frappe.get_doc("Ninja Profile", user_name) if frappe.db.exists("Ninja Profile", user_name) else None
 	user_metadata = frappe.get_doc("User Metadata", user_name) if frappe.db.exists("User Metadata", user_name) else None
 	partner = None
@@ -78,7 +78,7 @@ def get_user_related_docs(user_name):
 	return ninja_profile, user_metadata, partner
 
 
-def get_user_actions(user_name):
+def _get_user_actions(user_name):
 	actions = frappe.db.sql("""
 		SELECT e.name AS event_id, e.title, e.type, e.category, e.description, e.location,
 		       e.creation, e.highlight, e.verified_by, e.hours_invested,
@@ -99,7 +99,7 @@ def get_user_actions(user_name):
 
 	return actions, highlighted
 
-def get_skill_assignment_log(user):
+def _get_skill_assignment_log(user):
 	skill_assignment_logs = frappe.get_all("Energy Point Log",
 		filters={"user": user, "type": "Auto", "reverted": 0, "reference_doctype": "Events"},
 		fields=["name", "points", "reason", "reference_doctype","reference_name", "badge", "microskill", "microskill", "creation"])
@@ -110,7 +110,7 @@ def get_skill_assignment_log(user):
 	
 	return skill_assignment_logs
 
-def build_user_portfolio(user_name: str) -> UserPortfolio:
+def _build_user_portfolio(user_name: str) -> UserPortfolio:
 	"""
 	Build a UserPortfolio from a user's actions and skill assignment log.
 	Used by generate_profile_summary (LLM prompt input).
@@ -118,14 +118,14 @@ def build_user_portfolio(user_name: str) -> UserPortfolio:
 	user_doc = frappe.db.get_value("User", user_name, ["first_name"], as_dict=True)
 	first_name = (user_doc and user_doc.get("first_name")) or ""
 
-	actions_raw, _ = get_user_actions(user_name)
+	actions_raw, _ = _get_user_actions(user_name)
 
 	skills_by_event = {}
-	for log in get_skill_assignment_log(user_name):
+	for log in _get_skill_assignment_log(user_name):
 		ref = log.get("reference_name")
 		if ref not in skills_by_event:
 			skills_by_event[ref] = []
-		skills_by_event[ref].append(PortfolioSkill(
+		skills_by_event[ref].append(UserPortfolio.PortfolioSkill(
 			name=log.get("badge") or "",
 			label=log.get("badge") or "",
 			relevance=log.get("reason") or "",
@@ -135,7 +135,7 @@ def build_user_portfolio(user_name: str) -> UserPortfolio:
 	total_hours_invested = 0.0
 	for action in actions_raw:
 		hours = float(action.get("hours_invested") or 0)
-		actions.append(PortfolioAction(
+		actions.append(UserPortfolio.PortfolioAction(
 			title=action.get("title") or "",
 			description=(action.get("description") or "")[:500],
 			hours_invested=hours,
@@ -153,7 +153,7 @@ def build_user_portfolio(user_name: str) -> UserPortfolio:
 	)
 
 
-def get_user_badges(user_name):
+def _get_user_badges(user_name):
 	user_badges = frappe.db.get_all(
 		'User badge',
 		filters={'user': user_name, 'active': 1},
@@ -183,7 +183,7 @@ def get_user_badges(user_name):
 	return skills, partners
 
 
-def get_user_reviews(user_name):
+def _get_user_reviews(user_name):
     reviews = frappe.get_all(
         "User Review",
         filters={"user": user_name, "status": "Accepted"},
@@ -198,7 +198,7 @@ def get_user_reviews(user_name):
     return reviews
 
 
-def get_user_superheroes(user_name):
+def _get_user_superheroes(user_name):
 	categories = frappe.db.sql("""
 		SELECT e.category AS category, COUNT(*) 
 		FROM `tabEvents` e
@@ -241,7 +241,7 @@ def update_user_summary(username, summary):
 			frappe.throw(_("Summary is required"))
 		
 		# Load user to validate existence and permissions
-		user = load_user(username)
+		user = _load_user(username)
 		
 		# Get or create User Metadata
 		if frappe.db.exists("User Metadata", user.name):

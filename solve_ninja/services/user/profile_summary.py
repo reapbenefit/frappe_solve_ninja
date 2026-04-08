@@ -12,7 +12,7 @@ import frappe
 from datetime import datetime
 from solve_ninja.services.ai_manager import _load_prompt, run_llm_responses_with_instructor, AIManager
 from solve_ninja.models.ai import ProfileSummaryOutput
-from solve_ninja.api.profile import build_user_portfolio
+from solve_ninja.api.profile import _build_user_portfolio
 
 PROFILE_SUMMARY_SYSTEM_PROMPT = _load_prompt("profile_summary.md")
 
@@ -24,7 +24,7 @@ def generate_profile_summary(user_name: str) -> str:
     if not user_name or not frappe.db.exists("User", user_name):
         return ""
 
-    profile = build_user_portfolio(user_name)
+    profile = _build_user_portfolio(user_name)
     if not profile.actions:
         return ""
 
