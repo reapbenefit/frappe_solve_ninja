@@ -25,9 +25,6 @@ class BaseAIModel(BaseModel):
     )
     
 
-
-
-
 class MentorshipRequestModel(BaseAIModel):
     """LLM output for mentorship request use case."""
 
@@ -51,3 +48,10 @@ class MentorshipRequestModel(BaseAIModel):
 class ActionRecordingModel(BaseAIModel): # TODO: Implement this
     """LLM output for action recording use case."""
 
+
+class ProfileSummaryOutput(BaseModel):
+    """LLM output for profile summary use case."""
+
+    summary: str = Field(
+        description="Short plain-language summary of the user's actions and skills"
+    )

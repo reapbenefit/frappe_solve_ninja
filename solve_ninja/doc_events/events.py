@@ -106,8 +106,6 @@ def update_ninja_profile_hook(doc, method=None):
         frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
 
 
-
-
 def create_events_metadata(doc):
     """
     Creates Event Source Metadata document after Events is created.
