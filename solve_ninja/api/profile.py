@@ -6,6 +6,8 @@ from frappe.utils import pretty_date
 from frappe import _
 from frappe.utils import logger
 
+from solve_ninja.models.user_portfolio import PortfolioAction, PortfolioSkill, UserPortfolio
+
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 
@@ -108,10 +110,10 @@ def get_skill_assignment_log(user):
 	
 	return skill_assignment_logs
 
-def get_user_portfolio(user_name: str) -> dict:
+def build_user_portfolio(user_name: str) -> UserPortfolio:
 	"""
-	Build a portfolio dict from a user's actions and skill assignment log.
-	Returns the format expected by generate_profile_summary and the CMP backend.
+	Build a UserPortfolio from a user's actions and skill assignment log.
+	Used by generate_profile_summary (LLM prompt input).
 	"""
 	user_doc = frappe.db.get_value("User", user_name, ["first_name"], as_dict=True)
 	first_name = (user_doc and user_doc.get("first_name")) or ""
@@ -123,31 +125,32 @@ def get_user_portfolio(user_name: str) -> dict:
 		ref = log.get("reference_name")
 		if ref not in skills_by_event:
 			skills_by_event[ref] = []
-		skills_by_event[ref].append({
-			"name": log.get("badge") or "",
-			"label": log.get("badge") or "",
-			"relevance": log.get("reason") or "",
-		})
+		skills_by_event[ref].append(PortfolioSkill(
+			name=log.get("badge") or "",
+			label=log.get("badge") or "",
+			relevance=log.get("reason") or "",
+		))
 
 	actions = []
-	total_hours_invested = 0
+	total_hours_invested = 0.0
 	for action in actions_raw:
-		actions.append({
-			"title": action.get("title") or "",
-			"description": (action.get("description") or "")[:500],
-			"hours_invested": float(action.get("hours_invested") or 0),
-			"category": action.get("category") or "",
-			"type": action.get("type") or "",
-			"skills": skills_by_event.get(action.get("event_id"), []),
-		})
-		total_hours_invested += actions[-1]["hours_invested"]
+		hours = float(action.get("hours_invested") or 0)
+		actions.append(PortfolioAction(
+			title=action.get("title") or "",
+			description=(action.get("description") or "")[:500],
+			hours_invested=hours,
+			category=action.get("category") or "",
+			type=action.get("type") or "",
+			skills=skills_by_event.get(action.get("event_id"), []),
+		))
+		total_hours_invested += hours
 
-	return {
-		"first_name": first_name,
-		"actions": actions,
-		"total_hours_invested": total_hours_invested,
-		"total_actions": len(actions),
-	}
+	return UserPortfolio(
+		first_name=first_name,
+		actions=actions,
+		total_hours_invested=total_hours_invested,
+		total_actions=len(actions),
+	)
 
 
 def get_user_badges(user_name):

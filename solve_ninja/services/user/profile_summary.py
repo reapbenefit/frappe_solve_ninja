@@ -7,10 +7,12 @@ generates AI summary via ai_manager, and updates User Metadata.
 """
 
 import asyncio
+import json
 import frappe
 from datetime import datetime
 from solve_ninja.services.ai_manager import _load_prompt, run_llm_responses_with_instructor, AIManager
 from solve_ninja.models.ai import ProfileSummaryOutput
+from solve_ninja.api.profile import build_user_portfolio
 
 PROFILE_SUMMARY_SYSTEM_PROMPT = _load_prompt("profile_summary.md")
 
@@ -22,10 +24,8 @@ def generate_profile_summary(user_name: str) -> str:
     if not user_name or not frappe.db.exists("User", user_name):
         return ""
 
-    from solve_ninja.api.profile import get_user_portfolio
-
-    profile = get_user_portfolio(user_name)
-    if not profile.get("actions"):
+    profile = build_user_portfolio(user_name)
+    if not profile.actions:
         return ""
 
     messages = [
@@ -33,11 +33,11 @@ def generate_profile_summary(user_name: str) -> str:
         {
             "role": "user",
             "content": (
-                f"user name: {profile['first_name']}\n"
-                f"total hours invested: {profile['total_hours_invested']}\n"
-                f"total number of actions: {profile['total_actions']}\n"
+                f"user name: {profile.first_name}\n"
+                f"total hours invested: {profile.total_hours_invested}\n"
+                f"total number of actions: {profile.total_actions}\n"
                 f"today's date: {datetime.now().strftime('%Y-%m-%d')}\n"
-                f"all_actions: {str(profile['actions'])}"
+                f"all_actions: {json.dumps(profile.model_dump()['actions'])}"
             ),
         },
     ]
