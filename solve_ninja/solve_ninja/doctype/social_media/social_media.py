@@ -196,12 +196,12 @@ class SocialMedia(Document):
 	def update_flow_keyword(self):
 		"""Update flow keywords in Glific with unique_id when unique_id changes"""
 		try:
-			# Get program_checkin_flow_id from Solve Ninja Settings
-			flow_id = frappe.db.get_single_value("Solve Ninja Settings", "program_checkin_flow_id")
+			# Get social_media_checkin_flow_id from Solve Ninja Settings
+			flow_id = frappe.db.get_single_value("Solve Ninja Settings", "social_media_checkin_flow_id")
 			
 			if not flow_id:
 				frappe.msgprint(
-					"Program Checkin Flow ID not configured in Solve Ninja Settings",
+					"Social Media Checkin Flow ID not configured in Solve Ninja Settings",
 					alert=True,
 					indicator="orange"
 				)

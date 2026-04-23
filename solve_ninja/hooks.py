@@ -57,7 +57,8 @@ website_route_rules = [
     {"from_route": "/user-profile/<username>", "to_route": "/user-profile"},
     {"from_route": "/campaign/<route>", "to_route": "campaign"},
     {"from_route": "/opportunity/<opportunity>", "to_route": "opportunity"},
-    {"from_route": "/marketplace2.0", "to_route": "marketplace"}
+    {"from_route": "/marketplace2.0", "to_route": "marketplace"},
+    {"from_route": "/user-profile/<path:subpath>", "to_route": "/#/user-profile/{subpath}"}
    # {"from_route": "/application-for-opportunity/new/<opportunity>", "to_route": "application-for-opportunity/new"},
 ]
 
@@ -224,11 +225,11 @@ doc_events = {
         "on_trash": "solve_ninja.doc_events.events.on_trash",
     },
     "User": {
+        "validate": "solve_ninja.doc_events.user.regenerate_username_on_firstname_change",
         "after_insert": "solve_ninja.doc_events.user.after_insert",
         "after_rename": "solve_ninja.doc_events.user.after_rename"
     },
     "Organization":{
-        
         "before_save":"solve_ninja.api.common.update_organization_id_case"
     },
     "User Metadata": {

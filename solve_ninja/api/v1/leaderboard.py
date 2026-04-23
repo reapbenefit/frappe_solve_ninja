@@ -34,8 +34,10 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 		NinjaProfile = DocType("Ninja Profile")
 		UserMetadata = DocType("User Metadata")
 
-		# Calculate time condition based on days
+		# Rolling window on date_of_action only (no COALESCE with creation)
 		time_condition = now_datetime() - timedelta(days=days)
+		threshold_str = frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss")
+		action_dt = Events.date_of_action
 
 		# Base Query: Always Fetch Rank from `Ninja Profile`
 		user_count = frappe.db.count("User", {"enabled": 1})
@@ -66,7 +68,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				(User.enabled == 1) &
 				(NinjaProfile.rank != 0) &
 				(UserMetadata.publish_status == "Publish") &
-				(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
+				(action_dt >= threshold_str)
 			)
 			.groupby(
 				User.name,
@@ -115,7 +117,7 @@ def get_top_reviewed_users(page_length=10, start=0, days=30, filters=None):
 				(User.enabled == 1) &
 				(NinjaProfile.rank != 0) &
 				(UserMetadata.org_id.notin(["RBINT", "Reap Benefit Team", "Reap Benefit SNLA program"])) &
-				(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
+				(action_dt >= threshold_str)
 			)
 			.groupby(User.name)
 		)

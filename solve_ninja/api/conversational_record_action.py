@@ -40,7 +40,8 @@ def send_audio_output(text, contact_id,flow_id):
 def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):      
     user_email = str(user_mobile_no)+'@solveninja.org'
     
-    url = "https://cmp-api.solveninja.org/actions"
+    api_base_url = frappe.conf.get("cmp_backend_base_url")
+    url = f"{api_base_url}/actions"
     payload = {
         "user_email": user_email,
         "user_message": user_msg
@@ -55,7 +56,8 @@ def initialize_chat(user_mobile_no,user_msg,contact_id,flow_id):
 
 @frappe.whitelist(allow_guest=True)
 def continue_chat(action_uuid,last_user_message,contact_id,flow_id):
-    url = "https://cmp-api.solveninja.org/ai/basic_action_chat"
+    api_base_url = frappe.conf.get("cmp_backend_base_url")
+    url = f"{api_base_url}/ai/basic_action_chat"
     payload = {
         "action_uuid": action_uuid,
         "last_user_message": last_user_message
@@ -70,7 +72,8 @@ def continue_chat(action_uuid,last_user_message,contact_id,flow_id):
     
 @frappe.whitelist(allow_guest=True)
 def extract_action_metadata(action_uuid,contact_id,flow_id):
-    url = "https://cmp-api.solveninja.org/ai/extract_action_metadata?action_uuid="+action_uuid
+    api_base_url = frappe.conf.get("cmp_backend_base_url")
+    url = f"{api_base_url}/ai/extract_action_metadata?action_uuid={action_uuid}"
 
     run_async_post_call_with_callback({},url,paramters={"contact_id": contact_id,"flow_id": flow_id})
     

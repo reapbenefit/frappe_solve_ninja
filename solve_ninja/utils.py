@@ -81,6 +81,7 @@ def get_doc_by_unique_id(unique_id):
 	# No match found
 	return None
 
+
 def find_user_by_mobile(mobile_input): #returns name, actual_mobile, username
 	"""
 	Generic method to find user by mobile number.

@@ -25,7 +25,7 @@ class NinjaProfile(Document):
 			if event:
 				# Set the latest action metadata
 				self.last_action = event.name
-				self.last_action_date = event.creation
+				self.last_action_date = event.date_of_action
 				self.last_action_type = event.type
 				self.last_action_sub_type = event.sub_type
 				self.last_action_category = event.category

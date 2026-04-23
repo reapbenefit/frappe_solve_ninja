@@ -5,129 +5,99 @@ from frappe.query_builder.functions import Count, Sum
 from samaaja.api.common import custom_response
 
 @frappe.whitelist(allow_guest=True)
-def get_city_wise_ninja_stats(page_length=10, start=0, start_date=None):
-	"""
-	Get city-wise statistics including active ninjas, hours invested, and action count.
-	
-	Args:
-	- page_length: Number of results per page (default: 10)
-	- start: Starting index for pagination (default: 0)
-	- start_date: Filter by start date (DD-MM-YYYY)
-	
-	Returns:
-	- city: City name from User Metadata
-	- active_ninjas: Count of ninjas with contributions > 0 in the given start date
-	- hours_invested: Sum of hours_invested from Ninja Profile in the given start date
-	- action_count: Count of events in the given start date
-	"""
-	try:
-		from datetime import datetime
-		from frappe.utils import format_datetime
-		from frappe.query_builder import Order
-		from frappe.query_builder.functions import Count, Sum, Coalesce
-		
-		page_length = int(page_length)
-		start = int(start)
-		
-		# Validate month and year - both must be provided together or neither
-		start_date_provided = start_date is not None and start_date != ""
-		
-		if start_date_provided:
-			start_date = datetime.strptime(start_date, "%d-%m-%Y")
-			
-			now = datetime.now()
-			if start_date < datetime(1900, 1, 1) or start_date > now:
-				return custom_response(
-					message="Invalid start date. Must be between 1900 and today",
-					data=None,
-					status_code=400,
-					error="Invalid start date parameter"
-				)
-		
-		UserMetadata = frappe.qb.DocType("User Metadata")
-		Events = frappe.qb.DocType("Events")
-		NinjaProfile = frappe.qb.DocType("Ninja Profile")
-		
-		# Build base conditions
-		base_conditions = (
-			(UserMetadata.city.isnotnull()) &
-			(UserMetadata.city != "") &
-			(NinjaProfile.contributions > 0) &
-			(UserMetadata.publish_status == "Publish")
-		)
-		
-		# Build date range for Events if month/year provided (more efficient than Extract())
-		# Use date range filtering which can use indexes
-		event_date_condition = None
-		if start_date_provided:
-			event_date_condition = Events.creation >= start_date
-		
-		# Build JOIN condition for Events - include date filter in JOIN for efficiency
-		# This prevents joining all events before filtering
-		events_join_condition = Events.user == UserMetadata.name
-		if event_date_condition:
-			events_join_condition = events_join_condition & event_date_condition
-		
-		# Optimized query: Filter events in JOIN condition, not WHERE clause
-		query = (
-			frappe.qb.from_(UserMetadata)
-			.join(NinjaProfile).on(NinjaProfile.name == UserMetadata.name)
-			.left_join(Events).on(events_join_condition)
-			.select(
-				UserMetadata.city,
-				Count(UserMetadata.name).distinct().as_("active_ninjas"),
-				Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),
-				Coalesce(Count(Events.name), 0).as_("action_count")
-			)
-			.where(base_conditions)
-			.groupby(UserMetadata.city)
-			.orderby(Coalesce(Count(Events.name), 0), order=Order.desc)
-			.orderby(UserMetadata.city, order=Order.asc)
-			.limit(page_length)
-			.offset(start)
-		)
-		
-		# Get total count - count distinct cities that match the criteria
-		# Use same join structure to ensure consistency
-		count_query = (
-			frappe.qb.from_(UserMetadata)
-			.join(NinjaProfile).on(NinjaProfile.name == UserMetadata.name)
-			.left_join(Events).on(events_join_condition)
-			.select(Count(UserMetadata.city).distinct().as_("total"))
-			.where(base_conditions)
-		)
-		
-		result = query.run(as_dict=True)
-		count_result = count_query.run()
-		total_count = count_result[0][0] if count_result else 0
-		
-		return custom_response(
-			message="City-wise ninja statistics retrieved successfully",
-			data={
-				"result": result,
-				"pagination": {
-					"total_count": total_count,
-					"page_length": page_length,
-					"start": start,
-					"has_next": (start + page_length) < total_count,
-					"has_prev": start > 0
-				},
-				"filters": {
-					"start_date": start_date
-				}
-			},
-			status_code=200,
-			error=None
-		)
-		
-	except Exception as e:
-		frappe.log_error(f"Error in get_city_wise_ninja_stats: {str(e)}")
-		return custom_response(
-			message="Failed to retrieve city-wise ninja statistics",
-			data=None,
-			status_code=500,
-			error=str(e)
-		)
+def get_city_wise_ninja_stats(page_length=10, start=0, days=60):
+    """
+    Get city-wise statistics for a rolling window of days.
+    
+    Args:
+    - page_length: Results per page
+    - start: Pagination start index
+    - days: The number of days to look back (default: 60)
+    """
+    try:
+        import frappe
+        from frappe.utils import add_days, now_datetime
+        from frappe.query_builder import Order
+        from frappe.query_builder.functions import Count
+        
+        # Ensure parameters are integers
+        page_length = int(page_length)
+        start = int(start)
+        days_to_subtract = int(days)
+        
+        # Dynamic threshold: now() minus whatever number of days you provide
+        date_threshold = add_days(now_datetime(), -days_to_subtract)
+        
+        UserMetadata = frappe.qb.DocType("User Metadata")
+        Events = frappe.qb.DocType("Events")
+
+        # Join on events with date_of_action in the rolling window (no fallback to creation)
+        events_join_condition = (
+            (Events.user == UserMetadata.name) &
+            (Events.date_of_action >= date_threshold)
+        )
+        
+        # Main Query
+        query = (
+            frappe.qb.from_(UserMetadata)
+            .join(Events).on(events_join_condition)
+            .select(
+                UserMetadata.city,
+                Count(Events.user).distinct().as_("active_ninjas"),
+                Count(Events.name).as_("action_count")
+            )
+            .where(
+                (UserMetadata.city.isnotnull()) &
+                (UserMetadata.city != "") &
+                (UserMetadata.publish_status == "Publish")
+            )
+            .groupby(UserMetadata.city)
+            .orderby(Count(Events.name), order=Order.desc)
+            .limit(page_length)
+            .offset(start)
+        )
+        
+        # Count Query
+        count_query = (
+            frappe.qb.from_(UserMetadata)
+            .join(Events).on(events_join_condition)
+            .select(Count(UserMetadata.city).distinct())
+            .where(
+                (UserMetadata.city.isnotnull()) &
+                (UserMetadata.city != "") &
+                (UserMetadata.publish_status == "Publish")
+            )
+        )
+        
+        result = query.run(as_dict=True)
+        total_count_res = count_query.run()
+        total_count = total_count_res[0][0] if total_count_res else 0
+        
+        return custom_response(
+            message=f"City statistics for the last {days_to_subtract} days retrieved",
+            data={
+                "result": result,
+                "pagination": {
+                    "total_count": total_count,
+                    "page_length": page_length,
+                    "start": start
+                },
+                "meta": {
+                    "days_analyzed": days_to_subtract,
+                    "active_since": date_threshold
+                }
+            },
+            status_code=200,
+            error=None
+        )
+        
+    except Exception as e:
+        frappe.log_error(f"Error in get_city_wise_ninja_stats: {str(e)}")
+        return custom_response(
+            message="Failed to retrieve statistics",
+            status_code=500,
+            error=str(e)
+        )
 
 @frappe.whitelist(allow_guest=True)
 def get_ninjas_in_focus(page_length=50, start=0):

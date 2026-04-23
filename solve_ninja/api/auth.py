@@ -1,7 +1,54 @@
 import frappe
 import random
+from frappe.rate_limiter import rate_limit
 from frappe.utils import now_datetime, add_to_date
-from solve_ninja.utils import validate_and_normalize_mobile
+from samaaja.api.common import custom_response
+from solve_ninja.utils import find_user_by_mobile, parse_request_data, validate_and_normalize_mobile
+
+
+@frappe.whitelist()
+@rate_limit(limit=5, seconds=60 * 60)
+def generate_login_url():
+	"""
+	Generate a one-click login URL for a user identified by mobile number.
+	Caller must be logged in. Expects JSON/form with "mobile" field.
+	Returns a URL with sid that logs in the target user when opened.
+	"""
+	message = "Login URL generated successfully"
+	data = ""
+	status_code = 200
+	error = False
+
+	try:
+		request_data = parse_request_data()
+		mobile = request_data.get("mobile") or ""
+		mobile = "".join(filter(str.isdigit, str(mobile)))
+		if not mobile or len(mobile) not in [10, 12]:
+			return custom_response("Please enter a valid 10 or 12-digit mobile number", "", 400, True)
+
+		user_name, actual_mobile, username = find_user_by_mobile(mobile)
+		if not user_name:
+			return custom_response("No user found with this mobile number", "", 404, True)
+
+		enabled = frappe.get_cached_value("User", user_name, "enabled")
+		if not enabled:
+			return custom_response("User account is disabled", "", 403, True)
+
+		original_user = frappe.session.user
+		frappe.local.login_manager.login_as(user_name)
+		sid = frappe.session.sid
+		url = frappe.utils.get_url(f"?sid={sid}")
+		if frappe.utils.cint(request_data.get("chatpop")):
+			url = f"{url}&chatpop=true"
+		frappe.local.login_manager.login_as(original_user)
+
+		data = {"url": url, "user": user_name}
+		return custom_response(message, data, status_code, error)
+	except ValueError as e:
+		return custom_response(str(e), "", 400, True)
+	except Exception as e:
+		frappe.log_error(f"Error generating login URL: {str(e)}", "Generate Login URL Error")
+		return custom_response("Failed to generate login URL. Please try again.", "", 500, True)
 
 
 @frappe.whitelist(allow_guest=True)

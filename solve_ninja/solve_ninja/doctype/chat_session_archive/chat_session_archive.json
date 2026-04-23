@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-12 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "session_id",
+  "use_case",
+  "first_message_creation",
+  "messages"
+ ],
+ "fields": [
+  {
+   "fieldname": "session_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Session ID",
+   "reqd": 1
+  },
+  {
+   "fieldname": "use_case",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Use Case",
+   "options": "Mentorship Request\nAction Recording\nSamaaj Data"
+  },
+  {
+   "fieldname": "first_message_creation",
+   "fieldtype": "Datetime",
+   "label": "First Message Creation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "messages",
+   "fieldtype": "Table",
+   "label": "Messages",
+   "options": "Chat Session Archive Message"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-03-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Chat Session Archive",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "first_message_creation",
+ "sort_order": "DESC",
+ "states": []
+}

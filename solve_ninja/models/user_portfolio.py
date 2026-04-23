@@ -24,3 +24,11 @@ class UserPortfolio(BaseModel):
     actions: list[PortfolioAction]
     total_hours_invested: float
     total_actions: int
+
+
+class ProfileSummaryWithPortfolio(BaseModel):
+    """Portfolio slice used for LLM input, prior summary, and new summary text."""
+
+    portfolio: UserPortfolio
+    summary: str
+    existing_summary: str = ""

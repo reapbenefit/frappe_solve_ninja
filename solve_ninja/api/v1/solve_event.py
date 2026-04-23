@@ -451,6 +451,46 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 			log_event_checkin_integration_request(request_data, response_data, {"error": f"Event with ID {event_id} not found"})
 			return response
 		
+		# Get event details for participation
+		event_doc = frappe.get_doc("Solve Event", solve_event)
+
+		# Validate event is currently active (now within start_date_time and end_date_time)
+		now = now_datetime()
+		start_dt = frappe.utils.get_datetime(event_doc.start_date_time)
+		end_dt = frappe.utils.get_datetime(event_doc.end_date_time)
+		
+		if now < start_dt:
+			response = custom_response(
+				message="Event has not started yet",
+				data={"status": "failed"},
+				status_code=200,
+				error=False
+			)
+			response_data = {
+				"message": "Event has not started yet",
+				"status": "success",
+				"data": {"status": "failed"},
+				"status_code": 200
+			}
+			log_event_checkin_integration_request(request_data, response_data, {"error": "Event has not started yet"})
+			return response
+		
+		if now > end_dt:
+			response = custom_response(
+				message="Event has ended",
+				data={"status": "failed"},
+				status_code=200,
+				error=False
+			)
+			response_data = {
+				"message": "Event has ended",
+				"status": "success",
+				"data": {"status": "failed"},
+				"status_code": 200
+			}
+			log_event_checkin_integration_request(request_data, response_data, {"error": "Event has ended"})
+			return response
+		
 		# Find or create user by mobile number
 		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name, event_id)
 		
@@ -480,6 +520,7 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		
 		# Build response data
 		response_data_dict = {
+			"status": "success",
 			"user": user,
 			"event": solve_event,
 			"event_title": solve_event_title,
