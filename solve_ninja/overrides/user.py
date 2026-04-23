@@ -48,6 +48,7 @@ class CustomUser(BaseUser):
 		frappe.db.delete("Solve Event Registration", filters={"user": self.name})
 		frappe.db.delete("User Review", filters={"user": self.name})
 		frappe.db.delete("User Profile QR", filters={"user": self.name})
+		frappe.db.delete("User badge", filters={"user": self.name})
 		frappe.db.delete("Notification Settings", filters={"user": self.name})
 		# frappe.db.delete("User Badge", filters={"user": self.name})
 		frappe.db.delete("Energy Point Log", filters={"user": self.name})

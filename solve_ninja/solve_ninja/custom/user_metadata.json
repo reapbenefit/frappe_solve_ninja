@@ -1,0 +1,16 @@
+{
+  "doctype": "User Metadata",
+  "custom_fields": [
+    {
+      "dt": "User Metadata",
+      "fieldname": "ai_summary_last_updated",
+      "label": "AI Summary Last Updated",
+      "fieldtype": "Datetime",
+      "insert_after": "summary",
+      "read_only": 1
+    }
+  ],
+  "custom_perms": [],
+  "property_setters": [],
+  "sync_on_migrate": 1
+}

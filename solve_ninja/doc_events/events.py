@@ -138,8 +138,6 @@ def update_ninja_profile_hook(doc, method=None):
         _enqueue_update_ninja_profile(doc.user)
 
 
-
-
 def create_events_metadata(doc):
     """
     Creates Event Source Metadata document after Events is created.

@@ -428,13 +428,13 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		# Update request_data with normalized mobile
 		request_data["mobile"] = mobile
 		
-		# Find Solve Event by name or unique_id
-		if frappe.db.exists("Solve Event", event_id):
-			solve_event = event_id
-		else:
-			# Try finding by unique_id
-			solve_event = frappe.db.get_value("Solve Event", {"unique_id": event_id.upper()}, "name")
-		
+		# Try finding by unique_id
+		solve_event, solve_event_title, ignore_reg = frappe.db.get_value(
+    		"Solve Event",
+			{"unique_id": event_id.upper()},
+			["name", "title","ignore_reg"]
+		)
+
 		if not solve_event:
 			response = custom_response(
 				message="Event not found",
@@ -492,7 +492,7 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 			return response
 		
 		# Find or create user by mobile number
-		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name)
+		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name, event_id)
 		
 		if not user_result or not user_result.get("user"):
 			return custom_response(
@@ -507,27 +507,23 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		is_new_user = user_result.get("is_new_user", False)
 		name_used = user_result.get("name_used", None)
 		
-		# Update Ninja Profile with event unique_id (only for new users)
-		if is_new_user:
-			event_unique_id = event_doc.get("unique_id")
-			if event_unique_id:
-				update_ninja_profile_unique_id(user, event_unique_id)
+		#registration = find_or_create_registration(user, solve_event)
 		
 		# Check if Solve Event Registration exists, if not create it
-		if event_doc.get("ignore_reg") == "No" or event_doc.get("ignore_reg") is None or event_doc.get("ignore_reg") == "":	
+		if ignore_reg == "No" or ignore_reg is None or ignore_reg == "":	
 			registration = find_or_create_registration(user, solve_event)
 		else:
 			registration = None
 		
 		# Create Solve Event Participation
-		participation = create_participation(user, solve_event, event_doc)
+		participation = create_participation(user, solve_event)
 		
 		# Build response data
 		response_data_dict = {
 			"status": "success",
 			"user": user,
 			"event": solve_event,
-			"event_title": event_doc.title,
+			"event_title": solve_event_title,
 			"registration": registration,
 			"participation": participation,
 			"checkin_time": now_datetime().isoformat()
@@ -581,7 +577,7 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		return response
 
 
-def find_or_create_registration(user, solve_event):
+def find_or_create_registration(user, solve_event_name):
 	"""
 	Find existing Solve Event Registration or create a new one.
 	Prevents duplicate registrations by checking for any existing registration first.
@@ -598,8 +594,8 @@ def find_or_create_registration(user, solve_event):
 	existing_registration = frappe.db.get_value(
 		"Solve Event Registration",
 		{
-			"user": user,
-			"solve_event": solve_event
+			"user": user,	
+			"solve_event": solve_event_name
 		},
 		"name"
 	)
@@ -614,10 +610,10 @@ def find_or_create_registration(user, solve_event):
 		registration_doc = frappe.get_doc({
 			"doctype": "Solve Event Registration",
 			"user": user,
-			"solve_event": solve_event,
+			"solve_event": solve_event_name,
 			"source": "snbot"
 		})
-		registration_doc.insert(ignore_permissions=True)
+		registration_doc.insert(ignore_permissions=True,ignore_links=True)
 		
 		# After insertion, check if it was marked as rejected due to duplicate check
 		# This handles race conditions where two API calls happen simultaneously
@@ -629,7 +625,7 @@ def find_or_create_registration(user, solve_event):
 				"Solve Event Registration",
 				{
 					"user": user,
-					"solve_event": solve_event,
+					"solve_event": solve_event_name,
 					"name": ["!=", registration_doc.name]
 				},
 				"name",
@@ -646,7 +642,7 @@ def find_or_create_registration(user, solve_event):
 			"Solve Event Registration",
 			{
 				"user": user,
-				"solve_event": solve_event
+				"solve_event": solve_event_name
 			},
 			"name"
 		)
@@ -655,7 +651,7 @@ def find_or_create_registration(user, solve_event):
 		# Don't fail the checkin if registration creation fails
 		return None
 
-def create_participation(user, solve_event, event_doc):
+def create_participation(user, solve_event_name):
 	"""
 	Create Solve Event Participation record.
 	
@@ -671,7 +667,7 @@ def create_participation(user, solve_event, event_doc):
 		# Check if participation already exists
 		existing_participation = frappe.db.get_value(
 			"Solve Event Participation",
-			{"user": user, "solve_event": solve_event},
+			{"user": user, "solve_event": solve_event_name},
 			"name"
 		)
 		
@@ -682,11 +678,7 @@ def create_participation(user, solve_event, event_doc):
 		participation_doc = frappe.get_doc({
 			"doctype": "Solve Event Participation",
 			"user": user,
-			"solve_event": solve_event,
-			"solve_event_date": now_datetime(),
-			# "sub_type": event_doc.get("type") or event_doc.get("sub_type"),
-			"mode": event_doc.get("mode"),
-			"city": event_doc.get("city")
+			"solve_event": solve_event_name
 		})
 		participation_doc.insert(ignore_permissions=True)
 		return participation_doc.name
@@ -854,7 +846,7 @@ def create_program_participation(user, program):
 			"user": user,
 			"program": program
 		})
-		participation_doc.insert(ignore_permissions=True)
+		participation_doc.insert(ignore_permissions=True, ignore_links=True)
 		return participation_doc.name
 	except Exception as e:
 		frappe.log_error(f"Error creating program participation: {str(e)}", "Program Participation Creation Error")

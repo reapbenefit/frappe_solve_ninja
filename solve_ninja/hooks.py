@@ -141,10 +141,10 @@ scheduler_events = {
         "solve_ninja.api.glific_sync.sync_metadata_from_bigquery",
         "solve_ninja.doc_events.events.update_all_user_headlines_daily",
         "solve_ninja.solve_ninja.doctype.solve_event.solve_event.cleanup_completed_event_keywords",
-    ]
-#	"hourly": [
-#		"solve_ninja.tasks.hourly"
-#	],
+    ],
+    "hourly_long": [
+        "solve_ninja.services.user.user_manager.generate_user_summary_scheduler_",
+    ],
 #	"weekly": [
 #		"solve_ninja.tasks.weekly"
 #	],
@@ -225,6 +225,7 @@ doc_events = {
         "on_trash": "solve_ninja.doc_events.events.on_trash",
     },
     "User": {
+        "validate": "solve_ninja.doc_events.user.regenerate_username_on_firstname_change",
         "after_insert": "solve_ninja.doc_events.user.after_insert",
         "after_rename": "solve_ninja.doc_events.user.after_rename"
     },

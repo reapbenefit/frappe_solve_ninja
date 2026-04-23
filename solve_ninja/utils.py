@@ -4,6 +4,8 @@ import frappe
 from typing import Any, Dict
 from frappe import _
 
+import time
+import random
 def human_format(number):
 	units = ['', 'K', 'M', 'G', 'T', 'P']
 	k = 1000.0
@@ -207,20 +209,42 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 	Returns:
 	- dict with keys: user (email), is_new_user (bool), name_used (str)
 	"""
-	# Use find_user_by_mobile to check if user exists
-	user_name, *_ = find_user_by_mobile(mobile)
-	
-	if user_name:
-		# Update Ninja Profile unique_id if event_unique_id is provided
-		# if event_unique_id:
-		# 	update_ninja_profile_unique_id(user_name, event_unique_id)
+	try:
+		# Use find_user_by_mobile to check if user exists
+		user_name, *_ = find_user_by_mobile(mobile)
 		
-		return {
-			"user": user_name,
-			"is_new_user": False,
-			"name_used": None
-		}
-	
+		if user_name:
+			# Update Ninja Profile unique_id if event_unique_id is provided
+			# if event_unique_id:
+			# 	update_ninja_profile_unique_id(user_name, event_unique_id)
+			
+			return {
+				"user": user_name,
+				"is_new_user": False,
+				"name_used": None
+			}
+		
+		else:
+			frappe.enqueue(
+				"solve_ninja.utils.add_user_async",
+				mobile=mobile,
+				whatsapp_name=whatsapp_name,
+				event_unique_id=event_unique_id,
+				queue='default',
+				job_name=f"Add user {mobile}",
+				now=False
+			)
+			
+			return {
+				"user": f"{mobile}@solveninja.org",	
+				"is_new_user": True,
+				"name_used": whatsapp_name if whatsapp_name else mobile
+			}
+	except Exception as e:
+		frappe.log_error(f"Error finding or creating user: {str(e)}", "Find or Create User Error")
+		return None
+
+def add_user_async(mobile, whatsapp_name=None, event_unique_id=None):
 	# User doesn't exist, create new user
 	try:
 		# Determine what name to use
@@ -240,7 +264,14 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 			'send_welcome_email': 0
 		})
 		user_doc.append("roles", {"role": "Solve Ninja"})
-		user_doc.insert(ignore_permissions=True)
+		for attempt in range(3):
+			try:
+				user_doc.insert(ignore_permissions=True)
+				frappe.db.commit()
+				break
+			except Exception as e:
+				frappe.db.rollback()
+				time.sleep(0.1 * (2 ** attempt))
 		
 		# Update Ninja Profile unique_id if event_unique_id is provided
 		# if event_unique_id:
@@ -256,11 +287,6 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 			now=False
 		)
 		
-		return {
-			"user": user_doc.name,
-			"is_new_user": True,
-			"name_used": name_used
-		}
 	except Exception as e:
 		frappe.log_error(f"Error creating user: {str(e)}", "User Creation Error")
 		return None

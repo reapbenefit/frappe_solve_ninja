@@ -25,9 +25,6 @@ class BaseAIModel(BaseModel):
     )
     
 
-
-
-
 class MentorshipRequestModel(BaseAIModel):
     """LLM output for mentorship request use case."""
 

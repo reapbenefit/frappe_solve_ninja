@@ -7,19 +7,11 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "chat_history",
+  "chat_history_message",
   "chat_feedback",
   "chat_feedback_comment"
  ],
  "fields": [
-  {
-   "fieldname": "chat_history",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Chat History",
-   "options": "Chat History",
-   "reqd": 1
-  },
   {
    "fieldname": "chat_feedback",
    "fieldtype": "Int",
@@ -32,11 +24,19 @@
    "fieldname": "chat_feedback_comment",
    "fieldtype": "Data",
    "label": "Chat Feedback Comment"
+  },
+  {
+   "fieldname": "chat_history_message",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Chat History Message",
+   "options": "Chat History",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-16 12:04:06.862730",
+ "modified": "2026-02-20 14:05:44.233716",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Chat Feedback",

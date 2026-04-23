@@ -1,0 +1,115 @@
+{
+ "actions": [],
+ "autoname": "format:USU-{YYYY}-{####}",
+ "creation": "2026-04-02 00:00:00",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "file",
+  "column_break_tl4tv",
+  "status",
+  "force",
+  "section_break_results",
+  "total_users",
+  "column_break_mucgm",
+  "success_count",
+  "column_break_ckwkw",
+  "error_count",
+  "section_break_dpm7i",
+  "log"
+ ],
+ "fields": [
+  {
+   "fieldname": "file",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "File",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "If checked, regenerates summary even if it is already up-to-date",
+   "fieldname": "force",
+   "fieldtype": "Check",
+   "label": "Force Regenerate"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nQueued\nIn Progress\nCompleted\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_results",
+   "fieldtype": "Section Break",
+   "label": "Results"
+  },
+  {
+   "fieldname": "total_users",
+   "fieldtype": "Int",
+   "label": "Total Users",
+   "read_only": 1
+  },
+  {
+   "fieldname": "success_count",
+   "fieldtype": "Int",
+   "label": "Success",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_count",
+   "fieldtype": "Int",
+   "label": "Errors",
+   "read_only": 1
+  },
+  {
+   "fieldname": "log",
+   "fieldtype": "Long Text",
+   "label": "Log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tl4tv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_mucgm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_ckwkw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_dpm7i",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "links": [],
+ "modified": "2026-04-02 22:36:22.106807",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "User Summary Update",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,6 +1,7 @@
 import json
 import string
 import random
+import time
 import frappe
 from werkzeug.wrappers import Response
 from datetime import date
@@ -254,8 +255,17 @@ def add_user():
         if frappe.db.exists("User", {"mobile_no": mobile}):
             frappe.throw(f"User with mobile number {mobile} already exists.", frappe.DuplicateEntryError)
 
-        user_doc = build_user_doc(user_data, mobile)
-        user_doc.insert(ignore_permissions=True)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                user_doc = build_user_doc(user_data, mobile)
+                user_doc.insert(ignore_permissions=True)
+                break
+            except Exception as e:
+                if "could not serialize access" in str(e) and attempt < max_retries - 1:
+                    time.sleep(0.1 * (2 ** attempt))
+                    continue
+                raise
         user_name = user_doc.name
 
         # Create Program Participation if program unique_id is provided
