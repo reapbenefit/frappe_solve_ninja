@@ -1,0 +1,91 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-12 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "source_chat_history_name",
+  "role",
+  "content",
+  "response_type",
+  "sequence_number",
+  "user",
+  "event_id",
+  "message_creation",
+  "chat_feedback",
+  "chat_feedback_comment"
+ ],
+ "fields": [
+  {
+   "fieldname": "source_chat_history_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Source Chat History Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Role",
+   "reqd": 1
+  },
+  {
+   "fieldname": "content",
+   "fieldtype": "Text",
+   "label": "Content",
+   "reqd": 1
+  },
+  {
+   "fieldname": "response_type",
+   "fieldtype": "Data",
+   "label": "Response Type"
+  },
+  {
+   "fieldname": "sequence_number",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sequence Number"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "event_id",
+   "fieldtype": "Data",
+   "label": "Event ID"
+  },
+  {
+   "fieldname": "message_creation",
+   "fieldtype": "Datetime",
+   "label": "Message Creation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chat_feedback",
+   "fieldtype": "Int",
+   "label": "Chat Feedback"
+  },
+  {
+   "fieldname": "chat_feedback_comment",
+   "fieldtype": "Small Text",
+   "label": "Chat Feedback Comment"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-30 11:29:16.885727",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Chat Session Archive Message",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

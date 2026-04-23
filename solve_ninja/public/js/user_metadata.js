@@ -2,41 +2,98 @@
 // Adds View dropdown button with options for Events, User, and Ninja Profile
 
 frappe.ui.form.on('User Metadata', {
-    refresh: function(frm) {
-        // Only show buttons for existing User Metadata records (not new)
-        // User Metadata document name is the user ID
-        if (!frm.is_new() && frm.doc.name) {
-            // Add Events button (first)
-            frm.add_custom_button(__('Events'), function() {
-                // Open Events list filtered by the user in a new tab
-                const route = `/app/events?user=${encodeURIComponent(frm.doc.name)}`;
-                window.open(route, '_blank');
-            }, __('View'));
+	refresh: function (frm) {
+		// Only show buttons for existing User Metadata records (not new)
+		// User Metadata document name is the user ID
+		if (!frm.is_new() && frm.doc.name) {
+			// Add Events button (first)
+			frm.add_custom_button(
+				__('Events'),
+				function () {
+					// Open Events list filtered by the user in a new tab
+					const route = `/app/events?user=${encodeURIComponent(frm.doc.name)}`;
+					window.open(route, '_blank');
+				},
+				__('View')
+			);
 
-            // Add User button (second)
-            frm.add_custom_button(__('User'), function() {
-                // Open User form in a new tab
-                const route = `/app/user/${encodeURIComponent(frm.doc.name)}`;
-                window.open(route, '_blank');
-            }, __('View'));
+			// Add User button (second)
+			frm.add_custom_button(
+				__('User'),
+				function () {
+					// Open User form in a new tab
+					const route = `/app/user/${encodeURIComponent(frm.doc.name)}`;
+					window.open(route, '_blank');
+				},
+				__('View')
+			);
 
-            // Add Ninja Profile button (third)
-            frm.add_custom_button(__('Ninja Profile'), function() {
-                // Check if Ninja Profile exists for this user
-                frappe.db.exists('Ninja Profile', frm.doc.name).then(exists => {
-                    if (exists) {
-                        // Open Ninja Profile in a new tab
-                        const route = `/app/ninja-profile/${encodeURIComponent(frm.doc.name)}`;
-                        window.open(route, '_blank');
-                    } else {
-                        frappe.msgprint({
-                            title: __('Not Found'),
-                            message: __('Ninja Profile does not exist for this user.'),
-                            indicator: 'orange'
-                        });
-                    }
-                });
-            }, __('View'));
-        }
-    }
+			// Add Ninja Profile button (third)
+			frm.add_custom_button(
+				__('Ninja Profile'),
+				function () {
+					// Check if Ninja Profile exists for this user
+					frappe.db.exists('Ninja Profile', frm.doc.name).then((exists) => {
+						if (exists) {
+							// Open Ninja Profile in a new tab
+							const route = `/app/ninja-profile/${encodeURIComponent(frm.doc.name)}`;
+							window.open(route, '_blank');
+						} else {
+							frappe.msgprint({
+								title: __('Not Found'),
+								message: __('Ninja Profile does not exist for this user.'),
+								indicator: 'orange',
+							});
+						}
+					});
+				},
+				__('View')
+			);
+
+			// AI: choose full (default) vs incremental, then run generate_ai_summary
+			frm.add_custom_button(
+				__('Generate AI Summary'),
+				function () {
+					frappe.prompt(
+						[
+							{
+								fieldname: 'full_regeneration',
+								fieldtype: 'Check',
+								label: __('Full regeneration (all actions)'),
+								description: __(
+									'Uses the full action history. Turn off to update only from new activity since the last summary (faster, fewer tokens).'
+								),
+								default: 1,
+							},
+						],
+						(values) => {
+							const force = values.full_regeneration ? 1 : 0;
+							const freezeMessage = force
+								? __('Generating full AI summary…')
+								: __('Updating summary from new activity…');
+							frappe.call({
+								method: 'generate_ai_summary',
+								doc: frm.doc,
+								args: { force: force },
+								freeze: true,
+								freeze_message: freezeMessage,
+								callback: function (r) {
+									if (!r.exc) {
+										frm.reload_doc();
+										frappe.show_alert({
+											message: __('Summary updated'),
+											indicator: 'green',
+										});
+									}
+								},
+							});
+						},
+						__('Generate AI summary'),
+						__('Generate')
+					);
+				},
+				__('Actions')
+			);
+		}
+	},
 });

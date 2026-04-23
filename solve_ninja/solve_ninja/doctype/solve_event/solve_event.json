@@ -161,6 +161,7 @@
    "label": "Venue Details"
   },
   {
+   "default": " ",
    "description": "Comma-separated emails. Example: a@x.com, b@y.com",
    "fieldname": "additional_notification_emails",
    "fieldtype": "Data",
@@ -187,7 +188,7 @@
    "link_fieldname": "solve_event"
   }
  ],
- "modified": "2026-02-12 16:49:37.972184",
+ "modified": "2026-04-17 02:01:23.147393",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event",

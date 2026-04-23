@@ -57,7 +57,8 @@ website_route_rules = [
     {"from_route": "/user-profile/<username>", "to_route": "/user-profile"},
     {"from_route": "/campaign/<route>", "to_route": "campaign"},
     {"from_route": "/opportunity/<opportunity>", "to_route": "opportunity"},
-    {"from_route": "/marketplace2.0", "to_route": "marketplace"}
+    {"from_route": "/marketplace2.0", "to_route": "marketplace"},
+    {"from_route": "/user-profile/<path:subpath>", "to_route": "/#/user-profile/{subpath}"}
    # {"from_route": "/application-for-opportunity/new/<opportunity>", "to_route": "application-for-opportunity/new"},
 ]
 
@@ -111,7 +112,8 @@ has_permission = {
 # Override standard doctype classes
 
 override_doctype_class = {
-	"User": "solve_ninja.overrides.user.CustomUser"
+	"User": "solve_ninja.overrides.user.CustomUser",
+	"User Metadata": "solve_ninja.overrides.user_metadata.CustomUserMetadata",
 }
 
 # Document Events
@@ -227,7 +229,6 @@ doc_events = {
         "after_rename": "solve_ninja.doc_events.user.after_rename"
     },
     "Organization":{
-        
         "before_save":"solve_ninja.api.common.update_organization_id_case"
     },
     "User Metadata": {

@@ -6,8 +6,7 @@ import time
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import Count
 from pypika.terms import Order
-from frappe.utils import now_datetime, add_to_date
-
+from frappe.utils import now_datetime, add_to_date, cint, flt
 def update_subcategory(doc, method):
     if not doc.subcategory and doc.category:
         subcategory = frappe.db.exists("Event Sub Category", doc.category)
@@ -21,9 +20,15 @@ def update_subcategory(doc, method):
 def after_insert(doc, method=None):
     """
     Hook that runs after an Events document is inserted.
+    - Ensures date_of_action is set (defaults to creation time when omitted).
     - Updates last action metadata on the linked Ninja Profile.
     - Creates Event Source Metadata document.
     """
+    if not doc.get("date_of_action") and doc.creation:
+        dt = frappe.utils.get_datetime(doc.creation)
+        doc.db_set("date_of_action", dt, update_modified=False)
+        doc.date_of_action = dt
+
     update_action_detail_in_ninja_profile(doc)
     create_events_metadata(doc)
 
@@ -31,23 +36,35 @@ def update_action_detail_in_ninja_profile(doc):
     """
     Updates the Ninja Profile with the latest action details when an Event is created or modified.
 
-    Args:
-        doc (Document): The Event document that triggered the hook.
-        method (str): The name of the hook method (e.g. "after_insert" or "on_update").
+    Uses db.set_value (atomic) instead of get_doc/save to avoid TimestampMismatchError when
+    multiple Events for the same user are processed concurrently or alongside update_ninja_profile.
     """
-    if doc.user and frappe.db.exists("Ninja Profile", doc.user):
-        ninja_profile = frappe.get_doc("Ninja Profile", doc.user)
+    if not doc.user or not frappe.db.exists("Ninja Profile", doc.user):
+        return
+    frappe.db.set_value(
+        "Ninja Profile",
+        doc.user,
+        {
+            "last_action": doc.name,
+            "last_action_date": doc.date_of_action,
+            "last_action_type": doc.type,
+            "last_action_sub_type": doc.sub_type,
+            "last_action_category": doc.category,
+        },
+        update_modified=False,
+    )
 
-        # Set latest action metadata
-        ninja_profile.last_action = doc.name
-        ninja_profile.last_action_date = doc.creation
-        ninja_profile.last_action_type = doc.type
-        ninja_profile.last_action_sub_type = doc.sub_type
-        ninja_profile.last_action_category = doc.category
 
-        # Save with ignore_permission in case it's triggered from background or guest
-        ninja_profile.flags.ignore_permissions = True
-        ninja_profile.save()
+def _last_event_name_for_user(user: str):
+    """Latest Events.name by creation (same ordering as frappe.get_last_doc)."""
+    names = frappe.get_all(
+        "Events",
+        filters={"user": user},
+        order_by="creation desc",
+        limit_page_length=1,
+        pluck="name",
+    )
+    return names[0] if names else None
 
 def update_ninja_profile(user: str):
     if not user:
@@ -62,8 +79,8 @@ def update_ninja_profile(user: str):
     )
 
     if result:
-        total_hours = result[0].get("total_hours") or 0
-        total_events = result[0].get("total_events") or 0
+        total_hours = flt(result[0].get("total_hours")) or 0
+        total_events = cint(result[0].get("total_events")) or 0
     else:
         total_hours = 0
         total_events = 0
@@ -75,11 +92,15 @@ def update_ninja_profile(user: str):
         
         for attempt in range(max_retries):
             try:
-                frappe.db.set_value("Ninja Profile", user, {
-                    "hours_invested": total_hours,
-                    "contributions": total_events,
-                    "last_action": frappe.get_last_doc("Events", filters={"user": user}).name,
-                }, update_modified=False)
+                frappe.db.set_value(
+                    "Ninja Profile",
+                    user,
+                    {
+                        "hours_invested": total_hours,
+                        "contributions": total_events,
+                        "last_action": _last_event_name_for_user(user),
+                    }
+                )
                 break  # Success, exit retry loop
             except Exception as e:
                 if attempt < max_retries - 1:
@@ -93,17 +114,28 @@ def update_ninja_profile(user: str):
                         title="Update Ninja Profile Error"
                     )
 
+def _enqueue_update_ninja_profile(user: str):
+    if not user:
+        return
+    frappe.enqueue(
+        "solve_ninja.doc_events.events.update_ninja_profile",
+        queue="default",
+        user=user,
+        enqueue_after_commit=True,
+    )
+
+
 def on_trash(doc, method=None):
     records = frappe.get_all("Event Source Metadata", filters={"event_id": doc.name})
     for r in records:
         frappe.delete_doc("Event Source Metadata", r.name, force=True)
     if doc.user:
-        frappe.db.set_value("Ninja Profile", doc.user, "last_action", None)
-        frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
-        
+        _enqueue_update_ninja_profile(doc.user)
+
+
 def update_ninja_profile_hook(doc, method=None):
     if doc.user:
-        frappe.enqueue("solve_ninja.doc_events.events.update_ninja_profile", queue='default', user=doc.user)
+        _enqueue_update_ninja_profile(doc.user)
 
 
 

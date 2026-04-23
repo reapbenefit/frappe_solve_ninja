@@ -9,6 +9,7 @@
  "field_order": [
   "platform",
   "campaign_name",
+  "additional_notification_emails",
   "column_break_bfwnp",
   "city",
   "section_break_kpajy",
@@ -72,11 +73,18 @@
    "fieldtype": "Small Text",
    "label": "URL",
    "read_only": 1
+  },
+  {
+   "description": "Comma-separated emails. Example: a@x.com, b@y.com",
+   "fieldname": "additional_notification_emails",
+   "fieldtype": "Data",
+   "label": "Notify These Emails",
+   "options": "Email"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-28 02:23:27.526642",
+ "modified": "2026-01-16 11:45:48.928729",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Social Media",

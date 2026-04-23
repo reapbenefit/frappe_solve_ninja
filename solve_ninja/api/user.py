@@ -207,22 +207,30 @@ def get_contributions():
 
 		mobile_no = validate_and_normalize_mobile(mobile_no)
 		user = f"{mobile_no}@solveninja.org"
-		
-		# Build filters with date range if provided
-		filters = {"user": user}
-		
-		if from_date:
-			filters["creation"] = [">=", from_date]
-		
-		if to_date:
-			if from_date:
-				# If both dates are provided, use between filter
-				filters["creation"] = ["between", [from_date, to_date]]
-			else:
-				# If only to_date is provided
-				filters["creation"] = ["<=", to_date]
-		
-		events = frappe.get_all("Events", filters=filters, fields=["*"])
+
+		clauses = ["e.user = %s"]
+		params = [user]
+
+		if from_date and to_date:
+			clauses.append("e.date_of_action BETWEEN %s AND %s")
+			params.extend(
+				[
+					frappe.utils.get_datetime(f"{from_date} 00:00:00"),
+					frappe.utils.get_datetime(f"{to_date} 23:59:59"),
+				]
+			)
+		elif from_date:
+			clauses.append("e.date_of_action >= %s")
+			params.append(frappe.utils.get_datetime(f"{from_date} 00:00:00"))
+		elif to_date:
+			clauses.append("e.date_of_action <= %s")
+			params.append(frappe.utils.get_datetime(f"{to_date} 23:59:59"))
+
+		events = frappe.db.sql(
+			f"SELECT e.* FROM `tabEvents` e WHERE {' AND '.join(clauses)}",
+			tuple(params),
+			as_dict=True,
+		)
 		data = {"action_count": len(events), "actions": events}
 
 	except Exception as e:

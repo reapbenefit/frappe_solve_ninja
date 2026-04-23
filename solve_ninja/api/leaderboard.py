@@ -6,8 +6,6 @@ from frappe.query_builder import DocType, Order
 from frappe.query_builder.functions import Coalesce, Sum, Count, Lower
 from datetime import timedelta
 
-
-
 states_of_india = [
 	"Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
 	"Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
@@ -90,9 +88,15 @@ def get_city_wise_action_count_user_based(page_length=10, recent_rank_based_on=N
 	# Apply filters if present
 	if recent_rank_based_on:
 		if recent_rank_based_on == "Last 15 Days":
-			user_with_events = user_with_events.where(Events.creation >= frappe.utils.add_days(frappe.utils.nowdate(), -15))
+			ts = frappe.utils.add_days(frappe.utils.now_datetime(), -15)
+			user_with_events = user_with_events.where(
+				Events.date_of_action >= frappe.utils.format_datetime(ts, "yyyy-MM-dd HH:mm:ss")
+			)
 		elif recent_rank_based_on == "Last Month":
-			user_with_events = user_with_events.where(Events.creation >= frappe.utils.add_days(frappe.utils.nowdate(), -30))
+			ts = frappe.utils.add_days(frappe.utils.now_datetime(), -30)
+			user_with_events = user_with_events.where(
+				Events.date_of_action >= frappe.utils.format_datetime(ts, "yyyy-MM-dd HH:mm:ss")
+			)
 
 	# Execute Query
 	user_with_events = user_with_events.run(as_dict=True)
@@ -251,7 +255,10 @@ def search_users_(filters=None, raw=False, page_length=10, start=0):
 		)
 		
 		if time_condition:
-			query = query.where(Events.creation >= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss"))
+			query = query.where(
+				Events.date_of_action
+				>= frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss")
+			)
 		
 		# Apply `hr_range` Filter in Python (If Needed)
 		if filters.get("hr_range"):

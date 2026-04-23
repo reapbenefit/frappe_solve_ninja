@@ -50,6 +50,8 @@ def add_event():
     Public API to add a new event entry.
     Expects JSON with fields like: title, mobile, type, category, subcategory, description,
     attachment (URL), source, hours_invested, latitude, longitude.
+    Optional: date_of_action (ISO date or datetime). If omitted, it is filled from
+    creation in the Events after_insert hook (same for all inserts).
     """
     logger.info("START - Adding a new event")
     message = "Event added successfully"
@@ -81,6 +83,10 @@ def add_event():
         event_doc.hours_invested = frappe.utils.flt(event_data.get("hours_invested"))
         event_doc.latitude = event_data.get("latitude")
         event_doc.longitude = event_data.get("longitude")
+
+        raw_action_dt = event_data.get("date_of_action")
+        if raw_action_dt:
+            event_doc.date_of_action = frappe.utils.get_datetime(raw_action_dt)
 
         event_doc.insert(ignore_permissions=True)
 
@@ -859,12 +865,15 @@ def download_profile(user=None):
 def get_ninja_recent_rank(recent_rank_based_on=None):
     # if not recent_rank_based_on or recent_rank_based_on in ["Overall"]:
     #     return []
-    
+
     conditions = ""
+    params = []
     if recent_rank_based_on == "Last 15 Days":
-        conditions = " AND e.creation >= CURRENT_TIMESTAMP - INTERVAL '200 days'"
+        conditions = " AND e.date_of_action >= %s"
+        params.append(frappe.utils.add_days(frappe.utils.now_datetime(), -15))
     elif recent_rank_based_on == "Last Month":
-        conditions = " AND e.creation >= CURRENT_TIMESTAMP - INTERVAL '400 days'"
+        conditions = " AND e.date_of_action >= %s"
+        params.append(frappe.utils.add_days(frappe.utils.now_datetime(), -30))
 
     users = frappe.db.sql(f"""
             SELECT
@@ -889,7 +898,7 @@ def get_ninja_recent_rank(recent_rank_based_on=None):
             ORDER BY
                 hours_invested DESC,
                 u.full_name
-        """, as_dict=True)
+        """, tuple(params), as_dict=True)
 
     for count, data in enumerate(users, 1):
         data["recent_rank"] = count
