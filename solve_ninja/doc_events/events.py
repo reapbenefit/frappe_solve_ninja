@@ -172,7 +172,7 @@ def process_manualupload_events():
     events = frappe.get_all(
         "Events",
         filters={
-            "source": "manualupload",
+            "source": ("in", ["manualupload", "snbot"]),
             "creation": [">=", from_date]
         },
         fields=["name"]

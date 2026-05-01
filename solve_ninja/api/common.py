@@ -79,7 +79,9 @@ def add_event():
         event_doc.category = event_data.get("category")
         event_doc.subcategory = event_data.get("subcategory")
         event_doc.description = event_data.get("description")
-        event_doc.url = event_data.get("attachment")
+        # Backward compatible: accept both "attachment1" (preferred) and legacy "attachment"
+        attachment_url = event_data.get("attachment1") or event_data.get("attachment")
+        event_doc.attachment1 = attachment_url
         event_doc.source = event_data.get("source")
         event_doc.hours_invested = frappe.utils.flt(event_data.get("hours_invested"))
         event_doc.latitude = event_data.get("latitude")
@@ -290,7 +292,7 @@ def add_user():
             now=False
         )
         
-        data = f"https://solveninja.org/user-profile/{user_doc.username}"
+        data = frappe.utils.get_url(f"/user-profile/{user_doc.username}")
 
     except Exception as e:
         logger.error(f"Error occurred while registering user with mobile - {mobile}")
@@ -395,7 +397,7 @@ def update_user():
         user_doc.save(ignore_permissions=True)
         frappe.db.commit()
 
-        data = f"https://solveninja.org/user-profile/{user_doc.username}"
+        data = frappe.utils.get_url(f"/user-profile/{user_doc.username}")
         logger.info(f"Successfully updated user {user_name}")
 
     except Exception as e:
@@ -452,7 +454,7 @@ def fetch_profile():
        
         user_data = json.loads(frappe.request.data)
         mobile_no=user_data.get("mobile")
-        user_profile_link='https://solveninja.org/user-profile/'
+        user_profile_link = frappe.utils.get_url("/user-profile") + "/"
 
         if mobile_no:
             user_doc = frappe.db.get_all('User', filters={'mobile_no':mobile_no },fields=['username'])
@@ -491,7 +493,7 @@ def fetch_full_profile():
             status_code=400
             return custom_response(message,data,status_code,error)
 
-        user_profile_link='https://solveninja.org/user-profile/'
+        user_profile_link = frappe.utils.get_url("/user-profile") + "/"
         user_doc = frappe.get_doc("User", user_name)
         user_profile_link = user_profile_link + username
         data["link"] = user_profile_link

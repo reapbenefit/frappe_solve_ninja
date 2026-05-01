@@ -12,7 +12,11 @@ class MentorshipRequestManager:
         request_description = "Create new mentorship request"
         error_title = "Create Mentorship Request"
 
-        result = Result.new()
+        # Default to failure until success path runs; ensures finally logging always has a coherent Result.
+        result = Result.failure(
+            message="Failed to create mentorship request",
+            error_data=None,
+        )
         doc_name: Optional[str] = None
 
         try:
@@ -23,28 +27,29 @@ class MentorshipRequestManager:
             if missing_fields:
                 raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
             else:
-                mentorship_request = frappe.get_doc(
-                    {
-                        "doctype": "Mentorship Request",
-                        "mentee": request_data.get("mentee_name"),
-                        "phone": request_data.get("phone"),
-                        "mentee_age": request_data.get("mentee_age"),
-                        "mentee_whatsapp_id": request_data.get("mentee_whatsapp_id"),
-                        "chat_session_id": request_data.get("chat_session_id"),
-                        "discovered_problem": request_data.get("discovered_problem"),
-                        "solve_action": cls._normalize_optional_text(
-                            request_data.get("solve_action")
-                        ),
-                        "guidance_details": cls._normalize_optional_text(
-                            request_data.get("guidance_details")
-                        ),
-                        "anything_else": cls._normalize_optional_text(
-                            request_data.get("anything_else")
-                        ),
-                    }
-                )
+
+                doc_payload: Dict[str, Any] = {
+                    "doctype": "Mentorship Request",
+                    "mentee": request_data.get("mentee_name"),
+                    "phone": request_data.get("phone"),
+                    "mentee_age": request_data.get("mentee_age"),
+                    "mentee_whatsapp_id": request_data.get("mentee_whatsapp_id"),
+                    "chat_session_id": request_data.get("chat_session_id"),
+                    "discovered_problem": request_data.get("discovered_problem"),
+                    "solve_action": cls._normalize_optional_text(
+                        request_data.get("solve_action")
+                    ),
+                    "guidance_details": cls._normalize_optional_text(
+                        request_data.get("guidance_details")
+                    ),
+                    "anything_else": cls._normalize_optional_text(
+                        request_data.get("anything_else")
+                    ),
+                    "source": request_data.get("source")
+                }
+
+                mentorship_request = frappe.get_doc(doc_payload)
                 mentorship_request.insert(ignore_permissions=True)
-                frappe.db.commit()
 
                 doc_name = mentorship_request.name
 
@@ -52,6 +57,7 @@ class MentorshipRequestManager:
                     "id": mentorship_request.name,
                     "mentee": mentorship_request.mentee,
                     "phone": mentorship_request.phone,
+                    "source": mentorship_request.get("source") or None,
                 }
                 result = Result.success(message="Mentorship request created successfully", data=return_data)
                 return result
@@ -68,16 +74,25 @@ class MentorshipRequestManager:
                 })
             return result
         finally:
-            log_integration_request(
-                request_data=request_data,
-                response_data=result.to_dict(),
-                service_name=service_name,
-                request_description=request_description,
-                error_data=result.error_data,
-                reference_doctype="Mentorship Request" if doc_name else None,
-                reference_docname=doc_name,
-                error_title=error_title,
-            )
+            try:
+                response_dict = result.to_dict()
+                log_integration_request(
+                    request_data=request_data or {},
+                    response_data=response_dict,
+                    service_name=service_name,
+                    request_description=request_description,
+                    error_data=(
+                        result.error_data if result.error_data else None
+                    ),
+                    reference_doctype="Mentorship Request" if doc_name else None,
+                    reference_docname=doc_name,
+                    error_title=error_title,
+                )
+            except Exception as log_exc:
+                frappe.log_error(
+                    f"Integration request logging failed in MentorshipRequestManager.create: {str(log_exc)}\n{frappe.get_traceback()}",
+                    f"{error_title} Integration Request Logging Error",
+                )
    
     @staticmethod
     def _normalize_optional_text(value: Optional[str]) -> Optional[str]:

@@ -1,9 +1,12 @@
-import asyncio
 import frappe
-import json
 from samaaja.api.common import custom_response
+from solve_ninja.models.result import Result
 from solve_ninja.services.mentorship_request_manager import MentorshipRequestManager
-from solve_ninja.utils import parse_request_data
+from solve_ninja.utils import log_integration_request, parse_request_data
+
+_SERVICE_NAME = "Create Mentorship Request"
+_REQUEST_DESCRIPTION = "Create new mentorship request"
+_ERROR_TITLE = "Create Mentorship Request"
 
 @frappe.whitelist(allow_guest=True)
 def create():
@@ -13,6 +16,7 @@ def create():
 	Request Body (JSON):
 	- mentee_name (string, required): Name of the mentee
 	- phone (string, required): Phone number of the mentee
+	- source (string, optional): Origin of the request. One of: Bot, Marketplace, Marketplace Learn
 	- mentee_age (string, optional): Age of the mentee
 	- mentee_whatsapp_id (string, optional): WhatsApp ID of the mentee
 	- investigation_status (string, optional): Investigation status (Yes/No)
@@ -36,7 +40,29 @@ def create():
 		request_data = parse_request_data()
 		return MentorshipRequestManager.create(request_data).to_custom_response()
 	except Exception as e:
-		frappe.log_error(f"Error in parse_request_data: {str(e)}")
+		parse_failure = Result.failure(
+			message="Failed to parse request data",
+			error_data={
+				"error": str(e),
+				"traceback": frappe.get_traceback(),
+			},
+		)
+		try:
+			log_integration_request(
+				request_data={},
+				response_data=parse_failure.to_dict(),
+				service_name=_SERVICE_NAME,
+				request_description=_REQUEST_DESCRIPTION,
+				error_data=parse_failure.error_data,
+				reference_doctype=None,
+				reference_docname=None,
+				error_title=_ERROR_TITLE,
+			)
+		except Exception as log_exc:
+			frappe.log_error(
+				f"Mentorship create API integration logging failed: {str(log_exc)}\n{frappe.get_traceback()}",
+				f"{_ERROR_TITLE} Integration Request Logging Error",
+			)
 		return custom_response(
 			message="Failed to parse request data",
 			data={"error": str(e)},
