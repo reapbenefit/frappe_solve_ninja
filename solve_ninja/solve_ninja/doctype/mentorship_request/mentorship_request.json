@@ -17,6 +17,7 @@
   "column_break_gq9jj",
   "assigned_mentor",
   "mentor_name",
+  "source",
   "section_break_ysj2u",
   "discovered_problem",
   "column_break_8x7gj",
@@ -190,11 +191,17 @@
    "hidden": 1,
    "label": "Chat Session Id",
    "read_only": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "\nGlific Bot\nMarketplace\nMarketplace Learn\nMarketplace Lead"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-02-05 11:58:10.078676",
+ "modified": "2026-05-01 12:08:29.391240",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Mentorship Request",
