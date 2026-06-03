@@ -1,0 +1,297 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:group_name",
+ "creation": "2026-05-13 19:30:00",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "group_name",
+  "glific_group_id",
+  "column_break_glfg",
+  "is_restricted",
+  "description",
+  "section_cohort_period",
+  "cohort_type",
+  "column_break_cohort_period",
+  "cohort_month",
+  "cohort_year",
+  "section_audience",
+  "audience_mode",
+  "column_audience_a",
+  "filter_wa_community",
+  "filter_glific_wa_groups",
+  "column_audience_b",
+  "filter_cities",
+  "filter_gender",
+  "column_audience_contrib",
+  "filter_contributions_min",
+  "filter_contributions_max",
+  "column_audience_dates",
+  "filter_last_action_date_from",
+  "filter_last_action_date_to",
+  "filter_last_active_date_from",
+  "filter_last_active_date_to",
+  "filter_acquisition_source_unique_id",
+  "column_audience_misc",
+  "filter_user_organization",
+  "preview_token",
+  "preview_match_count",
+  "preview_sample_json",
+  "preview_generated_at",
+  "section_break_members",
+  "members"
+ ],
+ "fields": [
+  {
+   "fieldname": "group_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Group Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "glific_group_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Glific Group ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_glfg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_restricted",
+   "fieldtype": "Check",
+   "label": "Is Restricted"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "section_cohort_period",
+   "fieldtype": "Section Break",
+   "label": "Cohort period"
+  },
+  {
+   "default": "Custom Cohort",
+   "fieldname": "cohort_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Cohort type",
+   "options": "Custom Cohort\nAutomated Cohort"
+  },
+  {
+   "fieldname": "column_break_cohort_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cohort_month",
+   "fieldtype": "Select",
+   "label": "Cohort month",
+   "options": "January\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember"
+  },
+  {
+   "fieldname": "cohort_year",
+   "fieldtype": "Int",
+   "label": "Cohort year"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "fieldname": "section_audience",
+   "fieldtype": "Section Break",
+   "label": "Audience & filters",
+   "depends_on": "eval:doc.audience_mode=='Filtered'"
+  },
+  {
+   "default": "Enumerated",
+   "fieldname": "audience_mode",
+   "fieldtype": "Select",
+   "hidden": 0,
+   "label": "Audience mode",
+   "options": "Enumerated\nFiltered"
+  },
+  {
+   "fieldname": "column_audience_a",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Uses Glific memberships from selected Glific WA Group records.",
+   "fieldname": "filter_wa_community",
+   "fieldtype": "Check",
+   "label": "Restrict to WhatsApp communities"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered' && doc.filter_wa_community",
+   "description": "Members of any selected group are included (union).",
+   "fieldname": "filter_glific_wa_groups",
+   "fieldtype": "Table MultiSelect",
+   "label": "Glific WA groups",
+   "options": "Glific Group Filter WA Group"
+  },
+  {
+   "fieldname": "column_audience_b",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Profile city matches any selected city.",
+   "fieldname": "filter_cities",
+   "fieldtype": "Table MultiSelect",
+   "label": "Cities",
+   "options": "Glific Group Filter City"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "fieldname": "filter_gender",
+   "fieldtype": "Link",
+   "label": "Gender",
+   "options": "Gender"
+  },
+  {
+   "fieldname": "column_audience_contrib",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Uses Ninja Profile \"contributions\" (count).",
+   "fieldname": "filter_contributions_min",
+   "fieldtype": "Int",
+   "label": "Number of actions (min)"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Uses Ninja Profile \"contributions\" (count).",
+   "fieldname": "filter_contributions_max",
+   "fieldtype": "Int",
+   "label": "Number of actions (max)"
+  },
+  {
+   "fieldname": "column_audience_dates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Uses Ninja Profile \"last_action_date\".",
+   "fieldname": "filter_last_action_date_from",
+   "fieldtype": "Date",
+   "label": "Last action date (from)"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Uses Ninja Profile \"last_action_date\".",
+   "fieldname": "filter_last_action_date_to",
+   "fieldtype": "Date",
+   "label": "Last action date (to)"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Uses Ninja Profile \"last_active_date_bot\".",
+   "fieldname": "filter_last_active_date_from",
+   "fieldtype": "Date",
+   "label": "Last active date (from)"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Uses Ninja Profile \"last_active_date_bot\".",
+   "fieldname": "filter_last_active_date_to",
+   "fieldtype": "Date",
+   "label": "Last active date (to)"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "fieldname": "filter_acquisition_source_unique_id",
+   "fieldtype": "Data",
+   "label": "Acquisition Source Unique ID"
+  },
+  {
+   "fieldname": "column_audience_misc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "fieldname": "filter_user_organization",
+   "fieldtype": "Link",
+   "label": "User Organization",
+   "options": "User Organization"
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "description": "Set by Preview audience.",
+   "fieldname": "preview_token",
+   "fieldtype": "Small Text",
+   "label": "Preview token",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "fieldname": "preview_match_count",
+   "fieldtype": "Int",
+   "label": "Preview match count",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "fieldname": "preview_sample_json",
+   "fieldtype": "Code",
+   "label": "Preview sample JSON",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.audience_mode=='Filtered'",
+   "fieldname": "preview_generated_at",
+   "fieldtype": "Datetime",
+   "label": "Preview generated at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_members",
+   "fieldtype": "Section Break",
+   "label": "Members"
+  },
+  {
+   "fieldname": "members",
+   "fieldtype": "Table",
+   "label": "Members",
+   "options": "Glific Group Contact"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-19 12:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Glific Group",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

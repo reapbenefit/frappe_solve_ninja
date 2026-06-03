@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-19 12:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "mobile_no",
+  "contact_name",
+  "column_break_glwm",
+  "glific_contact_id",
+  "status",
+  "error_message"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fetch_from": "user.mobile_no",
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mobile No"
+  },
+  {
+   "fetch_from": "user.full_name",
+   "fieldname": "contact_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contact Name"
+  },
+  {
+   "fieldname": "column_break_glwm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "glific_contact_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Glific Contact ID",
+   "read_only": 1
+  },
+  {
+   "default": "Synced",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nSynced\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_message",
+   "fieldtype": "Small Text",
+   "label": "Error Message",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-05-19 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Glific WA Group Member",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
