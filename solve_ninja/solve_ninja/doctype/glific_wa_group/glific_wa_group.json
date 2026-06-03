@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:glific_group_id",
+ "creation": "2026-05-19 12:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_sync",
+  "sync_status",
+  "sync_error",
+  "last_synced_on",
+  "column_break_sync",
+  "glific_group_id",
+  "bsp_id",
+  "group_label",
+  "section_counts",
+  "contacts_count",
+  "column_break_counts",
+  "last_communication_at",
+  "section_members",
+  "members"
+ ],
+ "fields": [
+  {
+   "collapsible": 0,
+   "fieldname": "section_sync",
+   "fieldtype": "Section Break",
+   "label": "Sync"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "sync_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sync Status",
+   "options": "Pending\nSuccess\nFailed\nPartial",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sync_error",
+   "fieldtype": "Small Text",
+   "label": "Sync Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_synced_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Last Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sync",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "glific_group_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Glific WA Group ID",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "bsp_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "WhatsApp Group ID (BSP)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "group_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "WhatsApp Group Label",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_counts",
+   "fieldtype": "Section Break",
+   "label": "Counts"
+  },
+  {
+   "fieldname": "contacts_count",
+   "fieldtype": "Int",
+   "label": "Members Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_counts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_communication_at",
+   "fieldtype": "Datetime",
+   "label": "Last Communication At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_members",
+   "fieldtype": "Section Break",
+   "label": "Members"
+  },
+  {
+   "fieldname": "members",
+   "fieldtype": "Table",
+   "label": "Members",
+   "options": "Glific WA Group Member",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-21 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Glific WA Group",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

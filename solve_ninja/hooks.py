@@ -28,13 +28,21 @@ web_include_js = "/assets/solve_ninja/js/solve_ninja.js"
 # }
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
-# include js in page
-# page_js = {"page" : "public/js/file.js"}
+page_js = {
+    "manage-cohort": [
+        "public/js/glific_cohort_filters.js",
+        "public/js/manage_cohort_page.js",
+    ],
+}
 
 # include js in doctype views
 doctype_js = {
+    "Glific Group": [
+        "public/js/glific_cohort_filters.js",
+        "public/js/glific_group_form.js",
+    ],
     "User": "public/js/user.js",
-    "User Metadata": "public/js/user_metadata.js"
+    "User Metadata": "public/js/user_metadata.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -139,8 +147,11 @@ scheduler_events = {
         "solve_ninja.doc_events.events.process_manualupload_events",
         "solve_ninja.api.leaderboard.update_user_rank",
         "solve_ninja.api.glific_sync.sync_metadata_from_bigquery",
+        "solve_ninja.api.glific_sync.sync_wa_group_members_from_bigquery",
+        "solve_ninja.api.glific_sync.provision_missing_users_from_bigquery_incremental",
         "solve_ninja.doc_events.events.update_all_user_headlines_daily",
         "solve_ninja.solve_ninja.doctype.solve_event.solve_event.cleanup_completed_event_keywords",
+        "solve_ninja.solve_ninja.doctype.glific_wa_group.glific_wa_group.scheduled_sync_glific_wa_groups_metadata",
     ],
     "hourly_long": [
         "solve_ninja.services.user.user_manager.generate_user_summary_scheduler_",

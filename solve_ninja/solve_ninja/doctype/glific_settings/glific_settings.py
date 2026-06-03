@@ -10,6 +10,9 @@ import time
 import random
 from psycopg2.errors import SerializationFailure
 
+DEFAULT_GRAPHQL_TIMEOUT = 15
+WA_MAYTAPI_SYNC_TIMEOUT = 180
+
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
 
@@ -52,7 +55,7 @@ class GlificSettings(Document):
             headers["Authorization"] = f"{token}"
         return headers
 
-    def _post(self, url, payload, headers, timeout=15):
+    def _post(self, url, payload, headers, timeout=DEFAULT_GRAPHQL_TIMEOUT):
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=timeout)
             if response.status_code == 401:
@@ -63,6 +66,13 @@ class GlificSettings(Document):
                 return {"error": "Forbidden (403): Access denied. Please check your permissions.", "status_code": 403}
             response.raise_for_status()
             return response.json()
+        except requests.Timeout:
+            frappe.log_error(frappe.get_traceback(), f"Glific API Timeout ({url})")
+            friendly = (
+                f"Glific API timed out after {timeout}s. "
+                "For WhatsApp group refresh, try again or use Refresh from WhatsApp when Glific/Maytapi is responsive."
+            )
+            return {"error": friendly}
         except requests.RequestException as e:
             frappe.log_error(frappe.get_traceback(), f"Glific API Error ({url})")
             return {"error": str(e)}
@@ -301,6 +311,7 @@ class GlificSettings(Document):
                     "result": json.dumps({"result":result})
                 }
         }
+        logger.info(f"Resuming Glific flow with payload: {json.dumps(payload)}")
         return self._api_graphql_post_with_reauth(payload)
     
     def get_session_templates(self):
@@ -501,12 +512,381 @@ class GlificSettings(Document):
         }
         return self._api_graphql_post_with_reauth(payload)
 
-    def _api_graphql_post_with_reauth(self, payload, retry=True):
+    def create_group(self, label, description=None, is_restricted=False):
+        """
+        Create a new group in Glific.
+
+        Args:
+            label (str): Group label (required by Glific; must be unique per org).
+            description (str, optional): Group description.
+            is_restricted (bool): Maps to Glific isRestricted.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not label:
+            frappe.throw("Group label is required")
+
+        group_input = {"label": label, "isRestricted": bool(is_restricted)}
+        if description:
+            group_input["description"] = description
+
+        payload = {
+            "query": """
+                mutation createGroup($input: GroupInput!) {
+                    createGroup(input: $input) {
+                        group {
+                            id
+                            label
+                            isRestricted
+                            description
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {"input": group_input},
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def add_contact_to_group(self, contact_id, group_id):
+        """
+        Add a single Glific contact to a Glific group (createContactGroup).
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not contact_id or not group_id:
+            frappe.throw("contact_id and group_id are required")
+
+        payload = {
+            "query": """
+                mutation createContactGroup($input: ContactGroupInput!) {
+                    createContactGroup(input: $input) {
+                        contactGroup {
+                            id
+                            contact {
+                                id
+                                name
+                            }
+                            group {
+                                id
+                                label
+                            }
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "input": {
+                    "contactId": int(contact_id),
+                    "groupId": int(group_id),
+                }
+            },
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def update_group_contacts(self, group_id, add_contact_ids=None, delete_contact_ids=None):
+        """
+        Bulk add/remove contacts for a Glific group (updateGroupContacts).
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not group_id:
+            frappe.throw("group_id is required")
+
+        add_contact_ids = add_contact_ids or []
+        delete_contact_ids = delete_contact_ids or []
+
+        if not add_contact_ids and not delete_contact_ids:
+            frappe.throw("add_contact_ids or delete_contact_ids must be provided")
+
+        # Glific GroupContactsInput uses non-null list fields ([ID]!); omitting a key sends null and fails validation.
+        inp = {
+            "groupId": int(group_id),
+            "addContactIds": [int(x) for x in add_contact_ids],
+            "deleteContactIds": [int(x) for x in delete_contact_ids],
+        }
+
+        payload = {
+            "query": """
+                mutation updateGroupContacts($input: GroupContactsInput!) {
+                    updateGroupContacts(input: $input) {
+                        groupContacts {
+                            id
+                            group {
+                                label
+                            }
+                            contact {
+                                name
+                            }
+                        }
+                        numberDeleted
+                    }
+                }
+            """,
+            "variables": {
+                "input": inp
+            },
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def delete_group(self, group_id):
+        """
+        Delete a Glific group (collection) via deleteGroup mutation.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not group_id:
+            frappe.throw("group_id is required")
+
+        payload = {
+            "query": """
+                mutation deleteGroup($id: ID!) {
+                    deleteGroup(id: $id) {
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {"id": int(group_id)},
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def list_groups(self, gql_filter=None, limit=50, offset=0):
+        """
+        List Glific groups (collections) with optional GroupFilter.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        payload = {
+            "query": """
+                query groups($filter: GroupFilter, $opts: Opts) {
+                    groups(filter: $filter, opts: $opts) {
+                        id
+                        label
+                        isRestricted
+                        contactsCount
+                        usersCount
+                    }
+                }
+            """,
+            "variables": {
+                "filter": gql_filter or {},
+                "opts": {"limit": int(limit), "offset": int(offset), "order": "ASC"},
+            },
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def get_group(self, group_id):
+        """
+        Fetch a single Glific group by id (detail fields for mirror DocTypes).
+
+        Glific may return ``Group`` nested under ``group`` (GroupResult shape).
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not group_id:
+            frappe.throw("group_id is required")
+
+        payload = {
+            "query": """
+                query group($id: ID!) {
+                    group(id: $id) {
+                        group {
+                            id
+                            label
+                            isRestricted
+                            description
+                            contactsCount
+                            usersCount
+                            lastCommunicationAt
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {"id": str(group_id)},
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def list_contacts(self, gql_filter, limit=50, offset=0):
+        """
+        List Glific contacts with optional ContactFilter (e.g. includeGroups).
+        """
+        payload = {
+            "query": """
+                query contacts($filter: ContactFilter, $opts: Opts) {
+                    contacts(filter: $filter, opts: $opts) {
+                        id
+                        name
+                        phone
+                        groups {
+                            id
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "filter": gql_filter or {},
+                "opts": {"limit": int(limit), "offset": int(offset), "order": "ASC"},
+            },
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def list_wa_groups(self, gql_filter=None, limit=50, offset=0):
+        """
+        List Glific WhatsApp groups (Maytapi-backed) with optional WaGroupFilter.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        payload = {
+            "query": """
+                query waGroups($filter: WaGroupFilter, $opts: Opts) {
+                    waGroups(filter: $filter, opts: $opts) {
+                        id
+                        label
+                        bspId
+                        lastCommunicationAt
+                    }
+                }
+            """,
+            "variables": {
+                "filter": gql_filter or {},
+                "opts": {"limit": int(limit), "offset": int(offset), "order": "ASC"},
+            },
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def get_wa_group(self, wa_group_id):
+        """
+        Fetch a single Glific WhatsApp group by id.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not wa_group_id:
+            frappe.throw("wa_group_id is required")
+
+        payload = {
+            "query": """
+                query waGroup($id: ID!) {
+                    waGroup(id: $id) {
+                        waGroup {
+                            id
+                            label
+                            bspId
+                            lastCommunicationAt
+                        }
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {"id": str(wa_group_id)},
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def list_contact_wa_group(self, wa_group_id, limit=50, offset=0):
+        """
+        List contacts belonging to a Glific WhatsApp group.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not wa_group_id:
+            frappe.throw("wa_group_id is required")
+
+        payload = {
+            "query": """
+                query listContactWaGroup($filter: ContactWaGroupFilter, $opts: Opts) {
+                    listContactWaGroup(filter: $filter, opts: $opts) {
+                        id
+                        isAdmin
+                        contact {
+                            id
+                            name
+                            phone
+                        }
+                    }
+                }
+            """,
+            "variables": {
+                "filter": {"waGroupId": str(wa_group_id)},
+                "opts": {"limit": int(limit), "offset": int(offset), "order": "ASC"},
+            },
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def count_contact_wa_group(self, wa_group_id):
+        """
+        Count contacts in a Glific WhatsApp group.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        if not wa_group_id:
+            frappe.throw("wa_group_id is required")
+
+        payload = {
+            "query": """
+                query countContactWaGroup($filter: ContactWaGroupFilter) {
+                    countContactWaGroup(filter: $filter)
+                }
+            """,
+            "variables": {"filter": {"waGroupId": str(wa_group_id)}},
+        }
+        return self._api_graphql_post_with_reauth(payload)
+
+    def sync_wa_group_contacts(self):
+        """
+        Trigger Glific to refresh WhatsApp group membership from Maytapi.
+
+        Returns:
+            dict: Raw JSON response from Glific GraphQL API.
+        """
+        payload = {
+            "query": """
+                mutation syncWaGroupContacts {
+                    syncWaGroupContacts {
+                        message
+                        errors {
+                            key
+                            message
+                        }
+                    }
+                }
+            """,
+            "variables": {},
+        }
+        return self._api_graphql_post_with_reauth(payload, timeout=WA_MAYTAPI_SYNC_TIMEOUT)
+
+    def _api_graphql_post_with_reauth(self, payload, retry=True, timeout=DEFAULT_GRAPHQL_TIMEOUT):
         """
         Makes a POST to the /api endpoint with GraphQL payload. Handles 401 by refreshing token or re-login.
         Args:
             payload (dict): GraphQL payload with `query` and `variables`.
             retry (bool): Whether to retry on 401 errors.
+            timeout (int): Read timeout in seconds for the HTTP POST.
         Returns:
             dict: JSON response from Glific API
         """
@@ -515,20 +895,20 @@ class GlificSettings(Document):
         # logger.info(f"Making GraphQL POST to {url} with payload: {json.dumps(payload)}")
         # logger.info(f"Using headers: {json.dumps(headers)}")
         # logger.info(f"Payload: {payload}")
-        response_data = self._post(url, payload, headers)
+        response_data = self._post(url, payload, headers, timeout=timeout)
 
         if response_data.get("status_code") == 401 and retry:
             refresh_result = self._refresh_token()
             if refresh_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers)
+                response_data = self._post(url, payload, headers, timeout=timeout)
                 if response_data.get("status_code") != 401:
                     return response_data
 
             login_result = self._get_glific_session()
             if login_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers)
+                response_data = self._post(url, payload, headers, timeout=timeout)
                 if response_data.get("status_code") != 401:
                     return response_data
 

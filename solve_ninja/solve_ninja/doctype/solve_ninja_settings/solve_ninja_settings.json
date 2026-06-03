@@ -24,7 +24,8 @@
   "channel",
   "column_break_jbyf0",
   "enable_badge_notification",
-  "login_otp_template_id"
+  "login_otp_template_id",
+  "last_bq_run_frappe"
  ],
  "fields": [
   {
@@ -117,12 +118,17 @@
    "fieldname": "mentee_dropout_notification_template",
    "fieldtype": "Int",
    "label": "Mentee Droppout Notification Template"
+  },
+  {
+   "fieldname": "last_bq_run_frappe",
+   "fieldtype": "Datetime",
+   "label": "Last BQ Run"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-01-16 15:02:11.685789",
+ "modified": "2026-06-02 16:46:56.150701",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Ninja Settings",
