@@ -11,6 +11,8 @@ from frappe.utils.data import cint
 from solve_ninja.services.glific_manager import GlificManager
 from solve_ninja.utils import validate_and_normalize_mobile
 
+MONTHLY_COHORT_TYPES = frozenset(("Monthly Cohort", "Automated Cohort"))
+
 _COHORT_MONTHS = frozenset(
 	(
 		"January",
@@ -61,26 +63,31 @@ class GlificGroup(Document):
 			self.cohort_type = "Custom Cohort"
 
 		if self.get("cohort_type") == "Custom Cohort":
-			if not self.get("cohort_month"):
-				frappe.throw(_("Cohort month is required for Custom Cohort."))
-			if self.get("cohort_month") not in _COHORT_MONTHS:
-				frappe.throw(_("Invalid cohort month."))
-			year = self.get("cohort_year")
-			if year is None or year == "":
-				frappe.throw(_("Cohort year is required for Custom Cohort."))
-			try:
-				y = int(year)
-			except Exception:
-				frappe.throw(_("Cohort year must be a whole number."))
-			if y < 2000 or y > 2100:
-				frappe.throw(_("Cohort year must be between 2000 and 2100."))
+			self._validate_cohort_period(_("Custom Cohort"))
+		elif self.get("cohort_type") in MONTHLY_COHORT_TYPES and self.get("automated_cohort_bucket"):
+			self._validate_cohort_period(_("Monthly Cohort"))
+
+	def _validate_cohort_period(self, label):
+		if not self.get("cohort_month"):
+			frappe.throw(_("Cohort month is required for {0}.").format(label))
+		if self.get("cohort_month") not in _COHORT_MONTHS:
+			frappe.throw(_("Invalid cohort month."))
+		year = self.get("cohort_year")
+		if year is None or year == "":
+			frappe.throw(_("Cohort year is required for {0}.").format(label))
+		try:
+			y = int(year)
+		except Exception:
+			frappe.throw(_("Cohort year must be a whole number."))
+		if y < 2000 or y > 2100:
+			frappe.throw(_("Cohort year must be between 2000 and 2100."))
 
 	def before_insert(self):
 		if self.glific_group_id:
 			return
 		if self.get("audience_mode") == "Filtered":
 			return
-		if self.get("cohort_type") == "Automated Cohort":
+		if self.get("cohort_type") in MONTHLY_COHORT_TYPES:
 			return
 		settings = frappe.get_doc("Glific Settings")
 		desc = (self.description or "").strip() or None
@@ -340,7 +347,16 @@ def get_manage_cohort_summaries(limit=500):
 	limit_i = max(1, min(cint(limit) or 500, 2000))
 	meta_list = frappe.get_list(
 		"Glific Group",
-		fields=["name", "group_name", "cohort_type", "creation"],
+		fields=[
+			"name",
+			"group_name",
+			"cohort_type",
+			"automated_cohort_bucket",
+			"cohort_month",
+			"cohort_year",
+			"glific_sync_status",
+			"creation",
+		],
 		order_by="modified desc",
 		limit_page_length=limit_i,
 	)
