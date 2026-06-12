@@ -9,7 +9,7 @@ import time
 import psutil
 from solve_ninja.api.user import update_user_creation_field
 from solve_ninja.api.common import update_user_metadata, update_ninja_profile
-from solve_ninja.utils import validate_and_normalize_mobile
+from solve_ninja.utils import find_user_by_mobile, validate_and_normalize_mobile
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -387,8 +387,7 @@ WHERE c.phone IS NOT NULL AND TRIM(c.phone) != ''
 """
 
 BQ_PROVISION_COMMIT_EVERY = 10
-BQ_PROVISION_ACQUISITION_SOURCE = "Direct"
-BQ_PROVISION_IST_HOUR = 23
+BQ_PROVISION_ACQUISITION_SOURCE = "Glific"
 
 
 def _bq_naive_datetime(dt):
@@ -399,15 +398,6 @@ def _bq_naive_datetime(dt):
 	if dt.tzinfo:
 		dt = dt.replace(tzinfo=None)
 	return dt
-
-
-def _should_run_bq_user_provision_now():
-	"""Run near 11 PM IST unless site config forces a run (for manual testing)."""
-	if frappe.conf.get("bq_provision_force_run"):
-		return True
-	now_ist = datetime.now(ZoneInfo("Asia/Kolkata"))
-	target_hour = int(frappe.conf.get("bq_provision_ist_hour") or BQ_PROVISION_IST_HOUR)
-	return now_ist.hour == target_hour
 
 
 def _get_bq_provision_since_datetime():
@@ -425,18 +415,37 @@ def _load_frappe_mobile_set():
 	mobiles = set()
 	for row in frappe.get_all(
 		"User",
-		filters={"name": ["!=", "Administrator"], "mobile_no": ["is", "set"]},
-		fields=["mobile_no"],
+		filters={"name": ["!=", "Administrator"]},
+		fields=["mobile_no", "name"],
 		limit_page_length=0,
 	):
 		raw = str(row.get("mobile_no") or "").strip()
-		if not raw:
-			continue
-		try:
-			mobiles.add(validate_and_normalize_mobile(raw))
-		except Exception:
-			continue
+		if raw:
+			try:
+				mobiles.add(validate_and_normalize_mobile(raw))
+			except Exception:
+				pass
+		name = str(row.get("name") or "").strip()
+		if name.endswith("@solveninja.org"):
+			try:
+				mobiles.add(validate_and_normalize_mobile(name.split("@", 1)[0]))
+			except Exception:
+				pass
 	return mobiles
+
+
+def _user_exists_for_mobile(mobile):
+	"""User may exist by mobile_no, email/name, or alternate mobile format."""
+	try:
+		mobile = validate_and_normalize_mobile(str(mobile).strip())
+	except Exception:
+		return False
+	if frappe.db.exists("User", f"{mobile}@solveninja.org"):
+		return True
+	if frappe.db.exists("User", {"mobile_no": mobile}):
+		return True
+	user_name, _, _ = find_user_by_mobile(mobile)
+	return bool(user_name)
 
 
 def _bq_contact_row_to_dict(row):
@@ -505,20 +514,13 @@ def provision_missing_users_from_bigquery_incremental():
 	then backfill creation date, User Metadata, and Ninja Profile.
 
 	Cursor: Solve Ninja Settings.last_bq_run_frappe
-	Runs near 11 PM IST (hour 23 Asia/Kolkata) when invoked via daily_long scheduler.
-	Set site_config bq_provision_force_run=1 to run anytime (e.g. bench execute).
+	Invoked via daily_long scheduler (same as other Glific BigQuery sync jobs).
 	"""
 	if not frappe.conf.get("bq_provision_enabled"):
 		logger.info(
 			"provision_missing_users_from_bigquery_incremental disabled (set bq_provision_enabled=1 in site_config.json to enable)"
 		)
 		return {"skipped": True, "reason": "disabled"}
-
-	if not _should_run_bq_user_provision_now():
-		logger.info(
-			"provision_missing_users_from_bigquery_incremental skipped (outside IST run window)"
-		)
-		return {"skipped": True, "reason": "outside_ist_window"}
 
 	if not bigquery_client_available():
 		frappe.log_error(
@@ -565,7 +567,7 @@ def provision_missing_users_from_bigquery_incremental():
 				if ins_naive and (max_inserted_at is None or ins_naive > max_inserted_at):
 					max_inserted_at = ins_naive
 
-			if mobile in frappe_mobiles or frappe.db.exists("User", {"mobile_no": mobile}):
+			if mobile in frappe_mobiles or _user_exists_for_mobile(mobile):
 				stats["skipped_existing"] += 1
 				frappe_mobiles.add(mobile)
 				continue
@@ -615,3 +617,239 @@ def provision_missing_users_from_bigquery_incremental():
 
 	logger.info(f"provision_missing_users_from_bigquery_incremental done: {stats}")
 	return stats
+
+
+BQ_CONTACTS_DISTINCT_PHONES_QUERY = f"""
+SELECT DISTINCT phone
+FROM `{GLIFIC_BQ_DATASET}.contacts`
+WHERE phone IS NOT NULL AND TRIM(phone) != ''
+"""
+
+BQ_CONTACTS_BY_PHONES_QUERY = f"""
+SELECT
+  c.phone,
+  ANY_VALUE(c.id) AS whatsapp_id,
+  ANY_VALUE(c.name) AS contact_name,
+  ANY_VALUE(c.inserted_at) AS inserted_at,
+  ANY_VALUE(c.language) AS language,
+  ANY_VALUE(pref.value) AS preferred_name,
+  ANY_VALUE(gen.value) AS gender,
+  ANY_VALUE(pin.value) AS pincode,
+  ANY_VALUE(yob.value) AS year_of_birth
+FROM `{GLIFIC_BQ_DATASET}.contacts` c
+LEFT JOIN UNNEST(c.fields) pref ON pref.label = 'preferred_name'
+LEFT JOIN UNNEST(c.fields) gen ON gen.label = 'Gender'
+LEFT JOIN UNNEST(c.fields) pin ON pin.label = 'pincode'
+LEFT JOIN UNNEST(c.fields) yob ON yob.label = 'year_of_birth'
+WHERE c.phone IN UNNEST(@phones)
+GROUP BY c.phone
+"""
+
+
+def _normalize_phone_set(phones, country_prefix=None):
+	normalized = set()
+	for raw in phones:
+		p = str(raw or "").strip()
+		if not p:
+			continue
+		try:
+			p = validate_and_normalize_mobile(p)
+			if country_prefix and not str(p).startswith(str(country_prefix)):
+				continue
+			normalized.add(p)
+		except Exception:
+			continue
+	return normalized
+
+
+def _load_bq_phone_set(country_prefix=None):
+	bigquery = get_bigquery_module()
+	if not bigquery:
+		raise ImportError("google-cloud-bigquery is not installed")
+	setup_bigquery_credentials()
+	client = get_bigquery_client()
+	rows = client.query(BQ_CONTACTS_DISTINCT_PHONES_QUERY).result()
+	return _normalize_phone_set(
+		[str(getattr(r, "phone", "") or "") for r in rows],
+		country_prefix=country_prefix,
+	)
+
+
+def get_bq_frappe_user_diff(country_prefix=None):
+	"""Return BQ vs Frappe phone diff counts (for pre/post backfill checks)."""
+	bq_phones = _load_bq_phone_set(country_prefix=country_prefix)
+	frappe_phones = _load_frappe_mobile_set()
+	if country_prefix:
+		frappe_phones = _normalize_phone_set(frappe_phones, country_prefix=country_prefix)
+	missing = sorted(bq_phones - frappe_phones)
+	return {
+		"bq_unique": len(bq_phones),
+		"frappe_unique": len(frappe_phones),
+		"missing_in_frappe": len(missing),
+		"in_frappe_only": len(frappe_phones - bq_phones),
+		"missing_sample": missing[:5],
+	}
+
+
+def _fetch_bq_contacts_for_phones(phones):
+	bigquery = get_bigquery_module()
+	if not bigquery:
+		raise ImportError("google-cloud-bigquery is not installed")
+	setup_bigquery_credentials()
+	client = get_bigquery_client()
+	job_config = bigquery.QueryJobConfig(
+		query_parameters=[
+			bigquery.ArrayQueryParameter("phones", "STRING", [str(p) for p in phones]),
+		]
+	)
+	rows = client.query(BQ_CONTACTS_BY_PHONES_QUERY, job_config=job_config).result()
+	by_phone = {}
+	for row in rows:
+		row = _bq_contact_row_to_dict(row)
+		try:
+			mobile = validate_and_normalize_mobile(str(row.get("phone") or "").strip())
+		except Exception:
+			continue
+		by_phone[mobile] = row
+	return by_phone
+
+
+def backfill_missing_users_from_bigquery_batch(
+	batch_size=500,
+	start_offset=0,
+	country_prefix=None,
+	acquisition_source=None,
+):
+	"""
+	Create + backfill up to ``batch_size`` users missing in Frappe vs BigQuery.
+
+	``start_offset`` is usually 0; the diff is recomputed each call.
+	"""
+	if not bigquery_client_available():
+		frappe.throw("BigQuery unavailable")
+
+	acquisition_source = acquisition_source or BQ_PROVISION_ACQUISITION_SOURCE
+	bq_phones = _load_bq_phone_set(country_prefix=country_prefix)
+	frappe_phones = _load_frappe_mobile_set()
+	if country_prefix:
+		frappe_phones = _normalize_phone_set(frappe_phones, country_prefix=country_prefix)
+
+	missing_all = sorted(bq_phones - frappe_phones)
+	phones = missing_all[start_offset : start_offset + batch_size]
+
+	stats = {
+		"missing_before": len(missing_all),
+		"batch_selected": len(phones),
+		"created": 0,
+		"backfill_ok": 0,
+		"failed": 0,
+		"create_failed": [],
+		"backfill_failed": [],
+	}
+
+	if not phones:
+		stats["ok"] = True
+		stats["done"] = True
+		return stats
+
+	bq_by_phone = _fetch_bq_contacts_for_phones(phones)
+	frappe_mobiles = set(frappe_phones)
+
+	for mobile in phones:
+		row = bq_by_phone.get(mobile)
+		if not row:
+			stats["failed"] += 1
+			continue
+
+		if mobile in frappe_mobiles or _user_exists_for_mobile(mobile):
+			frappe_mobiles.add(mobile)
+			continue
+
+		try:
+			user_data = _user_data_from_bq_row(row, mobile)
+			user_data["acquisition_source_category"] = acquisition_source
+			user = _create_user_from_bq_contact(mobile, user_data["first_name"])
+			inserted_at = row.get("inserted_at")
+			if inserted_at:
+				update_user_creation_field(mobile, inserted_at)
+			update_user_metadata(user, user_data)
+			update_ninja_profile(user, user_data)
+
+			frappe_mobiles.add(mobile)
+			stats["created"] += 1
+			stats["backfill_ok"] += 1
+
+			if stats["created"] % BQ_PROVISION_COMMIT_EVERY == 0:
+				frappe.db.commit()
+		except Exception:
+			stats["failed"] += 1
+			stats["create_failed"].append(mobile)
+			frappe.db.rollback()
+			frappe.log_error(
+				traceback.format_exc(),
+				f"BQ backfill batch failed for {mobile}",
+			)
+
+	frappe.db.commit()
+	stats["missing_after_approx"] = stats["missing_before"] - stats["created"]
+	stats["ok"] = True
+	stats["done"] = stats["batch_selected"] == 0
+	logger.info(f"backfill_missing_users_from_bigquery_batch: {stats}")
+	return stats
+
+
+def run_backfill_missing_users_from_bigquery(
+	batch_size=500,
+	max_batches=None,
+	country_prefix=None,
+	acquisition_source=None,
+):
+	"""
+	Run multiple backfill batches until empty or ``max_batches`` is reached.
+
+	Example::
+
+	    bench --site solveninja.org execute \\
+	        solve_ninja.api.glific_sync.run_backfill_missing_users_from_bigquery \\
+	        --kwargs '{"batch_size": 500, "max_batches": 16}'
+	"""
+	if not bigquery_client_available():
+		frappe.throw("BigQuery unavailable")
+
+	diff_before = get_bq_frappe_user_diff(country_prefix=country_prefix)
+	summary = {
+		"batch_size": batch_size,
+		"max_batches": max_batches,
+		"missing_before": diff_before["missing_in_frappe"],
+		"batches": [],
+		"total_created": 0,
+		"total_failed": 0,
+	}
+
+	batch_num = 0
+	while True:
+		if max_batches is not None and batch_num >= max_batches:
+			break
+
+		stats = backfill_missing_users_from_bigquery_batch(
+			batch_size=batch_size,
+			start_offset=0,
+			country_prefix=country_prefix,
+			acquisition_source=acquisition_source,
+		)
+		summary["batches"].append(stats)
+		summary["total_created"] += stats.get("created", 0)
+		summary["total_failed"] += stats.get("failed", 0)
+		batch_num += 1
+
+		if stats.get("done") or stats.get("batch_selected", 0) == 0:
+			break
+		if stats.get("created", 0) == 0 and stats.get("failed", 0) == 0:
+			break
+
+	diff_after = get_bq_frappe_user_diff(country_prefix=country_prefix)
+	summary["missing_after"] = diff_after["missing_in_frappe"]
+	summary["batches_run"] = batch_num
+	summary["ok"] = True
+	logger.info(f"run_backfill_missing_users_from_bigquery: {summary}")
+	return summary

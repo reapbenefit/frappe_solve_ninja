@@ -14,24 +14,32 @@
 
 	frappe.ui.form.on('Glific Group', {
 		refresh(frm) {
-			if (frm.doc.cohort_type === 'Automated Cohort') {
+			const isMonthlyCohort =
+				(frm.doc.cohort_type === 'Monthly Cohort' ||
+					frm.doc.cohort_type === 'Automated Cohort') &&
+				frm.doc.automated_cohort_bucket;
+			const isMonthlyCohortType =
+				frm.doc.cohort_type === 'Monthly Cohort' ||
+				frm.doc.cohort_type === 'Automated Cohort';
+
+			if (isMonthlyCohort) {
+				const period = [frm.doc.cohort_month, frm.doc.cohort_year].filter(Boolean).join(' ');
 				frm.set_intro(
 					__(
-						'Automated cohort: creation of the remote Glific collection is deferred until definition-based automation is available (Phase 2).',
+						'Monthly Cohort: {0} ({1}). Glific Sync: {2}. Use Manage Cohort → Create Monthly Collections to re-run.',
+						[
+							frm.doc.automated_cohort_bucket,
+							period || '—',
+							frm.doc.glific_sync_status || __('Not started'),
+						],
 					),
 				);
-				if (!frm.doc.__islocal) {
-					frm.add_custom_button(
-						__('Automated cohort definitions (Phase 2)'),
-						() => {
-							frappe.msgprint(
-								__(
-									'Automated cohorts from saved definitions will be available in Phase 2. For now configure filters manually or switch to Custom Cohort.',
-								),
-							);
-						},
-					);
-				}
+			} else if (isMonthlyCohortType) {
+				frm.set_intro(
+					__(
+						'Use Manage Cohort → Monthly Cohorts to generate monthly cohort records.',
+					),
+				);
 			} else {
 				frm.set_intro('');
 			}

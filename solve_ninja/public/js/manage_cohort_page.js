@@ -4,6 +4,40 @@
 (function () {
 	const PAGE = 'manage-cohort';
 
+	const AUTOMATED_COHORT_BUCKETS = [
+		'Dormants',
+		'High Potentials',
+		'Potentials',
+		'Engaged Actors',
+		'Change Champions',
+		'Passive Actors',
+		'Others Active',
+	];
+
+	/** Display order in modal (two columns, matches design). */
+	const AUTOMATED_BUCKET_COLUMNS = [
+		['Dormants', 'Potentials', 'Change Champions', 'Others Active'],
+		['High Potentials', 'Engaged Actors', 'Passive Actors'],
+	];
+
+	const COHORT_MONTH_OPTIONS =
+		'January\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember';
+
+	const MONTHLY_COHORT_TYPES = ['Monthly Cohort', 'Automated Cohort'];
+
+	function isMonthlyCohortType(cohortType) {
+		return MONTHLY_COHORT_TYPES.includes(cohortType);
+	}
+
+	function isMonthlyCohortDoc(doc) {
+		return Boolean(doc && isMonthlyCohortType(doc.cohort_type) && doc.automated_cohort_bucket);
+	}
+
+	function cohortTypeDisplayLabel(cohortType) {
+		if (isMonthlyCohortType(cohortType)) return __('Monthly Cohort');
+		return cohortType || '—';
+	}
+
 	frappe.pages[PAGE].on_page_load = function (wrapper) {
 		const Cf = solve_ninja.glific_cohort_filters;
 
@@ -78,6 +112,9 @@
 				.mc-filter-dl dd{margin-left:14.5rem;min-height:1.25em;margin-bottom:.15rem;}
 				.mc-filter-dl dt:first-child{margin-top:0;}
 				.mc-sidebar-heading{font-weight:600;margin-bottom:4px;}
+				.mc-auto-buckets-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;margin:12px 0;}
+				.mc-auto-bucket{display:block;margin:0;font-size:13px;font-weight:400;}
+				.mc-auto-bucket input{margin-right:6px;}
 				</style>
 				<div class="manage-cohort-empty alert alert-info hide"></div>
 				<div class="manage-cohort-body">
@@ -142,6 +179,226 @@
 		const $mainCol = $root.find('.manage-cohort-main');
 		const $readonlyFilters = $root.find('.mc-applied-filters-readonly');
 		const $filtersBlock = $root.find('.manage-cohort-filters');
+
+		function buildAutomatedBucketCheckboxHtml() {
+			const cols = AUTOMATED_BUCKET_COLUMNS.map((colBuckets) => {
+				const items = colBuckets
+					.map((bucket) => {
+						const id = `mc-bucket-${bucket.replace(/\s+/g, '-')}`;
+						return `<label class="mc-auto-bucket"><input type="checkbox" class="mc-auto-bucket-cb" value="${frappe.utils.escape_html(
+							bucket,
+						)}" id="${id}" checked> ${frappe.utils.escape_html(bucket)}</label>`;
+					})
+					.join('');
+				return `<div>${items}</div>`;
+			});
+			return `<div class="mc-auto-buckets-grid">${cols.join('')}</div>`;
+		}
+
+		function getSelectedAutomatedBucketsFromDialog(dlg) {
+			const out = [];
+			dlg.$wrapper.find('.mc-auto-bucket-cb:checked').each(function () {
+				out.push($(this).val());
+			});
+			return out;
+		}
+
+		function buildMonthlyPeriodReadonlyHtml(cohortMonth, cohortYear) {
+			return `<p class="mb-2 mt-2"><strong>${__('Month')}:</strong> ${frappe.utils.escape_html(
+				cohortMonth,
+			)} &nbsp; <strong>${__('Year')}:</strong> ${frappe.utils.escape_html(String(cohortYear))}</p>`;
+		}
+
+		function showAutomatedMonthlyModal() {
+			frappe.call({
+				method: 'solve_ninja.api.v1.automated_cohort.get_monthly_cohort_period',
+				freeze: true,
+				freeze_message: __('Loading…'),
+				callback(r) {
+					if (r.exc) return;
+					const period = r.message || {};
+					const cohortMonth = period.cohort_month;
+					const cohortYear = period.cohort_year;
+					if (!cohortMonth || cohortYear == null) {
+						frappe.msgprint(__('Could not load the current month and year.'));
+						return;
+					}
+
+					ctx._monthlyCohortPeriod = {
+						cohort_month: cohortMonth,
+						cohort_year: cohortYear,
+					};
+
+					const dlg = new frappe.ui.Dialog({
+						title: __('Monthly Cohorts'),
+						size: 'large',
+						fields: [
+							{
+								fieldtype: 'HTML',
+								fieldname: 'automated_intro',
+								options: `<p class="text-muted mb-0">${__(
+									'Classify all users and create Glific collections for the current month. Glific sync runs in the background.',
+								)}</p>${buildMonthlyPeriodReadonlyHtml(
+									cohortMonth,
+									cohortYear,
+								)}${buildAutomatedBucketCheckboxHtml()}`,
+							},
+						],
+						primary_action_label: __('Create Monthly Collections'),
+						primary_action() {
+							const buckets = getSelectedAutomatedBucketsFromDialog(dlg);
+							runCreateMonthlyCollections(false, {
+								buckets,
+								cohort_month: cohortMonth,
+								cohort_year: cohortYear,
+								onComplete: () => dlg.hide(),
+							});
+						},
+					});
+					ctx._automatedMonthlyDlg = dlg;
+					dlg.show();
+				},
+			});
+		}
+
+		function showMonthlySummaryDialog(payload) {
+			const p = payload || {};
+			const counts = p.counts_by_bucket || {};
+			let html = `<p>${__('Total Users Processed')}: <b>${p.total_users_processed || 0}</b></p>`;
+			html += `<p class="text-muted">${__(
+				'Glific sync is running in the background for each cohort record created or updated.',
+			)}</p>`;
+			html += '<table class="table table-bordered table-condensed"><thead><tr>';
+			html += `<th>${__('Bucket')}</th><th>${__('Count')}</th></tr></thead><tbody>`;
+			Object.keys(counts).forEach((k) => {
+				html += `<tr><td>${frappe.utils.escape_html(k)}</td><td>${counts[k]}</td></tr>`;
+			});
+			html += '</tbody></table>';
+
+			if ((p.created || []).length) {
+				html += `<h6>${__('Created')}</h6><ul>`;
+				p.created.forEach((row) => {
+					html += `<li>${frappe.utils.escape_html(row.group_name || row.doc_name)} — ${__(
+						'{0} members',
+						[String(row.member_count)],
+					)} (${frappe.utils.escape_html(row.glific_sync_status || 'Queued')})</li>`;
+				});
+				html += '</ul>';
+			}
+			if ((p.updated || []).length) {
+				html += `<h6>${__('Updated')}</h6><ul>`;
+				p.updated.forEach((row) => {
+					html += `<li>${frappe.utils.escape_html(row.group_name || row.doc_name)} — ${__(
+						'{0} members',
+						[String(row.member_count)],
+					)} (${frappe.utils.escape_html(row.glific_sync_status || 'Queued')})</li>`;
+				});
+				html += '</ul>';
+			}
+			if ((p.skipped_duplicates || []).length) {
+				html += `<h6 class="text-warning">${__('Skipped (Already Exist)')}</h6><ul>`;
+				p.skipped_duplicates.forEach((row) => {
+					html += `<li>${frappe.utils.escape_html(row.group_name)}</li>`;
+				});
+				html += '</ul>';
+			}
+			if ((p.errors || []).length) {
+				html += `<h6 class="text-danger">${__('Errors')}</h6><ul>`;
+				p.errors.forEach((row) => {
+					html += `<li>${frappe.utils.escape_html(row.bucket)}: ${frappe.utils.escape_html(
+						row.message,
+					)}</li>`;
+				});
+				html += '</ul>';
+			}
+
+			frappe.msgprint({
+				title: __('Monthly Collections'),
+				message: html,
+				indicator: (p.errors || []).length ? 'orange' : 'green',
+			});
+		}
+
+		function runCreateMonthlyCollections(confirmOverwrite, opts) {
+			opts = opts || {};
+			const buckets = opts.buckets || [];
+			if (!buckets.length) {
+				frappe.msgprint(__('Select At Least One Monthly Cohort.'));
+				return;
+			}
+			const cohort_month = opts.cohort_month;
+			const cohort_year = parseInt(String(opts.cohort_year ?? ''), 10);
+			if (!cohort_month || !Number.isFinite(cohort_year)) {
+				frappe.msgprint(
+					__(
+						'Current month and year are missing. Close and reopen Monthly Cohorts.',
+					),
+				);
+				return;
+			}
+
+			const runOpts = {
+				buckets,
+				cohort_month,
+				cohort_year,
+				onComplete: opts.onComplete,
+			};
+
+			frappe.call({
+				method: 'solve_ninja.api.v1.automated_cohort.create_monthly_automated_collections',
+				args: {
+					cohort_buckets: buckets,
+					cohort_month,
+					cohort_year,
+					confirm_overwrite: confirmOverwrite ? 1 : 0,
+				},
+				freeze: true,
+				freeze_message: __('Classifying Users and Creating Cohort Records…'),
+				callback(r) {
+					if (r.exc) return;
+					const payload = r.message || {};
+					const skipped = payload.skipped_duplicates || [];
+					if (!confirmOverwrite && skipped.length) {
+						const names = skipped.map((s) => s.group_name).join('<br>');
+						frappe.confirm(
+							__(
+								'These collections already exist for this month:<br><br>{0}<br><br>Overwrite members and re-queue Glific sync?',
+								[names],
+							),
+							() =>
+								runCreateMonthlyCollections(true, {
+									...runOpts,
+									onComplete: opts.onComplete,
+								}),
+						);
+						return;
+					}
+					if (typeof opts.onComplete === 'function') opts.onComplete();
+					showMonthlySummaryDialog(payload);
+					refreshCohortCards();
+				},
+			});
+		}
+
+		function renderAutomatedDocReadonly(doc) {
+			const bucket = frappe.utils.escape_html(doc.automated_cohort_bucket || '—');
+			const period = `${frappe.utils.escape_html(doc.cohort_month || '—')} ${frappe.utils.escape_html(
+				String(doc.cohort_year || '—'),
+			)}`;
+			const syncSt = frappe.utils.escape_html(doc.glific_sync_status || '—');
+			const typeLabel = frappe.utils.escape_html(cohortTypeDisplayLabel(doc.cohort_type));
+			$readonlyFilters
+				.removeClass('hide')
+				.html(
+					`<dl class="mc-filter-dl">
+<dt>${__('Cohort Type')}</dt><dd>${typeLabel}</dd>
+<dt>${__('Bucket')}</dt><dd>${bucket}</dd>
+<dt>${__('Period')}</dt><dd>${period}</dd>
+<dt>${__('Glific Sync')}</dt><dd>${syncSt}</dd>
+</dl>`,
+				);
+			$filtersBlock.addClass('hide');
+		}
 
 		function filterFieldDefs() {
 			return [
@@ -391,8 +648,12 @@
 		function syncNewCohortPrimary() {
 			if (ctx.docName) {
 				page.clear_primary_action();
+				page.clear_secondary_action();
 			} else {
 				page.set_primary_action(__('New Cohort'), () => showNewCohortDialog());
+				page.set_secondary_action(__('Monthly Cohorts'), () =>
+					showAutomatedMonthlyModal(),
+				);
 			}
 		}
 
@@ -500,7 +761,19 @@
 					ctx._sidebarSummaries = list;
 					const $wrap = $root.find('.mc-cohort-cards').empty();
 					list.forEach((row) => {
-						const ctype = frappe.utils.escape_html(row.cohort_type || '—');
+						const ctype = frappe.utils.escape_html(
+							cohortTypeDisplayLabel(row.cohort_type),
+						);
+						const bucket = row.automated_cohort_bucket
+							? `<br>${__('Bucket')}: ${frappe.utils.escape_html(row.automated_cohort_bucket)}`
+							: '';
+						const period =
+							row.cohort_month && row.cohort_year
+								? `<br>${__('Period')}: ${frappe.utils.escape_html(row.cohort_month)} ${row.cohort_year}`
+								: '';
+						const syncLine = row.glific_sync_status
+							? `<br>${__('Glific')}: ${frappe.utils.escape_html(row.glific_sync_status)}`
+							: '';
 						const created = frappe.datetime.str_to_user(row.creation);
 						const mc =
 							row.member_count !== undefined && row.member_count !== null
@@ -509,7 +782,7 @@
 						const gnm = frappe.utils.escape_html(row.group_name || row.name || '');
 						const $card = $(`<article class="mc-cohort-card" role="button" tabindex="0">
 <div class="mc-cc-title">${gnm}</div>
-<div class="mc-cc-meta">${__('Type')}: ${ctype}<br>${__('Created')}: ${frappe.utils.escape_html(created)}<br>${__('Members')}: ${frappe.utils.escape_html(mc)}</div>
+<div class="mc-cc-meta">${__('Type')}: ${ctype}${bucket}${period}${syncLine}<br>${__('Created')}: ${frappe.utils.escape_html(created)}<br>${__('Members')}: ${frappe.utils.escape_html(mc)}</div>
 </article>`);
 						$card.attr('data-name', row.name);
 						$card.on('click', () => loadDoc(row.name));
@@ -545,13 +818,15 @@
 			destroyMembersDatatable();
 			$root.find('.mc-existing-count').text('');
 			$root.find('.mc-members-datatable-wrap').empty();
+			$readonlyFilters.addClass('hide').empty();
+			$filtersBlock.removeClass('hide');
 			updateFiltersChrome();
 			showFilteredButtons(false);
 			$mainCol.addClass('hide');
-			page.clear_secondary_action();
 			page.hide_menu();
 			setActiveSidebarCard('');
 			syncGlificToolbar();
+			syncNewCohortPrimary();
 		}
 
 		function loadDoc(docName) {
@@ -584,20 +859,19 @@
 			ctx.docName = doc.name;
 			setActiveSidebarCard(doc.name);
 			refreshMemberCount();
-			updateFiltersChrome();
-			ctx.filtersFg.set_values(docToFgValues(doc));
+			if (isMonthlyCohortDoc(doc)) {
+				renderAutomatedDocReadonly(doc);
+				showFilteredButtons(false);
+			} else {
+				$readonlyFilters.addClass('hide').empty();
+				$filtersBlock.removeClass('hide');
+				updateFiltersChrome();
+				ctx.filtersFg.set_values(docToFgValues(doc));
+				showFilteredButtons(doc.audience_mode === 'Filtered' && !!doc.name);
+				maybeApplyAfterLoad();
+			}
 			renderExistingMembers(doc);
 			$dirty.hide();
-			showFilteredButtons(doc.audience_mode === 'Filtered' && !!doc.name);
-			maybeApplyAfterLoad();
-			if (doc.cohort_type === 'Automated Cohort' && doc.audience_mode === 'Enumerated') {
-				frappe.show_alert({
-					message: __(
-						'Automated cohort defers remote Glific group creation until Phase 2 definitions are available.',
-					),
-					indicator: 'orange',
-				});
-			}
 			syncGlificToolbar();
 		}
 
@@ -1317,33 +1591,64 @@
 
 		function showNewCohortDialog() {
 			const yr = new Date().getFullYear();
+			const monthNames = COHORT_MONTH_OPTIONS.split('\n');
+			const defaultMonth = monthNames[new Date().getMonth()];
 			const dlg = new frappe.ui.Dialog({
 				title: __('New Glific Cohort'),
 				fields: [
-					{ fieldtype: 'Data', fieldname: 'group_name', label: __('Group Name'), reqd: 1 },
 					{
 						fieldtype: 'Select',
 						fieldname: 'cohort_type',
 						label: __('Cohort Type'),
-						options: 'Custom Cohort\nAutomated Cohort',
+						options: 'Custom Cohort\nMonthly Cohort\nAutomated Cohort',
 						default: 'Custom Cohort',
 						reqd: 1,
+					},
+					{
+						fieldtype: 'Data',
+						fieldname: 'group_name',
+						label: __('Group Name'),
+						reqd: 1,
+						depends_on: 'eval:doc.cohort_type=="Custom Cohort"',
+					},
+					{
+						fieldtype: 'HTML',
+						fieldname: 'automated_help',
+						options: `<p class="text-muted small">${__(
+							'Use <b>Monthly Cohorts</b> to classify users and create Glific collections for the selected month.',
+						)}</p><button type="button" class="btn btn-default btn-sm mc-open-automated-modal">${__(
+							'Open Monthly Cohorts',
+						)}</button>`,
+						depends_on:
+							'eval:["Monthly Cohort","Automated Cohort"].includes(doc.cohort_type)',
 					},
 					{ fieldtype: 'Column Break' },
 					{
 						fieldtype: 'Select',
 						fieldname: 'cohort_month',
 						label: __('Cohort Month'),
-						options:
-							'January\nFebruary\nMarch\nApril\nMay\nJune\nJuly\nAugust\nSeptember\nOctober\nNovember\nDecember',
-						default: 'January',
+						options: COHORT_MONTH_OPTIONS,
+						default: defaultMonth,
 						reqd: 1,
+						depends_on: 'eval:doc.cohort_type=="Custom Cohort"',
 					},
-					{ fieldtype: 'Int', fieldname: 'cohort_year', label: __('Cohort Year'), default: yr, reqd: 1 },
+					{
+						fieldtype: 'Int',
+						fieldname: 'cohort_year',
+						label: __('Cohort Year'),
+						default: yr,
+						reqd: 1,
+						depends_on: 'eval:doc.cohort_type=="Custom Cohort"',
+					},
 				],
 				primary_action_label: __('Create'),
 				primary_action(vals) {
 					if (!vals) return;
+					if (isMonthlyCohortType(vals.cohort_type)) {
+						dlg.hide();
+						showAutomatedMonthlyModal();
+						return;
+					}
 					const doc = {
 						doctype: 'Glific Group',
 						group_name: vals.group_name,
@@ -1367,6 +1672,10 @@
 				},
 			});
 			dlg.show();
+			dlg.$wrapper.on('click', '.mc-open-automated-modal', () => {
+				dlg.hide();
+				showAutomatedMonthlyModal();
+			});
 		}
 	};
 

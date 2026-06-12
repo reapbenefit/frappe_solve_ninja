@@ -18,6 +18,11 @@
   "column_break_cohort_period",
   "cohort_month",
   "cohort_year",
+  "automated_cohort_bucket",
+  "column_break_glific_sync",
+  "glific_sync_status",
+  "glific_sync_error",
+  "glific_synced_at",
   "section_audience",
   "audience_mode",
   "column_audience_a",
@@ -88,7 +93,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Cohort type",
-   "options": "Custom Cohort\nAutomated Cohort"
+   "options": "Custom Cohort\nMonthly Cohort\nAutomated Cohort"
   },
   {
    "fieldname": "column_break_cohort_period",
@@ -104,6 +109,39 @@
    "fieldname": "cohort_year",
    "fieldtype": "Int",
    "label": "Cohort year"
+  },
+  {
+   "depends_on": "eval:['Monthly Cohort','Automated Cohort'].includes(doc.cohort_type)",
+   "fieldname": "automated_cohort_bucket",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Automated cohort bucket",
+   "options": "Dormants\nHigh Potentials\nPotentials\nEngaged Actors\nChange Champions\nPassive Actors\nOthers Active"
+  },
+  {
+   "fieldname": "column_break_glific_sync",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "glific_sync_status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Glific sync status",
+   "options": "\nQueued\nIn Progress\nCompleted\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "glific_sync_error",
+   "fieldtype": "Small Text",
+   "label": "Glific sync error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "glific_synced_at",
+   "fieldtype": "Datetime",
+   "label": "Glific synced at",
+   "read_only": 1
   },
   {
    "depends_on": "eval:doc.audience_mode=='Filtered'",
