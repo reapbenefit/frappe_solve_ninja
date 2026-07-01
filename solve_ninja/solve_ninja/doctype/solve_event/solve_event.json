@@ -20,6 +20,7 @@
   "location_details_section",
   "city",
   "venue_details",
+  "wa_group_link",
   "column_break_3",
   "mode",
   "additional_notification_emails",
@@ -174,6 +175,11 @@
    "fieldtype": "Select",
    "label": "Ignore Registration While CheckIn",
    "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "wa_group_link",
+   "fieldtype": "Data",
+   "label": "WA Group Link"
   }
  ],
  "image_field": "cover_image",
@@ -188,7 +194,7 @@
    "link_fieldname": "solve_event"
   }
  ],
- "modified": "2026-04-17 02:01:23.147393",
+ "modified": "2026-06-23 17:39:50.602646",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event",
