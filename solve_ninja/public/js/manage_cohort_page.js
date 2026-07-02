@@ -374,6 +374,18 @@
 						return;
 					}
 					if (typeof opts.onComplete === 'function') opts.onComplete();
+					if (payload.queued) {
+						frappe.show_alert({
+							message:
+								payload.message ||
+								__(
+									'Monthly cohort creation queued. You will receive an email when it completes.',
+								),
+							indicator: 'green',
+						});
+						refreshCohortCards();
+						return;
+					}
 					showMonthlySummaryDialog(payload);
 					refreshCohortCards();
 				},
@@ -774,6 +786,17 @@
 						const syncLine = row.glific_sync_status
 							? `<br>${__('Glific')}: ${frappe.utils.escape_html(row.glific_sync_status)}`
 							: '';
+						const syncProgress =
+							row.glific_sync_status === 'In Progress' &&
+							row.glific_sync_members_total > 0
+								? `<br>${__(
+										'Sync progress: {0} / {1}',
+										[
+											String(row.glific_sync_members_done || 0),
+											String(row.glific_sync_members_total),
+										],
+									)}`
+								: '';
 						const created = frappe.datetime.str_to_user(row.creation);
 						const updated = frappe.datetime.str_to_user(row.modified);
 						const mc =
@@ -1007,9 +1030,18 @@
 				callback(r) {
 					if (!r.exc) {
 						const payload = r.message || {};
-						const alertMsg = payload.added
-							? __('Synced {0} member(s)', [String(payload.added)])
-							: payload.message || __('Done.');
+						let alertMsg;
+						if (payload.queued) {
+							alertMsg =
+								payload.message ||
+								__(
+									'Sync queued in background. Refresh later to see status.',
+								);
+						} else {
+							alertMsg = payload.added
+								? __('Synced {0} member(s)', [String(payload.added)])
+								: payload.message || __('Done.');
+						}
 						frappe.show_alert({ message: alertMsg, indicator: 'green' });
 						loadDoc(ctx.docName);
 						refreshCohortCards();
@@ -1094,15 +1126,28 @@
 						args: { doc_name: ctx.docName },
 						freeze: true,
 						freeze_message: __('Deleting…'),
-						callback(r) {
-							if (r.exc) return;
-							frappe.show_alert({
-								message: (r.message && r.message.message) || __('Group deleted'),
-								indicator: 'green',
-							});
-							resetPageUi();
-							refreshCohortCards();
-						},
+				callback(r) {
+					if (r.exc) return;
+					const payload = r.message || {};
+					if (payload.queued) {
+						frappe.show_alert({
+							message:
+								payload.message ||
+								__(
+									'Delete queued. You will receive an email when it completes.',
+								),
+							indicator: 'green',
+						});
+						refreshCohortCards();
+						return;
+					}
+					frappe.show_alert({
+						message: payload.message || __('Group deleted'),
+						indicator: 'green',
+					});
+					resetPageUi();
+					refreshCohortCards();
+				},
 					});
 				},
 			);

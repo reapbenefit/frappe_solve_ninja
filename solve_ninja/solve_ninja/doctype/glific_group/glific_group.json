@@ -23,6 +23,8 @@
   "glific_sync_status",
   "glific_sync_error",
   "glific_synced_at",
+  "glific_sync_members_done",
+  "glific_sync_members_total",
   "section_audience",
   "audience_mode",
   "column_audience_a",
@@ -141,6 +143,18 @@
    "fieldname": "glific_synced_at",
    "fieldtype": "Datetime",
    "label": "Glific synced at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "glific_sync_members_done",
+   "fieldtype": "Int",
+   "label": "Glific sync members done",
+   "read_only": 1
+  },
+  {
+   "fieldname": "glific_sync_members_total",
+   "fieldtype": "Int",
+   "label": "Glific sync members total",
    "read_only": 1
   },
   {

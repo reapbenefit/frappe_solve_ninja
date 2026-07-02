@@ -15,11 +15,11 @@ from frappe.utils import get_datetime, getdate, now_datetime
 from frappe.query_builder.functions import Count
 
 from solve_ninja.services.glific_manager import GlificManager
+from solve_ninja.solve_ninja.doctype.glific_group.glific_group import ADD_CONTACTS_CHUNK
 from solve_ninja.utils import validate_and_normalize_mobile
 
 PREVIEW_CACHE_PREFIX = "glific_group_preview:"
 PREVIEW_TTL_SEC = 3600
-ADD_CONTACTS_CHUNK = 200
 
 
 def _coerce_multiselect_link_list(val: Any, preferred_key: Optional[str] = None) -> List[str]:

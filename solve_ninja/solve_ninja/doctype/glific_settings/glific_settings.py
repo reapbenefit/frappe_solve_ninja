@@ -12,6 +12,7 @@ from psycopg2.errors import SerializationFailure
 
 DEFAULT_GRAPHQL_TIMEOUT = 15
 WA_MAYTAPI_SYNC_TIMEOUT = 180
+DELETE_GROUP_TIMEOUT = 3600
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -55,7 +56,7 @@ class GlificSettings(Document):
             headers["Authorization"] = f"{token}"
         return headers
 
-    def _post(self, url, payload, headers, timeout=DEFAULT_GRAPHQL_TIMEOUT):
+    def _post(self, url, payload, headers, timeout=DEFAULT_GRAPHQL_TIMEOUT, context=None):
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=timeout)
             if response.status_code == 401:
@@ -68,10 +69,18 @@ class GlificSettings(Document):
             return response.json()
         except requests.Timeout:
             frappe.log_error(frappe.get_traceback(), f"Glific API Timeout ({url})")
-            friendly = (
-                f"Glific API timed out after {timeout}s. "
-                "For WhatsApp group refresh, try again or use Refresh from WhatsApp when Glific/Maytapi is responsive."
-            )
+            if context == "delete":
+                friendly = (
+                    f"Glific collection delete timed out after {timeout}s. "
+                    "The delete job will retry when Glific is responsive."
+                )
+            elif context == "wa_sync":
+                friendly = (
+                    f"Glific API timed out after {timeout}s. "
+                    "For WhatsApp group refresh, try again or use Refresh from WhatsApp when Glific/Maytapi is responsive."
+                )
+            else:
+                friendly = f"Glific API timed out after {timeout}s. Please try again later."
             return {"error": friendly}
         except requests.RequestException as e:
             frappe.log_error(frappe.get_traceback(), f"Glific API Error ({url})")
@@ -639,7 +648,7 @@ class GlificSettings(Document):
         }
         return self._api_graphql_post_with_reauth(payload)
 
-    def delete_group(self, group_id):
+    def delete_group(self, group_id, timeout=DELETE_GROUP_TIMEOUT):
         """
         Delete a Glific group (collection) via deleteGroup mutation.
 
@@ -662,7 +671,7 @@ class GlificSettings(Document):
             """,
             "variables": {"id": int(group_id)},
         }
-        return self._api_graphql_post_with_reauth(payload)
+        return self._api_graphql_post_with_reauth(payload, timeout=timeout, context="delete")
 
     def list_groups(self, gql_filter=None, limit=50, offset=0):
         """
@@ -878,9 +887,11 @@ class GlificSettings(Document):
             """,
             "variables": {},
         }
-        return self._api_graphql_post_with_reauth(payload, timeout=WA_MAYTAPI_SYNC_TIMEOUT)
+        return self._api_graphql_post_with_reauth(payload, timeout=WA_MAYTAPI_SYNC_TIMEOUT, context="wa_sync")
 
-    def _api_graphql_post_with_reauth(self, payload, retry=True, timeout=DEFAULT_GRAPHQL_TIMEOUT):
+    def _api_graphql_post_with_reauth(
+        self, payload, retry=True, timeout=DEFAULT_GRAPHQL_TIMEOUT, context=None
+    ):
         """
         Makes a POST to the /api endpoint with GraphQL payload. Handles 401 by refreshing token or re-login.
         Args:
@@ -895,20 +906,20 @@ class GlificSettings(Document):
         # logger.info(f"Making GraphQL POST to {url} with payload: {json.dumps(payload)}")
         # logger.info(f"Using headers: {json.dumps(headers)}")
         # logger.info(f"Payload: {payload}")
-        response_data = self._post(url, payload, headers, timeout=timeout)
+        response_data = self._post(url, payload, headers, timeout=timeout, context=context)
 
         if response_data.get("status_code") == 401 and retry:
             refresh_result = self._refresh_token()
             if refresh_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers, timeout=timeout)
+                response_data = self._post(url, payload, headers, timeout=timeout, context=context)
                 if response_data.get("status_code") != 401:
                     return response_data
 
             login_result = self._get_glific_session()
             if login_result.get("success"):
                 headers = self._get_headers(token=self.access_token)
-                response_data = self._post(url, payload, headers, timeout=timeout)
+                response_data = self._post(url, payload, headers, timeout=timeout, context=context)
                 if response_data.get("status_code") != 401:
                     return response_data
 

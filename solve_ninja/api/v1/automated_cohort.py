@@ -235,6 +235,15 @@ def get_automated_cohort_doc_name(bucket: str, cohort_month: str, cohort_year: i
 	return frappe.db.get_value("Glific Group", {"group_name": group_name}, "name")
 
 
+def _parse_wa_id_as_glific_contact_id(wa_id) -> Optional[str]:
+	if wa_id is None or str(wa_id).strip() == "":
+		return None
+	try:
+		return str(int(str(wa_id).strip()))
+	except (ValueError, TypeError):
+		return None
+
+
 def _member_rows_from_users(users: List[Dict]) -> List[Dict]:
 	rows = []
 	for u in users:
@@ -247,6 +256,7 @@ def _member_rows_from_users(users: List[Dict]) -> List[Dict]:
 				"status": "Pending",
 				"mobile_no": u.get("mobile_no") or None,
 				"contact_name": (u.get("full_name") or "").strip(),
+				"glific_contact_id": _parse_wa_id_as_glific_contact_id(u.get("wa_id")),
 			}
 		)
 	return rows
@@ -341,45 +351,277 @@ def _enqueue_glific_sync(doc_name: str) -> None:
 	)
 
 
-def sync_automated_cohort_to_glific(doc_name: str, user: str = None) -> None:
-	"""Background job: create Glific collection if needed and sync members."""
+def _monthly_cohort_job_key(month: str, year: int, buckets: List[str]) -> str:
+	bucket_part = "-".join(b.replace(" ", "_") for b in sorted(buckets))
+	return f"{year}-{month}-{bucket_part}"
+
+
+def _monthly_cohort_job_name(month: str, year: int, buckets: List[str]) -> str:
+	return f"create_monthly_cohorts_{_monthly_cohort_job_key(month, year, buckets)}"
+
+
+def _monthly_cohort_email_subject(month: str, year: int, buckets: List[str]) -> str:
+	bucket_label = ", ".join(buckets)
+	return _("Monthly Cohort job: {0} {1} ({2})").format(month, year, bucket_label)
+
+
+def _monthly_cohort_thread_message_id(job_key: str) -> str:
+	site = (frappe.local.site or "site").replace("@", "-")
+	return f"monthly-cohort.{job_key}@{site}"
+
+
+def _monthly_cohort_notifications_enabled() -> bool:
+	settings = frappe.get_single("Solve Ninja Settings")
+	return bool(
+		cint(getattr(settings, "enable_monthly_cohort_notifications", 0))
+		and (getattr(settings, "monthly_cohort_notification_email", None) or "").strip()
+	)
+
+
+def _send_monthly_cohort_email(
+	job_key: str,
+	event: str,
+	body_html: str,
+	month: str,
+	year: int,
+	buckets: List[str],
+	thread_message_id: Optional[str] = None,
+	in_reply_to: Optional[str] = None,
+) -> Optional[str]:
+	if not _monthly_cohort_notifications_enabled():
+		return thread_message_id
+
+	settings = frappe.get_single("Solve Ninja Settings")
+	recipient = (settings.monthly_cohort_notification_email or "").strip()
+	if not recipient:
+		return thread_message_id
+
+	msg_id = thread_message_id or _monthly_cohort_thread_message_id(job_key)
+	subject = _monthly_cohort_email_subject(month, year, buckets)
+	message = f"<p><strong>{frappe.utils.escape_html(event)}</strong></p>{body_html}"
+
+	kwargs = {
+		"recipients": [recipient],
+		"subject": subject,
+		"message": message,
+		"reference_doctype": "Solve Ninja Settings",
+		"reference_name": "Solve Ninja Settings",
+		"message_id": msg_id,
+		"delayed": False,
+	}
+	if in_reply_to:
+		kwargs["in_reply_to"] = in_reply_to
+
+	frappe.sendmail(**kwargs)
+	return msg_id
+
+
+def _format_monthly_cohort_email_context(
+	month: str,
+	year: int,
+	buckets: List[str],
+	initiated_by: str,
+) -> str:
+	return (
+		f"<p>{_('Period')}: {frappe.utils.escape_html(month)} {year}</p>"
+		f"<p>{_('Buckets')}: {frappe.utils.escape_html(', '.join(buckets))}</p>"
+		f"<p>{_('Initiated by')}: {frappe.utils.escape_html(initiated_by or 'Administrator')}</p>"
+		f"<p>{_('Time')}: {now_datetime()}</p>"
+	)
+
+
+def _check_duplicate_buckets(
+	buckets: List[str], month: str, year: int
+) -> List[Dict[str, str]]:
+	skipped = []
+	for bucket in buckets:
+		group_name = build_group_name(bucket, month, year)
+		existing_name = get_automated_cohort_doc_name(bucket, month, year)
+		if existing_name:
+			skipped.append(
+				{
+					"bucket": bucket,
+					"group_name": group_name,
+					"existing_doc_name": existing_name,
+				}
+			)
+	return skipped
+
+
+def _run_monthly_automated_collections(
+	buckets: List[str],
+	month: str,
+	year: int,
+	confirm: bool,
+	as_of: date,
+	initiated_by: str,
+) -> Dict[str, Any]:
+	grouped, counts = classify_all_users(as_of)
+	total_users = sum(counts.values())
+
+	result: Dict[str, Any] = {
+		"cohort_month": month,
+		"cohort_year": year,
+		"total_users_processed": total_users,
+		"counts_by_bucket": counts,
+		"created": [],
+		"updated": [],
+		"skipped_duplicates": [],
+		"errors": [],
+		"glific_jobs_queued": 0,
+		"initiated_by": initiated_by,
+	}
+
+	for bucket in buckets:
+		try:
+			group_name = build_group_name(bucket, month, year)
+			existing_name = get_automated_cohort_doc_name(bucket, month, year)
+
+			if existing_name and not confirm:
+				result["skipped_duplicates"].append(
+					{
+						"bucket": bucket,
+						"group_name": group_name,
+						"existing_doc_name": existing_name,
+					}
+				)
+				continue
+
+			users = grouped.get(bucket) or []
+			doc_name, member_count, is_update = _upsert_automated_cohort_doc(
+				bucket, month, year, users, as_of, existing_name=existing_name
+			)
+			frappe.db.commit()
+
+			_enqueue_glific_sync(doc_name)
+			result["glific_jobs_queued"] += 1
+
+			entry = {
+				"bucket": bucket,
+				"doc_name": doc_name,
+				"group_name": group_name,
+				"member_count": member_count,
+				"glific_sync_status": "Queued",
+			}
+			if is_update:
+				result["updated"].append(entry)
+			else:
+				result["created"].append(entry)
+		except Exception as e:
+			frappe.db.rollback()
+			result["errors"].append({"bucket": bucket, "message": str(e)})
+
+	return result
+
+
+def _format_monthly_cohort_result_summary(result: Dict[str, Any]) -> str:
+	lines = [
+		f"<p>{_('Created')}: {len(result.get('created') or [])}</p>",
+		f"<p>{_('Updated')}: {len(result.get('updated') or [])}</p>",
+		f"<p>{_('Glific sync jobs queued')}: {result.get('glific_jobs_queued') or 0}</p>",
+		f"<p>{_('Total users processed')}: {result.get('total_users_processed') or 0}</p>",
+	]
+	if result.get("errors"):
+		lines.append(f"<p><strong>{_('Errors')}</strong></p><ul>")
+		for err in result["errors"]:
+			lines.append(
+				f"<li>{frappe.utils.escape_html(err.get('bucket', ''))}: "
+				f"{frappe.utils.escape_html(err.get('message', ''))}</li>"
+			)
+		lines.append("</ul>")
+	return "".join(lines)
+
+
+def _create_monthly_automated_collections_background(
+	buckets: List[str],
+	month: str,
+	year: int,
+	confirm: int,
+	user: str,
+	job_key: str,
+	thread_message_id: str,
+) -> None:
 	frappe.set_user(user or "Administrator")
-	doc = frappe.get_doc("Glific Group", doc_name)
+	initiated_by = user or "Administrator"
+	as_of = getdate(nowdate())
 
 	try:
-		frappe.db.set_value(
-			"Glific Group",
-			doc.name,
-			{"glific_sync_status": "In Progress", "glific_sync_error": None},
-			update_modified=True,
+		result = _run_monthly_automated_collections(
+			buckets, month, year, bool(cint(confirm)), as_of, initiated_by
 		)
-		frappe.db.commit()
+		body = _format_monthly_cohort_email_context(month, year, buckets, initiated_by)
+		body += _format_monthly_cohort_result_summary(result)
+		_send_monthly_cohort_email(
+			job_key,
+			_("Completed"),
+			body,
+			month,
+			year,
+			buckets,
+			thread_message_id=thread_message_id,
+			in_reply_to=thread_message_id,
+		)
+	except Exception:
+		frappe.log_error(title=_("Monthly cohort creation failed"))
+		err = frappe.get_traceback(with_context=True)
+		body = _format_monthly_cohort_email_context(month, year, buckets, initiated_by)
+		body += f"<pre>{frappe.utils.escape_html(err[:4000])}</pre>"
+		_send_monthly_cohort_email(
+			job_key,
+			_("Failed"),
+			body,
+			month,
+			year,
+			buckets,
+			thread_message_id=thread_message_id,
+			in_reply_to=thread_message_id,
+		)
+		raise
 
-		gid = _create_or_resolve_glific_group(doc)
-		if gid != (doc.glific_group_id or "").strip():
+
+def sync_automated_cohort_to_glific(doc_name: str, user: str = None) -> None:
+	"""Background job: create Glific collection if needed, then chained batch member sync."""
+	from solve_ninja.api.v1.glific_cohort_notifications import glific_job_thread_message_id
+	from solve_ninja.solve_ninja.doctype.glific_group.glific_group import (
+		_sync_glific_members_batch_background,
+	)
+
+	frappe.set_user(user or "Administrator")
+	user = user or "Administrator"
+
+	try:
+		meta = frappe.db.get_value(
+			"Glific Group",
+			doc_name,
+			["group_name", "glific_group_id", "description", "is_restricted"],
+			as_dict=True,
+		)
+		if not meta:
+			frappe.throw(_("Glific Group not found: {0}").format(doc_name))
+
+		doc_stub = frappe._dict(meta)
+		doc_stub.name = doc_name
+
+		gid = _create_or_resolve_glific_group(doc_stub)
+		if gid != (meta.glific_group_id or "").strip():
 			frappe.db.set_value(
 				"Glific Group",
-				doc.name,
+				doc_name,
 				"glific_group_id",
 				gid,
 				update_modified=False,
 			)
-			doc.glific_group_id = gid
 
-		doc.reload()
-		doc.sync_members_to_glific()
-
-		frappe.db.set_value(
-			"Glific Group",
-			doc.name,
-			{
-				"glific_sync_status": "Completed",
-				"glific_sync_error": None,
-				"glific_synced_at": now_datetime(),
-			},
-			update_modified=True,
+		job_key = f"sync_{doc_name}"
+		thread_message_id = glific_job_thread_message_id(job_key)
+		_sync_glific_members_batch_background(
+			doc_name,
+			user=user,
+			job_name=f"sync_automated_cohort_{doc_name}",
+			job_key=job_key,
+			thread_message_id=thread_message_id,
+			initiated_by=user,
 		)
-		frappe.db.commit()
 	except Exception:
 		frappe.log_error(title=_("Automated cohort Glific sync failed"))
 		err = frappe.get_traceback(with_context=True)
@@ -433,7 +675,7 @@ def create_monthly_automated_collections(
 	confirm_overwrite=None,
 ):
 	"""
-	Classify users, create/update Frappe cohort records, enqueue Glific sync.
+	Validate input, optionally check duplicates, enqueue background classification + cohort creation.
 	"""
 	_check_glific_group_permission()
 
@@ -443,60 +685,52 @@ def create_monthly_automated_collections(
 
 	month, year = _require_client_period_matches_server(cohort_month, cohort_year)
 	confirm = cint(confirm_overwrite, 0)
-	as_of = getdate(nowdate())
+	user = frappe.session.user or "Administrator"
 
-	grouped, counts = classify_all_users(as_of)
-	total_users = sum(counts.values())
+	if not confirm:
+		skipped = _check_duplicate_buckets(buckets, month, year)
+		if skipped:
+			return {
+				"queued": False,
+				"cohort_month": month,
+				"cohort_year": year,
+				"skipped_duplicates": skipped,
+			}
 
-	result: Dict[str, Any] = {
+	job_key = _monthly_cohort_job_key(month, year, buckets)
+	thread_message_id = _monthly_cohort_thread_message_id(job_key)
+
+	body = _format_monthly_cohort_email_context(month, year, buckets, user)
+	body += f"<p>{_('The job will classify users, create cohort records, and queue Glific sync.')}</p>"
+	_send_monthly_cohort_email(
+		job_key,
+		_("Queued"),
+		body,
+		month,
+		year,
+		buckets,
+		thread_message_id=thread_message_id,
+	)
+
+	frappe.enqueue(
+		"solve_ninja.api.v1.automated_cohort._create_monthly_automated_collections_background",
+		queue="long",
+		timeout=3600,
+		buckets=buckets,
+		month=month,
+		year=year,
+		confirm=confirm,
+		user=user,
+		job_key=job_key,
+		thread_message_id=thread_message_id,
+		job_name=_monthly_cohort_job_name(month, year, buckets),
+	)
+
+	return {
+		"queued": True,
+		"message": _("Monthly cohort creation queued in background."),
 		"cohort_month": month,
 		"cohort_year": year,
-		"total_users_processed": total_users,
-		"counts_by_bucket": counts,
-		"created": [],
-		"updated": [],
-		"skipped_duplicates": [],
-		"errors": [],
-		"glific_jobs_queued": 0,
+		"buckets": buckets,
+		"job_key": job_key,
 	}
-
-	for bucket in buckets:
-		try:
-			group_name = build_group_name(bucket, month, year)
-			existing_name = get_automated_cohort_doc_name(bucket, month, year)
-
-			if existing_name and not confirm:
-				result["skipped_duplicates"].append(
-					{
-						"bucket": bucket,
-						"group_name": group_name,
-						"existing_doc_name": existing_name,
-					}
-				)
-				continue
-
-			users = grouped.get(bucket) or []
-			doc_name, member_count, is_update = _upsert_automated_cohort_doc(
-				bucket, month, year, users, as_of, existing_name=existing_name
-			)
-			frappe.db.commit()
-
-			_enqueue_glific_sync(doc_name)
-			result["glific_jobs_queued"] += 1
-
-			entry = {
-				"bucket": bucket,
-				"doc_name": doc_name,
-				"group_name": group_name,
-				"member_count": member_count,
-				"glific_sync_status": "Queued",
-			}
-			if is_update:
-				result["updated"].append(entry)
-			else:
-				result["created"].append(entry)
-		except Exception as e:
-			frappe.db.rollback()
-			result["errors"].append({"bucket": bucket, "message": str(e)})
-
-	return result

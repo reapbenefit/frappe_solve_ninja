@@ -25,7 +25,10 @@
   "column_break_jbyf0",
   "enable_badge_notification",
   "login_otp_template_id",
-  "last_bq_run_frappe"
+  "last_bq_run_frappe",
+  "monthly_cohort_notifications_section",
+  "monthly_cohort_notification_email",
+  "enable_monthly_cohort_notifications"
  ],
  "fields": [
   {
@@ -123,6 +126,23 @@
    "fieldname": "last_bq_run_frappe",
    "fieldtype": "Datetime",
    "label": "Last BQ Run"
+  },
+  {
+   "fieldname": "monthly_cohort_notifications_section",
+   "fieldtype": "Section Break",
+   "label": "Cohort & Glific Job Notifications"
+  },
+  {
+   "fieldname": "monthly_cohort_notification_email",
+   "fieldtype": "Data",
+   "label": "Cohort & Glific Job Notification Email",
+   "options": "Email"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_monthly_cohort_notifications",
+   "fieldtype": "Check",
+   "label": "Enable Cohort & Glific Job Email Notifications"
   }
  ],
  "index_web_pages_for_search": 1,

@@ -69,9 +69,18 @@
 						callback(r) {
 							if (!r.exc) {
 								const payload = r.message || {};
-								const alert_msg = payload.added
-									? __('Synced {0} member(s).', [String(payload.added)])
-									: payload.message || __('Done.');
+								let alert_msg;
+								if (payload.queued) {
+									alert_msg =
+										payload.message ||
+										__(
+											'Sync queued in background. Refresh later to see status.',
+										);
+								} else {
+									alert_msg = payload.added
+										? __('Synced {0} member(s).', [String(payload.added)])
+										: payload.message || __('Done.');
+								}
 								frappe.show_alert({
 									message: alert_msg,
 									indicator: 'green',
