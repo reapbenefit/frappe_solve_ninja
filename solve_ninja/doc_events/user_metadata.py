@@ -37,6 +37,12 @@ def on_save(doc, method):
     
     update_mentor_role(doc)
 
+    if doc.is_new() or doc.has_value_changed("org_id"):
+        from solve_ninja.doc_events.user import sync_organisation_manager_permission
+
+        sync_organisation_manager_permission(doc.user, org_id=doc.org_id)
+
+
 def update_mentor_role(doc):
     """
     Syncs the 'Mentor' role on the User document based on the 'is_mentor' field.

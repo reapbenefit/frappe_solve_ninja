@@ -775,6 +775,7 @@
 							? `<br>${__('Glific')}: ${frappe.utils.escape_html(row.glific_sync_status)}`
 							: '';
 						const created = frappe.datetime.str_to_user(row.creation);
+						const updated = frappe.datetime.str_to_user(row.modified);
 						const mc =
 							row.member_count !== undefined && row.member_count !== null
 								? String(row.member_count)
@@ -782,7 +783,7 @@
 						const gnm = frappe.utils.escape_html(row.group_name || row.name || '');
 						const $card = $(`<article class="mc-cohort-card" role="button" tabindex="0">
 <div class="mc-cc-title">${gnm}</div>
-<div class="mc-cc-meta">${__('Type')}: ${ctype}${bucket}${period}${syncLine}<br>${__('Created')}: ${frappe.utils.escape_html(created)}<br>${__('Members')}: ${frappe.utils.escape_html(mc)}</div>
+<div class="mc-cc-meta">${__('Type')}: ${ctype}${bucket}${period}${syncLine}<br>${__('Created')}: ${frappe.utils.escape_html(created)}<br>${__('Updated')}: ${frappe.utils.escape_html(updated)}<br>${__('Members')}: ${frappe.utils.escape_html(mc)}</div>
 </article>`);
 						$card.attr('data-name', row.name);
 						$card.on('click', () => loadDoc(row.name));

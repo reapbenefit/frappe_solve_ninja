@@ -4,6 +4,11 @@
 import frappe
 from samaaja.overrides.user import username as samaaja_generate_username
 
+ORGANISATION_MANAGER_ROLE = "Organisation Manager"
+SYSTEM_MANAGER_ROLE = "System Manager"
+USER_ORGANIZATION_DOCTYPE = "User Organization"
+
+
 def after_insert(doc, method):
     create_solve_ninja(doc)
 
@@ -62,6 +67,54 @@ def after_rename(doc, method, old_name, new_name, merge=False):
         """, (new_name, old_name))
         frappe.db.commit()
         frappe.logger().info(f"Updated {len(events)} Events records from {old_name} to {new_name}")
+
+def on_user_update(doc, method):
+	sync_organisation_manager_permission(doc.name)
+
+
+def sync_organisation_manager_permission(user, org_id=None):
+	"""Keep User Permission (User Organization) in sync with Organisation Manager role."""
+	if not user or user in ("Administrator", "Guest"):
+		return
+
+	roles = set(frappe.get_roles(user))
+	if SYSTEM_MANAGER_ROLE in roles:
+		return
+
+	has_role = ORGANISATION_MANAGER_ROLE in roles
+	if org_id is None:
+		org_id = frappe.db.get_value("User Metadata", user, "org_id")
+
+	desired = org_id if (has_role and org_id) else None
+	existing = frappe.get_all(
+		"User Permission",
+		filters={"user": user, "allow": USER_ORGANIZATION_DOCTYPE},
+		fields=["name", "for_value"],
+	)
+
+	if desired is None:
+		for perm in existing:
+			frappe.delete_doc("User Permission", perm.name, ignore_permissions=True)
+		return
+
+	has_matching = False
+	for perm in existing:
+		if perm.for_value == desired:
+			has_matching = True
+		else:
+			frappe.delete_doc("User Permission", perm.name, ignore_permissions=True)
+
+	if not has_matching:
+		frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": user,
+				"allow": USER_ORGANIZATION_DOCTYPE,
+				"for_value": desired,
+				"apply_to_all_doctypes": 1,
+			}
+		).insert(ignore_permissions=True)
+
 
 def create_solve_ninja(doc):
     if not frappe.db.exists("Ninja Profile", doc.name) and doc.name != "Administrator":

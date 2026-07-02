@@ -356,6 +356,7 @@ def get_manage_cohort_summaries(limit=500):
 			"cohort_year",
 			"glific_sync_status",
 			"creation",
+			"modified",
 		],
 		order_by="modified desc",
 		limit_page_length=limit_i,
