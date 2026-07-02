@@ -67,6 +67,8 @@ website_route_rules = [
     {"from_route": "/opportunity/<opportunity>", "to_route": "opportunity"},
     {"from_route": "/marketplace2.0", "to_route": "marketplace"},
     {"from_route": "/user-profile/<path:subpath>", "to_route": "/#/user-profile/{subpath}"}
+    # {"from_route": "/mppoc/<path:app_path>", "to_route": "mppoc"},
+    # {"from_route": "/mppoc", "to_route": "mppoc"},
    # {"from_route": "/application-for-opportunity/new/<opportunity>", "to_route": "application-for-opportunity/new"},
 ]
 
@@ -90,6 +92,7 @@ website_route_rules = [
 
 # before_install = "solve_ninja.install.before_install"
 # after_install = "solve_ninja.install.after_install"
+after_migrate = ["solve_ninja.install.ensure_ninja_listing_view"]
 
 # Uninstallation
 # ------------
@@ -238,7 +241,8 @@ doc_events = {
     "User": {
         "validate": "solve_ninja.doc_events.user.regenerate_username_on_firstname_change",
         "after_insert": "solve_ninja.doc_events.user.after_insert",
-        "after_rename": "solve_ninja.doc_events.user.after_rename"
+        "after_rename": "solve_ninja.doc_events.user.after_rename",
+        "on_update": "solve_ninja.doc_events.user.on_user_update",
     },
     "Organization":{
         "before_save":"solve_ninja.api.common.update_organization_id_case"

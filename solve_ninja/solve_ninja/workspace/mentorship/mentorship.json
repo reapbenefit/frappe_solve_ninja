@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"fHwa5gRVVg\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Mentorship</span>\",\"col\":12}},{\"id\":\"QehH1u3V_F\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Mentorship Request\",\"col\":4}}]",
+ "content": "[{\"id\":\"fHwa5gRVVg\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Mentorship</span>\",\"col\":12}},{\"id\":\"QehH1u3V_F\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Mentorship Request\",\"col\":4}},{\"id\":\"Yx1ybJlJYt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Add or remove mentors\",\"col\":3}}]",
  "creation": "2026-01-10 12:53:15.087045",
  "custom_blocks": [],
  "docstatus": 0,
@@ -12,7 +12,7 @@
  "is_hidden": 0,
  "label": "Mentorship",
  "links": [],
- "modified": "2026-01-20 11:14:50.185648",
+ "modified": "2026-07-02 14:01:40.514909",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Mentorship",
@@ -28,6 +28,15 @@
  "quick_lists": [],
  "roles": [],
  "sequence_id": 23.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Add or remove mentors",
+   "link_to": "User Metadata",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
  "title": "Mentorship"
 }
