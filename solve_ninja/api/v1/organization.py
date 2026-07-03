@@ -115,7 +115,7 @@ def get_organization_stats(page_length=10, start=0, days=DEFAULT_DAYS, filters=N
 			error=str(e),
 		)
 	except Exception as e:
-		frappe.log_error(f"Error in get_organization_stats: {str(e)}")
+		frappe.log_error(title="get_organization_stats failed", message=frappe.get_traceback())
 		return custom_response(
 			message="Failed to retrieve organization statistics",
 			data=None,
@@ -163,7 +163,7 @@ def export_organization_stats(days=DEFAULT_DAYS, filters=None, format="excel"):
 	except (frappe.PermissionError, frappe.ValidationError):
 		raise
 	except Exception as e:
-		frappe.log_error(f"Error in export_organization_stats: {str(e)}")
+		frappe.log_error(title="export_organization_stats failed", message=frappe.get_traceback())
 		frappe.throw("Download failed. Please try again.")
 
 
@@ -223,7 +223,7 @@ def get_organization_dashboard(days=DEFAULT_DAYS, filters=None):
 			error=str(e),
 		)
 	except Exception as e:
-		frappe.log_error(f"Error in get_organization_dashboard: {str(e)}")
+		frappe.log_error(title="get_organization_dashboard failed", message=frappe.get_traceback())
 		return custom_response(
 			message="Failed to retrieve organization dashboard",
 			data=None,
@@ -284,5 +284,5 @@ def export_organization_ninjas(
 	except (frappe.PermissionError, frappe.ValidationError):
 		raise
 	except Exception as e:
-		frappe.log_error(f"Error in export_organization_ninjas: {str(e)}")
+		frappe.log_error(title="export_organization_ninjas failed", message=frappe.get_traceback())
 		frappe.throw("Download failed. Please try again.")

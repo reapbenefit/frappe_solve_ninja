@@ -710,11 +710,23 @@ def build_rows_html_document(sections, title=None):
 	"""
 
 
+def _provide_binary_download(filename, extension, content, content_type):
+	frappe.local.response.filename = f"{filename}.{extension}"
+	frappe.local.response.filecontent = content
+	frappe.local.response.type = "download"
+	frappe.local.response.content_type = content_type
+	frappe.local.response.display_content_as = "attachment"
+
+
 def build_xlsx_download(data, filename, sheet_name="Export"):
-	from frappe.desk.utils import provide_binary_file
 	from frappe.utils.xlsxutils import make_xlsx
 
-	provide_binary_file(filename, "xlsx", make_xlsx(data, sheet_name).getvalue())
+	_provide_binary_download(
+		filename,
+		"xlsx",
+		make_xlsx(data, sheet_name).getvalue(),
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	)
 
 
 def build_pdf_download(rows, filename, title=None):
@@ -741,16 +753,25 @@ def build_pdf_download(rows, filename, title=None):
 
 
 def build_export_download(rows, filename, sheet_name="Export", export_format="excel", title=None):
-	from frappe.desk.utils import provide_binary_file
 	from frappe.utils.csvutils import to_csv
 	from frappe.utils.xlsxutils import make_xlsx
 
 	export_format = normalize_export_format(export_format)
 
 	if export_format == "excel":
-		provide_binary_file(filename, "xlsx", make_xlsx(rows, sheet_name).getvalue())
+		_provide_binary_download(
+			filename,
+			"xlsx",
+			make_xlsx(rows, sheet_name).getvalue(),
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		)
 	elif export_format == "csv":
-		provide_binary_file(filename, "csv", to_csv(rows).encode("utf-8"))
+		_provide_binary_download(
+			filename,
+			"csv",
+			to_csv(rows).encode("utf-8"),
+			"text/csv",
+		)
 	else:
 		build_pdf_download(rows, filename, title=title)
 
@@ -831,15 +852,24 @@ def _build_sectioned_csv(sections):
 
 
 def build_dashboard_export_download(sections, filename, export_format="excel", title=None):
-	from frappe.desk.utils import provide_binary_file
 	from frappe.utils.pdf import get_pdf
 
 	export_format = normalize_export_format(export_format)
 
 	if export_format == "excel":
-		provide_binary_file(filename, "xlsx", _build_multisheet_xlsx(sections))
+		_provide_binary_download(
+			filename,
+			"xlsx",
+			_build_multisheet_xlsx(sections),
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		)
 	elif export_format == "csv":
-		provide_binary_file(filename, "csv", _build_sectioned_csv(sections))
+		_provide_binary_download(
+			filename,
+			"csv",
+			_build_sectioned_csv(sections),
+			"text/csv",
+		)
 	else:
 		html = build_rows_html_document(sections, title=title)
 		pdf_options = {
