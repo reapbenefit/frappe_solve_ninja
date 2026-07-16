@@ -63,6 +63,7 @@ def get_upcoming_events(page_length=10, start=0, city=None, event_type=None):
 				SolveEvent.unique_id,
 				SolveEvent.type,
 				SolveEvent.cover_image,
+				SolveEvent.capacity,
 				SolveEvent.name
 			)
 			.where(base_conditions)
@@ -84,6 +85,10 @@ def get_upcoming_events(page_length=10, start=0, city=None, event_type=None):
 		
 		for row in result:
 			row.cover_image = f"{frappe.utils.get_url()}{row.cover_image}" if row.cover_image else None
+
+		from solve_ninja.api.event_registration_utils import enrich_events_with_registration_status
+
+		enrich_events_with_registration_status(result)
 			
 		return custom_response(
 			message="Upcoming events retrieved successfully",

@@ -32,7 +32,8 @@
   "checkin_url",
   "column_break_zvyo6",
   "checkin_qr",
-  "ignore_reg"
+  "ignore_reg",
+  "capacity"
  ],
  "fields": [
   {
@@ -175,6 +176,13 @@
    "fieldtype": "Select",
    "label": "Ignore Registration While CheckIn",
    "options": "Yes\nNo"
+  },
+  {
+   "description": "Optional. Maximum number of registrations for this event. Used on the marketplace to show spots left.",
+   "fieldname": "capacity",
+   "fieldtype": "Int",
+   "label": "Max Capacity",
+   "non_negative": 1
   },
   {
    "fieldname": "wa_group_link",
