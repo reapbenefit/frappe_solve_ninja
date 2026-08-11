@@ -33,7 +33,10 @@
   "column_break_zvyo6",
   "checkin_qr",
   "ignore_reg",
-  "capacity"
+  "capacity",
+  "approval_status",
+  "people_expected",
+  "room_name"
  ],
  "fields": [
   {
@@ -56,7 +59,7 @@
    "fieldname": "type",
    "fieldtype": "Select",
    "label": "Type",
-   "options": "Solver Jam\nSolve Con\nAdda",
+   "options": "Solver Jam\nSolve Con\nAdda\nCustom Event",
    "reqd": 1
   },
   {
@@ -188,6 +191,24 @@
    "fieldname": "wa_group_link",
    "fieldtype": "Data",
    "label": "WA Group Link"
+  },
+  {
+   "default": "Pending Review",
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "label": "Approval Status",
+   "options": "Pending Review\nApproved\nRejected"
+  },
+  {
+   "fieldname": "people_expected",
+   "fieldtype": "Int",
+   "label": "Expected Number of People"
+  },
+  {
+   "fieldname": "room_name",
+   "fieldtype": "Link",
+   "label": "Room",
+   "options": "Adda Room"
   }
  ],
  "image_field": "cover_image",
@@ -202,7 +223,7 @@
    "link_fieldname": "solve_event"
   }
  ],
- "modified": "2026-06-23 17:39:50.602646",
+ "modified": "2026-08-06 15:05:20.218845",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event",

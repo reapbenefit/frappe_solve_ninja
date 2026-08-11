@@ -257,6 +257,14 @@ def add_user():
         if frappe.db.exists("User", {"mobile_no": mobile}):
             frappe.throw(f"User with mobile number {mobile} already exists.", frappe.DuplicateEntryError)
 
+        # When program_id is provided, set org_id to Program name (shared ID with
+        # User Organization created on Program save) unless org_id was passed explicitly.
+        if user_data.get("program_id"):
+            program_name = resolve_program_name(user_data.get("program_id"))
+            if program_name and not user_data.get("org_id"):
+                if frappe.db.exists("User Organization", program_name):
+                    user_data["org_id"] = program_name
+
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -273,6 +281,30 @@ def add_user():
         # Create Program Participation if program unique_id is provided
         if user_data.get("program_id"):
             create_program_participation(user_doc.name, user_data.get("program_id").upper())
+
+        # Ensure Glific contact so WhatsApp OTP works after signup.
+        # Soft-continue on failure — send_hsm_otp will retry later.
+        try:
+            from solve_ninja.services.glific_manager import GlificManager
+
+            glific_result = GlificManager.ensure_contact_for_user(
+                mobile_no=mobile,
+                name=user_data.get("first_name") or user_doc.first_name or "Solve Ninja",
+                user=user_doc.name,
+            )
+            if not glific_result.data:
+                frappe.log_error(
+                    title="Add User Glific Contact",
+                    message=(
+                        f"User {user_doc.name} created but Glific contact failed: "
+                        f"{glific_result.message}"
+                    ),
+                )
+        except Exception as glific_err:
+            frappe.log_error(
+                title="Add User Glific Contact",
+                message=f"User {user_doc.name} created but Glific setup errored: {glific_err}",
+            )
 
         # Enqueue ninja profile update in background
         frappe.enqueue(
@@ -324,12 +356,19 @@ def update_user():
     """
     Public endpoint to update user profile information using mobile number.
     Updates: first_name, age, dob/birth_date, gender, city, year_of_birth
+
+    Uses targeted frappe.db.set_value for User fields to avoid User.validate ->
+    ask_pass_update() concurrency failures on the shared email_user_password default.
+    Does not push profile fields back to Glific.
     """
     message = 'User updated successfully'
     status_code = 200
     error = False
     data = ''
     mobile = ''
+    user_data = {}
+    user_name = None
+    error_data = None
 
     try:
         user_data = frappe.local.form_dict or {}
@@ -346,67 +385,108 @@ def update_user():
             frappe.throw("Mobile number must be either 10 or 12 digits and numeric.")
 
         # Find user by mobile number using generic method
-        user_name, mobile, _ = find_user_by_mobile(mobile_input)
-        
+        user_name, mobile, username = find_user_by_mobile(mobile_input)
+
         if not user_name:
             message = f"User not found with mobile number {mobile_input}"
             status_code = 404
             error = True
+            error_data = {"error": message}
             logger.warning(message)
-            return custom_response(message, data, status_code, error)
+        else:
+            user_meta = frappe.get_meta("User")
+            user_updates = {}
 
-        # Get existing User document
-        user_doc = frappe.get_doc("User", user_name)
+            if user_data.get("first_name"):
+                first_name = user_data.get("first_name")
+                user_updates["first_name"] = first_name
+                middle_name, last_name = frappe.db.get_value(
+                    "User", user_name, ["middle_name", "last_name"]
+                ) or (None, None)
+                user_updates["full_name"] = " ".join(
+                    filter(None, [first_name, middle_name, last_name])
+                )
 
-        # Update first_name if provided
-        if user_data.get("first_name"):
-            user_doc.first_name = user_data.get("first_name")
+            # Prefer age if both age and dob are provided
+            if user_data.get("age"):
+                if user_meta.has_field("age"):
+                    user_updates["age"] = int(user_data.get("age"))
+            elif user_data.get("dob") or user_data.get("birth_date"):
+                dob_value = user_data.get("dob") or user_data.get("birth_date")
+                user_updates["birth_date"] = frappe.utils.getdate(dob_value)
 
-        # Update age/birth_date if provided
-        # Prefer age if both are provided
-        if user_data.get("age"):
-            user_doc.age = user_data.get("age")
-        elif user_data.get("dob") or user_data.get("birth_date"):
-            dob_value = user_data.get("dob") or user_data.get("birth_date")
-            user_doc.birth_date = frappe.utils.getdate(dob_value)
+            if user_data.get("gender"):
+                user_updates["gender"] = user_data.get("gender")
 
-        # Update gender if provided
-        if user_data.get("gender"):
-            user_doc.gender = user_data.get("gender")
+            resolved_city = None
+            if user_data.get("city"):
+                # assign_city ensures Samaaja Cities exists and returns its name
+                resolved_city = assign_city(None, user_data.get("city"))
+                if user_meta.has_field("city") and resolved_city:
+                    user_updates["city"] = resolved_city
 
-        # Update city if provided (using assign_city logic)
-        if user_data.get("city"):
-            assign_city(user_doc, user_data.get("city"))
-            # Update/create User Metadata with city
-            # User Metadata name equals user_doc.name (via autoname: "field:user")
-            # assign_city ensures the city exists in Samaaja Cities, so use the city value directly
-            
-            if frappe.db.exists("User Metadata", user_doc.name):
-                user_metadata = frappe.get_doc("User Metadata", user_doc.name)
-                user_metadata.city = user_doc.city
-                user_metadata.year_of_birth = user_data.get("year_of_birth") if user_data.get("year_of_birth") else user_metadata.year_of_birth
-                user_metadata.save(ignore_permissions=True)
-            else:
-                frappe.get_doc({
-                    "doctype": "User Metadata",
-                    "user": user_doc.name,
-                    "city": user_doc.city
-                }).insert(ignore_permissions=True)
+            if user_updates:
+                frappe.db.set_value("User", user_name, user_updates)
 
-        # Save user document
-        user_doc.save(ignore_permissions=True)
-        frappe.db.commit()
+            # Upsert User Metadata for city and/or year_of_birth (independent of each other)
+            if resolved_city is not None or user_data.get("year_of_birth"):
+                year_of_birth = (
+                    int(user_data.get("year_of_birth"))
+                    if user_data.get("year_of_birth")
+                    else None
+                )
+                if frappe.db.exists("User Metadata", user_name):
+                    metadata_updates = {}
+                    if resolved_city is not None:
+                        metadata_updates["city"] = resolved_city
+                    if year_of_birth is not None:
+                        metadata_updates["year_of_birth"] = year_of_birth
+                    if metadata_updates:
+                        frappe.db.set_value("User Metadata", user_name, metadata_updates)
+                else:
+                    metadata_doc = {
+                        "doctype": "User Metadata",
+                        "user": user_name,
+                    }
+                    if resolved_city is not None:
+                        metadata_doc["city"] = resolved_city
+                    if year_of_birth is not None:
+                        metadata_doc["year_of_birth"] = year_of_birth
+                    frappe.get_doc(metadata_doc).insert(ignore_permissions=True)
 
-        data = frappe.utils.get_url(f"/user-profile/{user_doc.username}")
-        logger.info(f"Successfully updated user {user_name}")
+            if not username:
+                username = frappe.db.get_value("User", user_name, "username")
+            data = frappe.utils.get_url(f"/user-profile/{username}")
+            logger.info(f"Successfully updated user {user_name}")
 
     except Exception as e:
-        logger.error(f"Error occurred while updating user with mobile - {mobile}")
-        logger.error(e, exc_info=True)
-        frappe.log_error(frappe.get_traceback(), "Update User Error")
+        # Aborted txn (e.g. SerializationFailure) must be rolled back before log_error / Integration Request insert
+        frappe.db.rollback()
+        frappe.log_error(title="Update User Error", message=frappe.get_traceback())
         message = str(e)
         status_code = 500
         error = True
+        error_data = {
+            "error": str(e),
+            "traceback": frappe.get_traceback()
+        }
+
+    response_data = {
+        "message": message,
+        "status": "error" if error else "success",
+        "data": data,
+        "status_code": status_code
+    }
+    log_integration_request(
+        request_data=user_data,
+        response_data=response_data,
+        service_name="Update User API",
+        request_description="Update user via API",
+        error_data=error_data,
+        reference_doctype="User" if user_name else None,
+        reference_docname=user_name if user_name else None,
+        error_title="Update User"
+    )
 
     return custom_response(message, data, status_code, error)
 
@@ -1004,12 +1084,66 @@ def build_user_doc(user_data, mobile):
 
     return user_doc
 
+def assign_user_organization(user, user_organization):
+    """
+    Set User.org_id and User Metadata.org_id to the given User Organization name.
+    Does not create User Organization — it must already exist (created on Program save).
+    """
+    if not user or not user_organization:
+        return
+
+    if not frappe.db.exists("User Organization", user_organization):
+        logger.warning(
+            f"User Organization '{user_organization}' not found while assigning org for user {user}"
+        )
+        return
+
+    if frappe.get_meta("User").has_field("org_id"):
+        frappe.db.set_value("User", user, "org_id", user_organization, update_modified=False)
+
+    if frappe.db.exists("User Metadata", user):
+        user_metadata = frappe.get_doc("User Metadata", user)
+        if user_metadata.org_id != user_organization:
+            user_metadata.org_id = user_organization
+            user_metadata.save(ignore_permissions=True)
+    else:
+        user_metadata = frappe.get_doc({
+            "doctype": "User Metadata",
+            "user": user,
+            "org_id": user_organization,
+        })
+        user_metadata.insert(ignore_permissions=True)
+
+
+def resolve_program_name(program_id):
+    """
+    Resolve a Program document name from Program name or unique_id.
+    """
+    if not program_id:
+        return None
+
+    if frappe.db.exists("Program", program_id):
+        return program_id
+
+    return frappe.db.get_value("Program", {"unique_id": str(program_id).upper()}, "name")
+
+
 def assign_org(user_doc, org_id):
     if not org_id:
         return
 
-    org_id = str(org_id).upper()
-    org_docs = frappe.get_all('User Organization', filters={'org_id': org_id}, fields=['name'])
+    org_id_str = str(org_id)
+
+    # Prefer exact document name (shared ID with Program)
+    if frappe.db.exists("User Organization", org_id_str):
+        user_doc.org_id = org_id_str
+        return
+
+    org_id_upper = org_id_str.upper()
+    org_docs = frappe.get_all('User Organization', filters={'org_id': org_id_upper}, fields=['name'])
+    if not org_docs and org_id_upper != org_id_str:
+        org_docs = frappe.get_all('User Organization', filters={'org_id': org_id_str}, fields=['name'])
+
     if org_docs:
         user_doc.org_id = org_docs[0].name
     else:
@@ -1026,18 +1160,27 @@ def assign_language(user_doc, language_code):
         logger.warning(f"Language code '{language_code}' not found while registering user {user_doc.mobile}")
 
 def assign_city(user_doc, district):
-    if not district:
-        return
+    """
+    Ensure district exists in Samaaja Cities and optionally set user_doc.city.
 
-    city_exists = frappe.get_all('Samaaja Cities', filters={'city_name': district})
-    if city_exists:
-        user_doc.city_name = district
-    else:
-        frappe.get_doc({
-            'doctype': 'Samaaja Cities',
-            'city_name': district
+    Samaaja Cities autoname is field:city_name, so the document name equals the city string.
+    Returns the resolved Samaaja Cities name (or None if district is empty).
+    """
+    if not district:
+        return None
+
+    city_name = frappe.db.get_value("Samaaja Cities", {"city_name": district}, "name")
+    if not city_name:
+        city_doc = frappe.get_doc({
+            "doctype": "Samaaja Cities",
+            "city_name": district
         }).insert(ignore_permissions=True)
-        user_doc.city_name = district
+        city_name = city_doc.name
+
+    if user_doc is not None and frappe.get_meta("User").has_field("city"):
+        user_doc.city = city_name
+
+    return city_name
 
 def update_user_metadata(user, user_data):
     """

@@ -195,7 +195,7 @@ def update_ninja_profile_unique_id(user, event_unique_id=None, solve_event=None)
 	except Exception as e:
 		frappe.log_error(f"Error updating Ninja Profile acquisition_source_unique_id for user {user}: {str(e)}", "Update Ninja Profile Unique ID Error")
 
-def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=None):
+def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=None, user_organization=None):
 	"""
 	Find existing user by mobile number (checking both 10 and 12 digit formats).
 	If not found, create a new user.
@@ -205,6 +205,7 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 	- mobile: Normalized mobile number (12 digits with country code)
 	- whatsapp_name: WhatsApp name for new user creation
 	- event_unique_id: Event unique_id to update in Ninja Profile (optional)
+	- user_organization: User Organization name to assign for new users only (optional)
 	
 	Returns:
 	- dict with keys: user (email), is_new_user (bool), name_used (str)
@@ -230,6 +231,7 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 				mobile=mobile,
 				whatsapp_name=whatsapp_name,
 				event_unique_id=event_unique_id,
+				user_organization=user_organization,
 				queue='default',
 				job_name=f"Add user {mobile}",
 				now=False
@@ -244,7 +246,7 @@ def find_or_create_user_by_mobile(mobile, whatsapp_name=None, event_unique_id=No
 		frappe.log_error(f"Error finding or creating user: {str(e)}", "Find or Create User Error")
 		return None
 
-def add_user_async(mobile, whatsapp_name=None, event_unique_id=None):
+def add_user_async(mobile, whatsapp_name=None, event_unique_id=None, user_organization=None):
 	# User doesn't exist, create new user
 	try:
 		# Determine what name to use
@@ -273,10 +275,12 @@ def add_user_async(mobile, whatsapp_name=None, event_unique_id=None):
 				frappe.db.rollback()
 				time.sleep(0.1 * (2 ** attempt))
 		
-		# Update Ninja Profile unique_id if event_unique_id is provided
-		# if event_unique_id:
-		#	update_ninja_profile_unique_id(user_doc.name, event_unique_id)
-		
+		# Assign User Organization for new users (e.g. from program check-in)
+		if user_organization:
+			from solve_ninja.api.common import assign_user_organization
+			assign_user_organization(user_doc.name, user_organization)
+			frappe.db.commit()
+
 		# Enqueue background tasks for profile updates if needed
 		frappe.enqueue(
 			"solve_ninja.api.common.update_ninja_profile",

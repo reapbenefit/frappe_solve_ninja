@@ -17,6 +17,7 @@
   "mentor_completion_template",
   "mentee_completion_template",
   "invalid_request_notification_template",
+  "event_registration_template",
   "column_break_zo08w",
   "checkin_url",
   "whatsapp__glific_settings_section",
@@ -143,12 +144,17 @@
    "fieldname": "enable_monthly_cohort_notifications",
    "fieldtype": "Check",
    "label": "Enable Cohort & Glific Job Email Notifications"
+  },
+  {
+   "fieldname": "event_registration_template",
+   "fieldtype": "Int",
+   "label": "Event Registration Template"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-06-02 16:46:56.150701",
+ "modified": "2026-07-23 14:59:37.553081",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Ninja Settings",

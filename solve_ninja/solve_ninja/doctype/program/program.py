@@ -10,6 +10,9 @@ class Program(Document):
 	def validate(self):
 		"""Generate unique ID, update checkin_url from settings and generate QR code when URL changes"""
 		doc_before_save = self.get_doc_before_save()
+
+		# Ensure User Organization exists with the same ID as this Program
+		self.ensure_user_organization()
 		
 		# Check if fields that affect unique_id have changed
 		should_regenerate_id = False
@@ -55,6 +58,37 @@ class Program(Document):
 		elif self.get("checkin_url"):
 			# New document with checkin_url set
 			self.generate_qr_code(self.get("checkin_url"))
+
+	def ensure_user_organization(self):
+		"""Create User Organization with the same document ID as this Program (on Program save only)."""
+		org_id = self.name or self.program_name
+		if not org_id:
+			return None
+
+		if frappe.db.exists("User Organization", org_id):
+			if not frappe.db.get_value("User Organization", org_id, "org_id"):
+				frappe.db.set_value(
+					"User Organization", org_id, "org_id", org_id, update_modified=False
+				)
+			return org_id
+
+		org_doc = frappe.get_doc({
+			"doctype": "User Organization",
+			"org_name": org_id,
+			"org_id": org_id,
+		})
+		org_doc.insert(ignore_permissions=True)
+
+		if org_doc.name != org_id:
+			frappe.rename_doc(
+				"User Organization",
+				org_doc.name,
+				org_id,
+				force=True,
+				merge=False,
+			)
+
+		return org_id
 	
 	def update_checkin_url(self):
 		"""Update checkin_url from Solve Ninja Settings with unique_id"""

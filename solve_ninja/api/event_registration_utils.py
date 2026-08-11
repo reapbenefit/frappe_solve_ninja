@@ -168,55 +168,51 @@ def register_marketplace_user(data):
 
 
 def enrich_events_with_registration_status(events, user=None):
+	"""Attach is_registered + registered_count (non-Rejected) for each event.
+
+	registered_count is always set (default 0), including for Guest sessions.
+	is_registered is only true when a logged-in user has an active registration.
+	"""
 	if not isinstance(events, list):
 		return events
 
 	user = user if user is not None else frappe.session.user
-	if not user or user == "Guest":
-		for event in events:
-			if isinstance(event, dict):
-				event["is_registered"] = False
-		return events
+	is_guest = not user or user == "Guest"
 
 	event_names = [
 		event.get("name")
 		for event in events
 		if isinstance(event, dict) and event.get("name")
 	]
+
 	if not event_names:
 		for event in events:
 			if isinstance(event, dict):
 				event["is_registered"] = False
+				event["registered_count"] = 0
 		return events
-
-	user_rows = frappe.get_all(
-		"Solve Event Registration",
-		filters={"user": user, "solve_event": ["in", event_names]},
-		fields=["solve_event", "status"],
-	)
-	registered_set = {
-		row.solve_event
-		for row in user_rows
-		if is_active_registration_status(row.status)
-	}
 
 	all_rows = frappe.get_all(
 		"Solve Event Registration",
 		filters={"solve_event": ["in", event_names]},
-		fields=["solve_event", "status"],
+		fields=["solve_event", "status", "user"],
 	)
+
 	count_map = {}
+	registered_set = set()
 	for row in all_rows:
 		if not is_active_registration_status(row.status):
 			continue
-		count_map[row.solve_event] = count_map.get(row.solve_event, 0) + 1
+		event_name = row.solve_event
+		count_map[event_name] = count_map.get(event_name, 0) + 1
+		if not is_guest and row.user == user:
+			registered_set.add(event_name)
 
 	for event in events:
 		if not isinstance(event, dict):
 			continue
 		event_name = event.get("name")
 		event["is_registered"] = bool(event_name and event_name in registered_set)
-		if event_name and event_name in count_map:
-			event["registered_count"] = count_map[event_name]
+		event["registered_count"] = count_map.get(event_name, 0) if event_name else 0
 
 	return events
