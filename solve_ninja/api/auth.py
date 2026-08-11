@@ -325,6 +325,24 @@ def send_hsm_otp(mobile, otp):
 		# Use existing wa_id
 		contact_id = ninja_profile.wa_id
 
+	# Self-heal: create + opt-in Glific contact if missing (e.g. legacy signup).
+	if not contact_id:
+		from solve_ninja.services.glific_manager import GlificManager
+
+		user_name = (
+			frappe.db.get_value("User", user.name, "full_name")
+			or frappe.db.get_value("User", user.name, "first_name")
+			or "Solve Ninja"
+		)
+		ensure_result = GlificManager.ensure_contact_for_user(
+			mobile_no=mobile,
+			name=user_name,
+			user=user.name,
+		)
+		contact_id = ensure_result.data
+		if contact_id:
+			ninja_profile.reload()
+
 	if not contact_id:
 		frappe.log_error(f"Failed to get Glific contact for {mobile}")
 		return False

@@ -17,3 +17,5 @@ solve_ninja.patches.add_ninja_listing_full_name_index
 solve_ninja.patches.add_ninja_listing_org_id_index
 solve_ninja.patches.create_organisation_manager_role
 solve_ninja.patches.create_org_manager_user_permissions
+solve_ninja.patches.create_user_orgs_for_programs
+solve_ninja.patches.upsert_momentum_update_badge_template

@@ -8,7 +8,7 @@
  "anonymous": 1,
  "apply_document_permissions": 0,
  "button_label": "Save",
- "client_script": "frappe.web_form.discard_form = function() {\n    if (frappe.form_dirty) {\n        frappe.confirm(\n            'Are you sure you want to discard changes?',\n            function() {\n                window.location.href = '/';\n            }\n        );\n    } else {\n        window.location.href = '/';\n    }\n    return false;\n};",
+ "client_script": "",
  "creation": "2025-10-17 10:28:46.881957",
  "doc_type": "Solve Event Registration",
  "docstatus": 0,
@@ -18,8 +18,8 @@
  "list_columns": [],
  "login_required": 0,
  "max_attachment_size": 0,
- "modified": "2025-11-14 02:20:37.096571",
- "modified_by": "Administrator",
+ "modified": "2026-07-14 13:26:30.778514",
+ "modified_by": "gauthamraje@reapbenefit.org",
  "module": "Solve Ninja",
  "name": "solve-event-registration",
  "owner": "Administrator",
@@ -28,7 +28,7 @@
  "show_attachments": 0,
  "show_list": 0,
  "show_sidebar": 0,
- "success_url": "/marketplace",
+ "success_url": "https://dev.solveninja.org/#/events",
  "title": "Solve Event Registration",
  "web_form_fields": [
   {

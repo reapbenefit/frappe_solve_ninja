@@ -4,6 +4,9 @@
 import frappe
 from frappe.model.document import Document
 from frappe import _
+from solve_ninja.api.event_registration_utils import is_active_registration_status
+from solve_ninja.utils import validate_and_normalize_mobile
+
 
 class SolveEventRegistration(Document):
 	def validate(self):
@@ -27,6 +30,19 @@ class SolveEventRegistration(Document):
 		# Then check for duplicate registrations
 		if self.user:
 			self.check_duplicate_registration()
+
+	def after_insert(self):
+		"""Send WhatsApp confirmation only for successful (non-Rejected) registrations."""
+		if not is_active_registration_status(self.status):
+			return
+
+		frappe.enqueue(
+			"solve_ninja.solve_ninja.doctype.solve_event_registration.solve_event_registration.send_event_registration_hsm",
+			registration_name=self.name,
+			queue="default",
+			job_name=f"Event registration HSM for {self.name}",
+			now=False,
+		)
 
 	def populate_user_data_from_session(self):
 		"""
@@ -234,3 +250,185 @@ class SolveEventRegistration(Document):
 					  "Your new registration has been marked as <b>Rejected</b>."),
 				indicator="red"
 			)
+
+
+def send_event_registration_hsm(registration_name):
+	"""
+	Send Glific HSM confirming Solve Event registration.
+	Template params: {{1}} user name, {{2}} event title, {{3}} WA group link.
+	"""
+	try:
+		registration = frappe.get_doc("Solve Event Registration", registration_name)
+	except frappe.DoesNotExistError:
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"Solve Event Registration {registration_name} not found",
+		)
+		return
+
+	if not is_active_registration_status(registration.status):
+		return
+
+	solve_ninja_settings = frappe.get_single("Solve Ninja Settings")
+	# Quietly skip until channel + template ID are configured
+	if (
+		solve_ninja_settings.channel != "Glific"
+		or not solve_ninja_settings.event_registration_template
+	):
+		return
+
+	if not registration.user or not registration.solve_event:
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"Registration {registration_name} missing user or solve_event",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return
+
+	try:
+		user = frappe.get_doc("User", registration.user)
+		solve_event = frappe.get_doc("Solve Event", registration.solve_event)
+	except frappe.DoesNotExistError as e:
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"Linked doc missing for registration {registration_name}: {e}",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return
+
+	wa_group_link = (solve_event.wa_group_link or "").strip()
+	if not wa_group_link:
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=(
+				f"Solve Event {solve_event.name} has no WA Group Link; "
+				f"skipping HSM for {registration_name}"
+			),
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return
+
+	glific_settings = frappe.get_doc("Glific Settings")
+	contact_id = _resolve_registration_wa_id(user, registration, glific_settings)
+	if not contact_id:
+		return
+
+	user_name = (
+		user.full_name
+		or user.first_name
+		or registration.full_name
+		or "Ninja"
+	)
+	event_title = solve_event.title or solve_event.name
+
+	# Template:
+	# Hi {{1}}, Your registration for {{2}} has been successfully confirmed.
+	# ... join ... {{3}}
+	parameters = [user_name, event_title, wa_group_link]
+
+	response = glific_settings.send_hsm_message(
+		contact_id,
+		solve_ninja_settings.event_registration_template,
+		parameters,
+	)
+
+	if response and response.get("data") and response["data"].get("sendHsmMessage"):
+		message_data = response["data"]["sendHsmMessage"]
+		if message_data.get("message") and not message_data.get("errors"):
+			return
+
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"HSM send failed for registration {registration_name}: {message_data.get('errors')}",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return
+
+	if response and response.get("errors"):
+		error_text = "; ".join(
+			error.get("message", "Unknown error") for error in response["errors"]
+		)
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"HSM send failed for registration {registration_name}: {error_text}",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return
+
+	if response and response.get("error"):
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"HSM send failed for registration {registration_name}: {response.get('error')}",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return
+
+	frappe.log_error(
+		title="Event Registration HSM Error",
+		message=f"Invalid HSM response for registration {registration_name}: {response}",
+		reference_doctype="Solve Event Registration",
+		reference_name=registration_name,
+	)
+
+
+def _resolve_registration_wa_id(user, registration, glific_settings):
+	"""Resolve Glific contact id from Ninja Profile wa_id or phone lookup."""
+	user_name = user.name
+	registration_name = registration.name
+
+	if frappe.db.exists("Ninja Profile", user_name):
+		ninja_profile = frappe.get_doc("Ninja Profile", user_name, for_update=False)
+		if ninja_profile.wa_id:
+			return ninja_profile.wa_id
+	else:
+		ninja_profile = None
+
+	mobile = (user.mobile_no or registration.mobile or "").strip()
+	if not mobile:
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"No mobile number for user {user_name} (registration {registration_name})",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return None
+
+	try:
+		mobile_no = validate_and_normalize_mobile(mobile)
+	except Exception as e:
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"Invalid mobile for user {user_name} (registration {registration_name}): {e}",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return None
+
+	response = glific_settings.get_contact_by_phone(mobile_no)
+	contact_id = (
+		response
+		.get("data", {})
+		.get("contactByPhone", {})
+		.get("contact", {})
+		.get("id")
+	)
+
+	if not contact_id:
+		frappe.log_error(
+			title="Event Registration HSM Error",
+			message=f"No Glific contact for mobile {mobile_no} (registration {registration_name})",
+			reference_doctype="Solve Event Registration",
+			reference_name=registration_name,
+		)
+		return None
+
+	if ninja_profile:
+		ninja_profile.db_set("wa_id", contact_id, commit=True)
+
+	return contact_id
