@@ -191,6 +191,7 @@ class TestUpdateUser(FrappeTestCase):
 
 	def test_full_glific_payload_updates_user_and_metadata(self):
 		city = f"{self.prefix}-Nalbari"
+		old_username = frappe.db.get_value("User", self.user_name, "username")
 		status_code, body = call_update_user(
 			{
 				"year_of_birth": "2002",
@@ -211,11 +212,15 @@ class TestUpdateUser(FrappeTestCase):
 		user = frappe.db.get_value(
 			"User",
 			self.user_name,
-			["first_name", "full_name", "gender", "age", "city"],
+			["first_name", "full_name", "gender", "age", "city", "username"],
 			as_dict=True,
 		)
 		self.assertEqual(user.first_name, "Rumi Mitra")
+		self.assertEqual(user.full_name, "Rumi Mitra Test")
 		self.assertEqual(user.gender, "Female")
+		self.assertNotEqual(user.username, old_username)
+		self.assertTrue(user.username)
+		self.assertIn(f"/user-profile/{user.username}", body["data"] or "")
 		if frappe.get_meta("User").has_field("age"):
 			self.assertEqual(user.age, 24)
 		if frappe.get_meta("User").has_field("city"):
@@ -224,16 +229,82 @@ class TestUpdateUser(FrappeTestCase):
 		meta = frappe.db.get_value(
 			"User Metadata",
 			self.user_name,
-			["city", "year_of_birth"],
+			["city", "year_of_birth", "full_name"],
 			as_dict=True,
 		)
 		self.assertEqual(meta.city, city)
 		self.assertEqual(meta.year_of_birth, 2002)
+		self.assertEqual(meta.full_name, "Rumi Mitra Test")
 		self.assertTrue(frappe.db.exists("Samaaja Cities", city))
 
 		irs = self._latest_integration_request()
 		self.assertTrue(irs)
 		self.assertEqual(irs[0].status, "Completed")
+
+	def test_first_name_change_syncs_metadata_and_regenerates_username(self):
+		old_username = frappe.db.get_value("User", self.user_name, "username")
+		old_city = frappe.db.get_value("User Metadata", self.user_name, "city")
+		old_yob = frappe.db.get_value("User Metadata", self.user_name, "year_of_birth")
+
+		status_code, body = call_update_user(
+			{
+				"mobile": self.mobile,
+				"first_name": "NewName",
+			}
+		)
+
+		self.assertEqual(status_code, 200)
+		self.assertEqual(body["status"], "success")
+
+		user = frappe.db.get_value(
+			"User",
+			self.user_name,
+			["first_name", "full_name", "username"],
+			as_dict=True,
+		)
+		self.assertEqual(user.first_name, "NewName")
+		self.assertEqual(user.full_name, "NewName Test")
+		self.assertNotEqual(user.username, old_username)
+		self.assertTrue(user.username.startswith("newname-test-"))
+		self.assertIn(f"/user-profile/{user.username}", body["data"] or "")
+
+		meta = frappe.db.get_value(
+			"User Metadata",
+			self.user_name,
+			["full_name", "city", "year_of_birth"],
+			as_dict=True,
+		)
+		self.assertEqual(meta.full_name, "NewName Test")
+		self.assertEqual(meta.city, old_city)
+		self.assertEqual(meta.year_of_birth, old_yob)
+
+	def test_same_first_name_does_not_regenerate_username(self):
+		old_username = frappe.db.get_value("User", self.user_name, "username")
+
+		status_code, body = call_update_user(
+			{
+				"mobile": self.mobile,
+				"first_name": "InitialName",
+			}
+		)
+
+		self.assertEqual(status_code, 200)
+		self.assertEqual(body["status"], "success")
+
+		user = frappe.db.get_value(
+			"User",
+			self.user_name,
+			["first_name", "username"],
+			as_dict=True,
+		)
+		self.assertEqual(user.first_name, "InitialName")
+		self.assertEqual(user.username, old_username)
+		self.assertIn(f"/user-profile/{old_username}", body["data"] or "")
+
+		self.assertEqual(
+			frappe.db.get_value("User Metadata", self.user_name, "full_name"),
+			"InitialName Test",
+		)
 
 	def test_year_of_birth_without_city(self):
 		status_code, body = call_update_user(
