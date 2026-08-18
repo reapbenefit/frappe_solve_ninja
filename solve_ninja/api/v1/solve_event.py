@@ -1,5 +1,6 @@
 import frappe
 import json
+from datetime import timedelta
 from frappe import qb
 from frappe.query_builder.functions import Count
 from samaaja.api.common import custom_response
@@ -365,6 +366,52 @@ def log_event_checkin_integration_request(request_data, response_data, error_dat
 		error_title="Event Checkin"
 	)
 
+
+def get_event_checkin_window(start_date_time, end_date_time):
+	"""
+	Check-in opens 1 hour before start_date_time and closes at end of the last
+	calendar day of the event (23:59:59 system timezone, IST on this site).
+	Middle days of multi-day events are fully within this window.
+	"""
+	start_dt = frappe.utils.get_datetime(start_date_time)
+	end_dt = frappe.utils.get_datetime(end_date_time)
+	window_open = start_dt - timedelta(hours=1)
+	window_close = frappe.utils.get_datetime(f"{end_dt.date().isoformat()} 23:59:59")
+	return window_open, window_close
+
+
+def get_event_checkin_window_status(now, start_date_time, end_date_time):
+	"""Return None if check-in is allowed, else 'not_started' or 'ended'."""
+	window_open, window_close = get_event_checkin_window(start_date_time, end_date_time)
+	if now < window_open:
+		return "not_started"
+	if now > window_close:
+		return "ended"
+	return None
+
+
+def _event_checkin_window_failure_response(request_data, reason):
+	"""Build Glific-friendly 200 response when check-in is outside the window."""
+	if reason == "not_started":
+		message = "Event has not started yet"
+	else:
+		message = "Event has ended"
+	response = custom_response(
+		message=message,
+		data={"status": "failed"},
+		status_code=200,
+		error=False,
+	)
+	response_data = {
+		"message": message,
+		"status": "success",
+		"data": {"status": "failed"},
+		"status_code": 200,
+	}
+	log_event_checkin_integration_request(request_data, response_data, {"error": message})
+	return response
+
+
 @frappe.whitelist(allow_guest=True)
 def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 	"""
@@ -372,6 +419,12 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 	Creates Solve Event Participation for user.
 	Checks if Solve Event Registration exists, if not creates it.
 	Checks if user exists or creates user -> Solve Event Registration -> Solve Event Participation.
+
+	Check-in window: from 1 hour before start_date_time until 23:59:59 on the
+	last calendar day of end_date_time (IST). Multi-day middle days are included.
+
+	If the user already checked in, message is "You have already checked in" and
+	data.already_checked_in is true (HTTP 200, data.status remains success).
 	
 	Args (can be passed as function parameters or in JSON request body):
 	- mobile: Mobile number (10 or 12 digits, default country code 91)
@@ -488,42 +541,13 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		# Get event details for participation
 		event_doc = frappe.get_doc("Solve Event", solve_event)
 
-		# Validate event is currently active (now within start_date_time and end_date_time)
-		now = now_datetime()
-		start_dt = frappe.utils.get_datetime(event_doc.start_date_time)
-		end_dt = frappe.utils.get_datetime(event_doc.end_date_time)
-		
-		if now < start_dt:
-			response = custom_response(
-				message="Event has not started yet",
-				data={"status": "failed"},
-				status_code=200,
-				error=False
-			)
-			response_data = {
-				"message": "Event has not started yet",
-				"status": "success",
-				"data": {"status": "failed"},
-				"status_code": 200
-			}
-			log_event_checkin_integration_request(request_data, response_data, {"error": "Event has not started yet"})
-			return response
-		
-		if now > end_dt:
-			response = custom_response(
-				message="Event has ended",
-				data={"status": "failed"},
-				status_code=200,
-				error=False
-			)
-			response_data = {
-				"message": "Event has ended",
-				"status": "success",
-				"data": {"status": "failed"},
-				"status_code": 200
-			}
-			log_event_checkin_integration_request(request_data, response_data, {"error": "Event has ended"})
-			return response
+		window_status = get_event_checkin_window_status(
+			now_datetime(),
+			event_doc.start_date_time,
+			event_doc.end_date_time,
+		)
+		if window_status:
+			return _event_checkin_window_failure_response(request_data, window_status)
 		
 		# Find or create user by mobile number
 		user_result = find_or_create_user_by_mobile(mobile, whatsapp_name, event_id)
@@ -549,9 +573,16 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		else:
 			registration = None
 		
-		# Create Solve Event Participation
-		participation = create_participation(user, solve_event)
-		
+		# Create Solve Event Participation (or reuse existing check-in)
+		participation_result = create_participation(user, solve_event)
+		participation = participation_result["name"]
+		already_checked_in = participation_result["already_checked_in"]
+		message = (
+			"You have already checked in"
+			if already_checked_in
+			else "Event checkin successful"
+		)
+
 		# Build response data
 		response_data_dict = {
 			"status": "success",
@@ -560,7 +591,8 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 			"event_title": solve_event_title,
 			"registration": registration,
 			"participation": participation,
-			"checkin_time": now_datetime().isoformat()
+			"checkin_time": participation_result["checkin_time"],
+			"already_checked_in": already_checked_in,
 		}
 		
 		# Add user creation info if new user was created
@@ -572,7 +604,7 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 			response_data_dict["new_user_created"] = False
 		
 		response = custom_response(
-			message="Event checkin successful",
+			message=message,
 			data=response_data_dict,
 			status_code=200,
 			error=None
@@ -580,7 +612,7 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		
 		# Log to Integration Request
 		response_data = {
-			"message": "Event checkin successful",
+			"message": message,
 			"status": "success",
 			"data": response_data_dict,
 			"status_code": 200
@@ -685,37 +717,45 @@ def find_or_create_registration(user, solve_event_name):
 		# Don't fail the checkin if registration creation fails
 		return None
 
+def _isoformat(value):
+	if not value:
+		return now_datetime().isoformat()
+	return frappe.utils.get_datetime(value).isoformat()
+
+
 def create_participation(user, solve_event_name):
 	"""
-	Create Solve Event Participation record.
-	
-	Args:
-	- user: User name (email)
-	- solve_event: Solve Event name
-	- event_doc: Solve Event document
-	
+	Create Solve Event Participation record, or return the existing one.
+
 	Returns:
-	- Participation name
+	- dict with name, already_checked_in, checkin_time (ISO)
 	"""
 	try:
-		# Check if participation already exists
 		existing_participation = frappe.db.get_value(
 			"Solve Event Participation",
 			{"user": user, "solve_event": solve_event_name},
-			"name"
+			["name", "creation"],
+			as_dict=True,
 		)
-		
+
 		if existing_participation:
-			return existing_participation
-		
-		# Create new participation
+			return {
+				"name": existing_participation.name,
+				"already_checked_in": True,
+				"checkin_time": _isoformat(existing_participation.creation),
+			}
+
 		participation_doc = frappe.get_doc({
 			"doctype": "Solve Event Participation",
 			"user": user,
 			"solve_event": solve_event_name
 		})
 		participation_doc.insert(ignore_permissions=True)
-		return participation_doc.name
+		return {
+			"name": participation_doc.name,
+			"already_checked_in": False,
+			"checkin_time": _isoformat(participation_doc.creation),
+		}
 	except Exception as e:
 		frappe.log_error(f"Error creating participation: {str(e)}", "Participation Creation Error")
 		frappe.throw(f"Failed to create participation: {str(e)}")
@@ -801,8 +841,9 @@ def program_checkin(mobile=None, program_id=None, whatsapp_name=None):
 		from solve_ninja.api.common import assign_user_organization
 
 		# Find or create user by mobile number.
-		# Pass program name as user_organization — only applied for new users in add_user_async
-		# when User Organization already exists (created on Program save).
+		# Pass program name as user_organization for new-user async creation when
+		# User Organization already exists (created on Program save). Existing users
+		# are assigned below via assign_user_organization.
 		user_organization = program if frappe.db.exists("User Organization", program) else None
 		user_result = find_or_create_user_by_mobile(
 			mobile, whatsapp_name, user_organization=user_organization
@@ -826,10 +867,10 @@ def program_checkin(mobile=None, program_id=None, whatsapp_name=None):
 			if program_unique_id:
 				update_ninja_profile_unique_id(user, program_unique_id)
 
-			# If user already exists in DB (async finished, or enqueue ran inline),
-			# assign org now. Otherwise add_user_async assigns via user_organization.
-			if user_organization and frappe.db.exists("User", user):
-				assign_user_organization(user, user_organization)
+		# Assign org for every check-in (new and existing users) when User Organization exists.
+		# New users created async still get org via add_user_async(user_organization=...).
+		if user_organization and frappe.db.exists("User", user):
+			assign_user_organization(user, user_organization)
 		
 		# Create Program Participation
 		participation = create_program_participation(user, program)

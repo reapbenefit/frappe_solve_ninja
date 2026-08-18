@@ -226,7 +226,7 @@ class TestProgramUserOrganization(FrappeTestCase):
 			frappe.db.exists("Program Participation", {"user": email, "program": self.program_name})
 		)
 
-	def test_program_checkin_existing_user_does_not_overwrite_org(self):
+	def test_program_checkin_existing_user_overwrites_org(self):
 		self._create_program()
 
 		other_org = f"OtherOrg-{self.suffix}"
@@ -259,11 +259,16 @@ class TestProgramUserOrganization(FrappeTestCase):
 		if frappe.db.exists("User Metadata", email):
 			self.track("User Metadata", email)
 
+		self.assertEqual(
+			frappe.db.get_value("User Metadata", email, "org_id"),
+			other_org,
+		)
+
 		result = _parse_response(program_checkin(mobile=mobile, program_id=self.program_name))
 		self.assertEqual(result.get("status_code"), 200, result)
 		self.assertEqual(
 			frappe.db.get_value("User Metadata", email, "org_id"),
-			other_org,
+			self.program_name,
 		)
 		self.assertTrue(
 			frappe.db.exists("Program Participation", {"user": email, "program": self.program_name})

@@ -351,11 +351,22 @@ def add_user():
     
     return custom_response(message, data, status_code, error)
 
+def _generate_username(first_name, last_name=None):
+    """Build a unique username using Samaaja's first/last name + random suffix logic."""
+    from samaaja.overrides.user import username as samaaja_generate_username
+
+    stub = frappe._dict(first_name=first_name, last_name=last_name, username=None)
+    samaaja_generate_username(stub, None)
+    return stub.username
+
+
 @frappe.whitelist()
 def update_user():
     """
     Public endpoint to update user profile information using mobile number.
-    Updates: first_name, age, dob/birth_date, gender, city, year_of_birth
+    Updates: first_name, age, dob/birth_date, gender, city, year_of_birth.
+    When first_name actually changes, regenerates username and syncs
+    User Metadata.full_name (if the metadata row already exists).
 
     Uses targeted frappe.db.set_value for User fields to avoid User.validate ->
     ask_pass_update() concurrency failures on the shared email_user_password default.
@@ -399,13 +410,19 @@ def update_user():
 
             if user_data.get("first_name"):
                 first_name = user_data.get("first_name")
+                existing_first_name, middle_name, last_name = frappe.db.get_value(
+                    "User", user_name, ["first_name", "middle_name", "last_name"]
+                ) or (None, None, None)
                 user_updates["first_name"] = first_name
-                middle_name, last_name = frappe.db.get_value(
-                    "User", user_name, ["middle_name", "last_name"]
-                ) or (None, None)
                 user_updates["full_name"] = " ".join(
                     filter(None, [first_name, middle_name, last_name])
                 )
+                # Same rule as desk: regenerate username only when first_name actually changes
+                if first_name != existing_first_name:
+                    new_username = _generate_username(first_name, last_name)
+                    if new_username:
+                        user_updates["username"] = new_username
+                        username = new_username
 
             # Prefer age if both age and dob are provided
             if user_data.get("age"):
@@ -428,22 +445,24 @@ def update_user():
             if user_updates:
                 frappe.db.set_value("User", user_name, user_updates)
 
-            # Upsert User Metadata for city and/or year_of_birth (independent of each other)
-            if resolved_city is not None or user_data.get("year_of_birth"):
-                year_of_birth = (
-                    int(user_data.get("year_of_birth"))
-                    if user_data.get("year_of_birth")
-                    else None
-                )
-                if frappe.db.exists("User Metadata", user_name):
+            new_full_name = user_updates.get("full_name")
+            metadata_exists = frappe.db.exists("User Metadata", user_name)
+            year_of_birth_raw = user_data.get("year_of_birth")
+
+            # Upsert User Metadata for city, year_of_birth, and/or full_name
+            if resolved_city is not None or year_of_birth_raw or (new_full_name and metadata_exists):
+                year_of_birth = int(year_of_birth_raw) if year_of_birth_raw else None
+                if metadata_exists:
                     metadata_updates = {}
                     if resolved_city is not None:
                         metadata_updates["city"] = resolved_city
                     if year_of_birth is not None:
                         metadata_updates["year_of_birth"] = year_of_birth
+                    if new_full_name:
+                        metadata_updates["full_name"] = new_full_name
                     if metadata_updates:
                         frappe.db.set_value("User Metadata", user_name, metadata_updates)
-                else:
+                elif resolved_city is not None or year_of_birth is not None:
                     metadata_doc = {
                         "doctype": "User Metadata",
                         "user": user_name,
