@@ -234,6 +234,7 @@ doc_events = {
         ],
         "after_insert": [
 			"solve_ninja.doc_events.events.after_insert",
+			"solve_ninja.doc_events.energy_point_log.send_badge_notification_after_insert",
 		],
         "on_trash": "solve_ninja.doc_events.events.on_trash",
     },
