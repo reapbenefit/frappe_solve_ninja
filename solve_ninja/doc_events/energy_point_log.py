@@ -14,6 +14,50 @@ def _badge_notification_cache_key(event_name):
 	return f"badge_notification_sent_{event_name}"
 
 
+def _try_acquire_badge_notify_lock(event_name, expires_in_sec=BADGE_NOTIFY_LOCK_SECS):
+	"""
+	Atomically claim the per-event notify lock.
+
+	Uses Redis SET NX (not get_value/set_value). get_value caches a miss as None in
+	frappe.local.cache, and set_value with expires_in_sec does not update local cache,
+	so later gets in the same request always miss and re-enqueue — one HSM per skill.
+	"""
+	cache = frappe.cache()
+	redis_key = cache.make_key(_badge_notification_cache_key(event_name))
+	try:
+		return bool(cache.set(redis_key, b"1", nx=True, ex=expires_in_sec))
+	except Exception:
+		# Same-request fallback if Redis is unavailable
+		locks = getattr(frappe.local, "_badge_notify_locks", None)
+		if locks is None:
+			locks = frappe.local._badge_notify_locks = set()
+		if event_name in locks:
+			return False
+		locks.add(event_name)
+		return True
+
+
+def _release_badge_notify_lock(event_name):
+	cache = frappe.cache()
+	redis_key = cache.make_key(_badge_notification_cache_key(event_name))
+	try:
+		cache.delete(redis_key)
+	except Exception:
+		pass
+	locks = getattr(frappe.local, "_badge_notify_locks", None)
+	if locks is not None:
+		locks.discard(event_name)
+
+
+def _mark_badge_notify_sent(event_name):
+	cache = frappe.cache()
+	redis_key = cache.make_key(_badge_notification_cache_key(event_name))
+	try:
+		cache.set(redis_key, b"1", ex=BADGE_NOTIFY_SENT_SECS)
+	except Exception:
+		pass
+
+
 def handle_energy_point_log(doc, method):
 	"""
 	Handle Energy Point Log creation and trigger badge notification.
@@ -26,12 +70,6 @@ def handle_energy_point_log(doc, method):
 	if doc.reference_doctype != "Events" or not doc.reference_name:
 		return
 
-	cache_key = _badge_notification_cache_key(doc.reference_name)
-
-	# Check if notification was already enqueued / sent for this event
-	if frappe.cache().get_value(cache_key):
-		return
-
 	# Verify Events document exists and check source
 	try:
 		events_doc = frappe.get_doc("Events", doc.reference_name)
@@ -40,12 +78,32 @@ def handle_energy_point_log(doc, method):
 	except frappe.DoesNotExistError:
 		return
 
-	# Lock immediately so other EPS for the same event do not enqueue again
-	frappe.cache().set_value(cache_key, True, expires_in_sec=BADGE_NOTIFY_LOCK_SECS)
+	# First caller for this event wins; later skill inserts skip
+	if not _try_acquire_badge_notify_lock(doc.reference_name):
+		return
 
 	frappe.enqueue(
 		"solve_ninja.doc_events.energy_point_log.send_badge_notification",
 		event_name=doc.reference_name,
+		enqueue_after_commit=True,
+	)
+
+
+def send_badge_notification_after_insert(doc, method=None):
+	"""
+	On Events create: claim the notify lock early and enqueue once.
+	Later Energy Point Log inserts see the same lock and skip enqueueing,
+	so multi-skill events send a single WhatsApp notification.
+	"""
+	if not doc.user or not doc.source or doc.source in ["SamaajData", "manualupload"]:
+		return
+
+	if not _try_acquire_badge_notify_lock(doc.name):
+		return
+
+	frappe.enqueue(
+		"solve_ninja.doc_events.energy_point_log.send_badge_notification",
+		event_name=doc.name,
 		enqueue_after_commit=True,
 	)
 
@@ -177,11 +235,9 @@ def send_badge_notification(event_name, events=None):
 		"badge": ("is", "set")
 	}, fields=["*"])
 
-	cache_key = _badge_notification_cache_key(event_name)
-
 	if not eps:
 		_log_badge_ir(event_name, "Cancelled", "No badge Energy Point Logs found for event")
-		frappe.cache().delete_value(cache_key)
+		_release_badge_notify_lock(event_name)
 		return
 
 	if not events.user:
@@ -190,6 +246,21 @@ def send_badge_notification(event_name, events=None):
 
 	if events.source and events.source in ["SamaajData", "manualupload"]:
 		_log_badge_ir(event_name, "Cancelled", f"Source '{events.source}' is excluded from badge notifications")
+		return
+
+	# Belt-and-suspenders: if another worker already sent successfully, do not send again
+	already_sent = frappe.db.exists(
+		"Integration Request",
+		{
+			"integration_request_service": "Glific Badge HSM",
+			"reference_doctype": "Events",
+			"reference_docname": event_name,
+			"status": "Completed",
+		},
+	)
+	if already_sent:
+		_log_badge_ir(event_name, "Cancelled", "Badge HSM already sent for this event")
+		_mark_badge_notify_sent(event_name)
 		return
 
 	try:
@@ -284,14 +355,14 @@ def send_badge_notification(event_name, events=None):
 				reference_doctype="Events",
 				reference_name=event_name,
 			)
-			frappe.cache().delete_value(cache_key)
+			_release_badge_notify_lock(event_name)
 			return
 
 		_log_badge_ir(event_name, "Completed",
 					  f"HSM sent successfully (message id: {message_id})",
 					  data=request_data, response=glific_response)
 		# Keep lock so later EPS for this event cannot re-notify
-		frappe.cache().set_value(cache_key, True, expires_in_sec=BADGE_NOTIFY_SENT_SECS)
+		_mark_badge_notify_sent(event_name)
 
 	except Exception:
 		tb = frappe.get_traceback()
@@ -304,4 +375,4 @@ def send_badge_notification(event_name, events=None):
 			reference_doctype="Events",
 			reference_name=event_name,
 		)
-		frappe.cache().delete_value(cache_key)
+		_release_badge_notify_lock(event_name)
