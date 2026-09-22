@@ -15,11 +15,14 @@ from solve_ninja.utils import (
 def _marketplace_request_data():
 	"""Merge form_dict + JSON body (matches Server Script form_dict behavior)."""
 	data = {}
-	if frappe.form_dict:
-		data.update(dict(frappe.form_dict))
+	form_dict = getattr(frappe.local, "form_dict", None)
+	if form_dict:
+		data.update(dict(form_dict))
 	data.pop("cmd", None)
 
-	raw = getattr(getattr(frappe, "request", None), "data", None)
+	# Use frappe.local.request so bench/execute (no HTTP) does not hit unbound LocalProxy
+	request = getattr(frappe.local, "request", None)
+	raw = getattr(request, "data", None) if request is not None else None
 	if raw:
 		try:
 			body = json.loads(raw)

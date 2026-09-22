@@ -5,7 +5,7 @@ import json
 import random
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from solve_ninja.api.common import update_user
 
@@ -164,7 +164,7 @@ def call_update_user(payload):
 	return response.status_code, body
 
 
-class TestUpdateUser(FrappeTestCase):
+class TestUpdateUser(IntegrationTestCase):
 	def setUp(self):
 		frappe.set_user("Administrator")
 		self.factory = UpdateUserTestDataFactory()

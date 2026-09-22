@@ -8,7 +8,7 @@ frappe.ui.form.on('User', {
             // Add Events button (first)
             frm.add_custom_button(__('Events'), function() {
                 // Open Events list filtered by this user in a new tab
-                const route = `/app/events?user=${encodeURIComponent(frm.doc.name)}`;
+                const route = `/desk/events?user=${encodeURIComponent(frm.doc.name)}`;
                 window.open(route, '_blank');
             }, __('View'));
 
@@ -18,7 +18,7 @@ frappe.ui.form.on('User', {
                 frappe.db.exists('Ninja Profile', frm.doc.name).then(exists => {
                     if (exists) {
                         // Open Ninja Profile in a new tab
-                        const route = `/app/ninja-profile/${encodeURIComponent(frm.doc.name)}`;
+                        const route = `/desk/ninja-profile/${encodeURIComponent(frm.doc.name)}`;
                         window.open(route, '_blank');
                     } else {
                         frappe.msgprint({
@@ -36,7 +36,7 @@ frappe.ui.form.on('User', {
                 frappe.db.exists('User Metadata', frm.doc.name).then(exists => {
                     if (exists) {
                         // Open User Metadata in a new tab
-                        const route = `/app/user-metadata/${encodeURIComponent(frm.doc.name)}`;
+                        const route = `/desk/user-metadata/${encodeURIComponent(frm.doc.name)}`;
                         window.open(route, '_blank');
                     } else {
                         frappe.msgprint({

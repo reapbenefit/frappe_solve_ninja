@@ -158,6 +158,8 @@ def _log_badge_ir(event_name, status, description, data=None, response=None, err
 			"is_remote_request": 1,
 		}).insert(ignore_permissions=True, ignore_links=True)
 	except Exception:
+		# Clear aborted Postgres txn so Error Log insert can succeed
+		frappe.db.rollback()
 		frappe.log_error(
 			title="Badge IR Logging Error",
 			message=frappe.get_traceback(),
@@ -184,7 +186,9 @@ def _build_badge_notification_context(user, ninja_profile, user_metadata, eps, e
 	total_hours_row = frappe.db.get_all(
 		"Events",
 		filters={"user": events.user},
-		fields=["sum(hours_invested) as total_hours"],
+		fields=[{"SUM": "hours_invested", "as": "total_hours"}],
+		group_by="user",
+		order_by=None,
 	)
 	total_hours = flt(total_hours_row[0].total_hours) if total_hours_row else 0
 
@@ -310,7 +314,7 @@ def send_badge_notification(event_name, events=None):
 			) or {}
 			contact_id = contact.get("id")
 			if contact_id:
-				ninja_profile.db_set("wa_id", contact_id, commit=True)
+				ninja_profile.db_set("wa_id", contact_id, commit=False)
 				ninja_profile.reload()
 
 		if not ninja_profile.wa_id:
@@ -366,6 +370,8 @@ def send_badge_notification(event_name, events=None):
 
 	except Exception:
 		tb = frappe.get_traceback()
+		# Clear aborted Postgres txn so IR / Error Log inserts can succeed
+		frappe.db.rollback()
 		_log_badge_ir(event_name, "Failed",
 					  f"Unhandled exception in badge notification for {event_name}",
 					  error=tb)

@@ -420,7 +420,7 @@ def get_learn_page_content(language='en'):
         dict: All learn page content fields
     """
     try:
-        learn_content_docs= frappe.db.get_all('Learn Page Content',filters={'language':language, 'is_active':1},fields=['name'])
+        learn_content_docs= frappe.db.get_all('Learn Page Content',filters={'language':language, 'is_active':1},fields=['name'], order_by='modified desc')
         
         
         if len(learn_content_docs) == 0:
@@ -520,7 +520,7 @@ def get_connect_page_content(language='en'):
         dict: All connect page content fields
     """
     try:
-        connect_content_docs = frappe.db.get_all('Connect Page Content', filters={'language': language, 'is_active': 1}, fields=['name'])
+        connect_content_docs = frappe.db.get_all('Connect Page Content', filters={'language': language, 'is_active': 1}, fields=['name'], order_by='modified desc')
         
         if len(connect_content_docs) == 0:
             return custom_response(
@@ -627,7 +627,7 @@ def get_lead_page_content(language='en'):
         dict: All lead page content fields
     """
     try:
-        lead_content_docs = frappe.db.get_all('Lead Page Content', filters={'language': language, 'is_active': 1}, fields=['name'])
+        lead_content_docs = frappe.db.get_all('Lead Page Content', filters={'language': language, 'is_active': 1}, fields=['name'], order_by='modified desc')
         
         if len(lead_content_docs) == 0:
             return custom_response(
@@ -741,7 +741,7 @@ def get_home_page_content(language='en'):
     try:
         
         # Get the home page content record 
-        home_content_docs= frappe.db.get_all('Home Page Content',filters={'language':language, 'is_active':1},fields=['name'])
+        home_content_docs= frappe.db.get_all('Home Page Content',filters={'language':language, 'is_active':1},fields=['name'], order_by='modified desc')
 		
         if len(home_content_docs) == 0:
             return custom_response(

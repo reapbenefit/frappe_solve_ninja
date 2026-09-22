@@ -251,7 +251,7 @@ login.verify_otp = function (mobile, otp) {
 				login.set_status("Login successful", 'green');
 				// Redirect to home page or dashboard
 				setTimeout(function () {
-					window.location.href = response.message.redirect_to || "/app";
+					window.location.href = response.message.redirect_to || "/desk";
 				}, 1000);
 			} else {
 				login.set_status(response.message.message || "Invalid OTP", 'red');

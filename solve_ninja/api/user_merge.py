@@ -251,12 +251,16 @@ def _get_ninja_profile_preview(source_user, target_user):
 		source_result = frappe.db.get_all(
 			"Events",
 			filters={"user": source_user},
-			fields=["sum(hours_invested) as total_hours"],
+			fields=[{"SUM": "hours_invested", "as": "total_hours"}],
+			group_by="user",
+			order_by=None,
 		)
 		target_result = frappe.db.get_all(
 			"Events",
 			filters={"user": target_user},
-			fields=["sum(hours_invested) as total_hours"],
+			fields=[{"SUM": "hours_invested", "as": "total_hours"}],
+			group_by="user",
+			order_by=None,
 		)
 		source_hours = flt(source_result[0].get("total_hours")) if source_result else 0
 		target_hours = flt(target_result[0].get("total_hours")) if target_result else 0

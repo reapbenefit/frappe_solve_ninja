@@ -74,7 +74,10 @@ def update_ninja_profile(user: str):
     result = frappe.db.get_all(
         "Events",
         filters={"user": user},
-        fields=["sum(hours_invested) as total_hours", "count(*) as total_events"],
+        fields=[
+            {"SUM": "hours_invested", "as": "total_hours"},
+            {"COUNT": "*", "as": "total_events"},
+        ],
         group_by="user"
     )
 
@@ -203,7 +206,7 @@ def update_user_headline(user: str):
         .where(Events.user == user)
         .where(Events.category.isnotnull())
         .groupby(Events.category)
-        .orderby(Count(Events.name), order=frappe.qb.desc)
+        .orderby(fn.Count(Events.name), order=frappe.qb.desc)
         .limit(3)
     ).run(pluck=True)
 

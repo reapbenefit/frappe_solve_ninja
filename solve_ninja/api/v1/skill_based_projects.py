@@ -294,9 +294,9 @@ def get_projects(page_length=10, start=0, project_name=None, status=None, tags=N
 					project_tags_map[tag_row.parent] = []
 				project_tags_map[tag_row.parent].append(tag_row.tag)
 		
-		# Fetch impact metrics
+		# Fetch impact metrics (child table may be absent on older schemas)
 		impact_metric_map = {}
-		if project_names:
+		if project_names and frappe.db.exists("DocType", "Skill Based Projects Impact Metric"):
 			impact_data = frappe.db.get_all(
 				"Skill Based Projects Impact Metric",
 				filters={"parent": ["in", project_names]},
@@ -425,16 +425,17 @@ def get_project_details(id):
 		
 		# Fetch impact metrics as list of dicts with title and value
 		impact_metrics = []
-		impact_data = frappe.db.get_all(
-			"Skill Based Projects Impact Metric",
-			filters={"parent": id},
-			fields=["title", "value"]
-		)
-		for impact_row in impact_data:
-			impact_metrics.append({
-				"title": impact_row.title,
-				"value": impact_row.value
-			})
+		if frappe.db.exists("DocType", "Skill Based Projects Impact Metric"):
+			impact_data = frappe.db.get_all(
+				"Skill Based Projects Impact Metric",
+				filters={"parent": id},
+				fields=["title", "value"]
+			)
+			for impact_row in impact_data:
+				impact_metrics.append({
+					"title": impact_row.title,
+					"value": impact_row.value
+				})
 		
 		# Fetch key objectives as simple list of objective strings
 		key_objectives = []

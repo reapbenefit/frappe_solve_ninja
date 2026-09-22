@@ -137,9 +137,9 @@ def get_state_wise_user_count(page_length=10):
 			'enabled': 1,
 			'state': ('is', 'set')
 		},
-		fields=['count(name) as user_count', 'state'],
+		fields=[{"COUNT": "name", "as": "user_count"}, "state"],
 		group_by='state',
-		order_by='count(name) desc',
+		order_by='user_count desc',
 		page_length=page_length
 	)
 	# query = (
