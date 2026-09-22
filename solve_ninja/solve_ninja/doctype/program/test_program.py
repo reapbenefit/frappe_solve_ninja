@@ -6,7 +6,7 @@ import random
 from unittest.mock import patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from solve_ninja.api.common import assign_user_organization
 from solve_ninja.api.v1.solve_event import program_checkin
@@ -20,7 +20,7 @@ def _parse_response(result):
 	return result
 
 
-class TestProgramUserOrganization(FrappeTestCase):
+class TestProgramUserOrganization(IntegrationTestCase):
 	def setUp(self):
 		self.suffix = str(random.randint(1000000000, 9999999999))
 		self.program_name = f"TestProgOrg-{self.suffix}"

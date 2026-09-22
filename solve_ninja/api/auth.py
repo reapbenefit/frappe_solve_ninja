@@ -245,7 +245,7 @@ def verify_otp_login(mobile, otp, redirect_to=None):
 		frappe.local.login_manager.post_login()
 		
 		# Determine redirect URL
-		default_redirect = "/app"
+		default_redirect = "/desk"
 		if user.user_type == "Website User":
 			default_redirect = "/user-profile/me"
 		

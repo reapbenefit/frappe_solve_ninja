@@ -26,14 +26,14 @@ frappe.ui.form.on('Ninja Profile', {
 			// Add Events button (first)
 			frm.add_custom_button(__('Events'), function() {
 				// Open Events list filtered by the linked user in a new tab
-				const route = `/app/events?user=${encodeURIComponent(frm.doc.user)}`;
+				const route = `/desk/events?user=${encodeURIComponent(frm.doc.user)}`;
 				window.open(route, '_blank');
 			}, __('View'));
 
 			// Add User button (second)
 			frm.add_custom_button(__('User'), function() {
 				// Open User form in a new tab
-				const route = `/app/user/${encodeURIComponent(frm.doc.user)}`;
+				const route = `/desk/user/${encodeURIComponent(frm.doc.user)}`;
 				window.open(route, '_blank');
 			}, __('View'));
 
@@ -43,7 +43,7 @@ frappe.ui.form.on('Ninja Profile', {
 				frappe.db.exists('User Metadata', frm.doc.user).then(exists => {
 					if (exists) {
 						// Open User Metadata in a new tab
-						const route = `/app/user-metadata/${encodeURIComponent(frm.doc.user)}`;
+						const route = `/desk/user-metadata/${encodeURIComponent(frm.doc.user)}`;
 						window.open(route, '_blank');
 					} else {
 						frappe.msgprint({

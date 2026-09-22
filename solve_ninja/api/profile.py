@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.utils import pretty_date
+from frappe.utils import pretty_date, cint
 from frappe import _
 from frappe.utils import logger
 from solve_ninja.models.user_portfolio import UserPortfolio
@@ -99,7 +99,7 @@ def _get_user_actions(user_name, since_creation=None, events_user=None):
 		action.review_exists = frappe.db.exists("Events Review", {"events": action.event_id, "status": "Accepted"})
 		if action.review_exists:
 			action.review = frappe.get_doc("Events Review", action.review_exists)
-		if action.highlight == '1':
+		if cint(action.highlight):
 			highlighted = {'title': action.title, 'description': action.description}
 
 	return actions, highlighted

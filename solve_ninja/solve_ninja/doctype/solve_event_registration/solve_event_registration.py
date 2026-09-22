@@ -429,6 +429,6 @@ def _resolve_registration_wa_id(user, registration, glific_settings):
 		return None
 
 	if ninja_profile:
-		ninja_profile.db_set("wa_id", contact_id, commit=True)
+		ninja_profile.db_set("wa_id", contact_id, commit=False)
 
 	return contact_id

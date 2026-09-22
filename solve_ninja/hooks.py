@@ -7,6 +7,18 @@ app_description = "This app is created to support ReapBenefit specific use cases
 app_email = "info@reapbenefit.org"
 app_license = "MIT"
 
+required_apps = ["samaaja", "eps"]
+
+add_to_apps_screen = [
+	{
+		"name": "solve_ninja",
+		"title": "Solve Ninja",
+		"route": "/desk/solve-ninja",
+		"logo": "/files/logo-vmXI3rix.png",
+		"has_permission": "solve_ninja.api.check_app_permission",
+	}
+]
+
 # Includes in <head>
 # ------------------
 
@@ -116,6 +128,7 @@ permission_query_conditions = {
 
 has_permission = {
 	"Mentorship Request": "solve_ninja.solve_ninja.doctype.mentorship_request.mentorship_request.has_permission",
+	"Events": "solve_ninja.api.common.has_permission",
 }
 
 # DocType Class
@@ -253,10 +266,6 @@ doc_events = {
     "Energy Point Log": {
         "after_insert": "solve_ninja.doc_events.energy_point_log.handle_energy_point_log"
     }
-}
-
-has_permission = {
-    "Events": "solve_ninja.api.common.has_permission"
 }
 
 ignore_links_on_delete = [

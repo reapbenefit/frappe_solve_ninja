@@ -1,13 +1,13 @@
 # Copyright (c) 2025, ReapBenefit and Contributors
 # See license.txt
 
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 from frappe.utils import get_datetime
 
 from solve_ninja.api.v1.solve_event import get_event_checkin_window, get_event_checkin_window_status
 
 
-class TestEventCheckinWindow(FrappeTestCase):
+class TestEventCheckinWindow(IntegrationTestCase):
 	def test_same_day_opens_one_hour_before_start(self):
 		start = "2026-08-13 18:00:00"
 		end = "2026-08-13 19:00:00"
