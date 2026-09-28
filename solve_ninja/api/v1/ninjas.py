@@ -10,6 +10,8 @@ DEFAULT_PAGE_LENGTH = 20
 MAX_PAGE_LENGTH = 100
 SKILL_LIMIT = 3
 ACTIVE_TIME_OPTIONS = {"", "all", "7d", "30d"}
+UNFILTERED_AGGREGATES_CACHE_KEY = "solve_ninja:ninja_listing:unfiltered_aggregates"
+UNFILTERED_AGGREGATES_CACHE_TTL = 300
 
 # Whitelist of sort keys → SQL column expressions (view column names only).
 SORT_COLUMNS = {
@@ -89,19 +91,7 @@ def get_ninja_listing(
 			as_dict=True,
 		)
 
-		stats = frappe.db.sql(
-			f"""
-			SELECT
-				COUNT(*) AS total_count,
-				COALESCE(SUM(hours_invested), 0) AS total_hours
-			FROM `{VIEW_NAME}`
-			WHERE {where_clause}
-			""",
-			params,
-			as_dict=True,
-		)[0]
-		total_count = cint(stats.total_count)
-		total_hours = flt(stats.total_hours)
+		total_count, total_hours = _get_listing_aggregates(where_clause, params)
 
 		user_ids = [row.user_id for row in rows]
 		skills_map = _get_top_skills_for_users(user_ids, limit=SKILL_LIMIT)
@@ -293,6 +283,38 @@ def _build_filters(
 		params.extend(skill_titles)
 
 	return " AND ".join(conditions), params
+
+
+def _get_listing_aggregates(where_clause, params):
+	"""COUNT/SUM over the view. Cache the unfiltered totals for a few minutes."""
+	unfiltered = where_clause == "1=1" and not params
+	if unfiltered:
+		cached = frappe.cache().get_value(UNFILTERED_AGGREGATES_CACHE_KEY)
+		if cached:
+			return cint(cached.get("total_count")), flt(cached.get("total_hours"))
+
+	stats = frappe.db.sql(
+		f"""
+		SELECT
+			COUNT(*) AS total_count,
+			COALESCE(SUM(hours_invested), 0) AS total_hours
+		FROM `{VIEW_NAME}`
+		WHERE {where_clause}
+		""",
+		params,
+		as_dict=True,
+	)[0]
+	total_count = cint(stats.total_count)
+	total_hours = flt(stats.total_hours)
+
+	if unfiltered:
+		frappe.cache().set_value(
+			UNFILTERED_AGGREGATES_CACHE_KEY,
+			{"total_count": total_count, "total_hours": total_hours},
+			expires_in_sec=UNFILTERED_AGGREGATES_CACHE_TTL,
+		)
+
+	return total_count, total_hours
 
 
 def _profile_url(username):
