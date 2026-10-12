@@ -75,7 +75,8 @@ function show_user_merge_dialog(frm) {
                 get_query: () => ({
                     filters: {
                         enabled: 1,
-                        name: ['!=', frm.doc.name]
+                        name: ['!=', frm.doc.name],
+                        ignore_user_type: 1
                     }
                 })
             }
