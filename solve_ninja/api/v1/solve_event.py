@@ -682,6 +682,7 @@ def find_or_create_registration(user, solve_event_name):
 			"solve_event": solve_event_name,
 			"source": "snbot"
 		})
+		registration_doc.flags.created_via_event_checkin = True
 		registration_doc.insert(ignore_permissions=True,ignore_links=True)
 		
 		# After insertion, check if it was marked as rejected due to duplicate check

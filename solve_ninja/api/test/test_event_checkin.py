@@ -1,10 +1,21 @@
 # Copyright (c) 2025, ReapBenefit and Contributors
 # See license.txt
 
+from unittest.mock import patch
+
+import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import get_datetime
 
-from solve_ninja.api.v1.solve_event import get_event_checkin_window, get_event_checkin_window_status
+from solve_ninja.api.v1.solve_event import (
+	find_or_create_registration,
+	get_event_checkin_window,
+	get_event_checkin_window_status,
+)
+
+REGISTRATION_HSM_METHOD = (
+	"solve_ninja.solve_ninja.doctype.solve_event_registration.solve_event_registration.send_event_registration_hsm"
+)
 
 
 class TestEventCheckinWindow(IntegrationTestCase):
@@ -60,3 +71,51 @@ class TestEventCheckinWindow(IntegrationTestCase):
 			get_event_checkin_window_status(get_datetime("2026-08-16 00:00:00"), start, end),
 			"ended",
 		)
+
+
+class TestEventCheckinRegistrationHsm(IntegrationTestCase):
+	def setUp(self):
+		self.user = f"checkin-hsm-{frappe.generate_hash(length=8)}@solveninja.org"
+		self.solve_event = f"CHECKIN-HSM-TEST-{frappe.generate_hash(length=8)}"
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def _queued_hsm_calls(self, mock_enqueue):
+		return [c for c in mock_enqueue.call_args_list if c.args and c.args[0] == REGISTRATION_HSM_METHOD]
+
+	@patch("frappe.enqueue")
+	def test_checkin_registration_skips_whatsapp_confirmation(self, mock_enqueue):
+		registration = find_or_create_registration(self.user, self.solve_event)
+
+		self.assertTrue(registration)
+		self.assertEqual(
+			frappe.db.get_value("Solve Event Registration", registration, ["user", "solve_event", "source"]),
+			(self.user, self.solve_event, "snbot"),
+		)
+		self.assertEqual(self._queued_hsm_calls(mock_enqueue), [])
+
+	@patch("frappe.enqueue")
+	def test_checkin_returns_existing_registration(self, mock_enqueue):
+		first = find_or_create_registration(self.user, self.solve_event)
+		second = find_or_create_registration(self.user, self.solve_event)
+
+		self.assertEqual(first, second)
+		self.assertEqual(
+			frappe.db.count("Solve Event Registration", {"user": self.user, "solve_event": self.solve_event}),
+			1,
+		)
+		self.assertEqual(self._queued_hsm_calls(mock_enqueue), [])
+
+	@patch("frappe.enqueue")
+	def test_regular_registration_still_sends_whatsapp_confirmation(self, mock_enqueue):
+		frappe.get_doc(
+			{
+				"doctype": "Solve Event Registration",
+				"user": self.user,
+				"solve_event": self.solve_event,
+				"source": "Web Form",
+			}
+		).insert(ignore_permissions=True, ignore_links=True)
+
+		self.assertEqual(len(self._queued_hsm_calls(mock_enqueue)), 1)

@@ -35,6 +35,9 @@ class SolveEventRegistration(Document):
 		"""Send WhatsApp confirmation only for successful (non-Rejected) registrations."""
 		if not is_active_registration_status(self.status):
 			return
+		# Same-day check-in registrations are already at the event; no confirmation needed.
+		if self.flags.created_via_event_checkin:
+			return
 
 		frappe.enqueue(
 			"solve_ninja.solve_ninja.doctype.solve_event_registration.solve_event_registration.send_event_registration_hsm",
