@@ -122,6 +122,10 @@ class LifecycleTestCase(IntegrationTestCase):
 			"Ninja Profile", name, ["ninja_level", "ninja_status", "hours_last_12_months"], as_dict=True
 		)
 
+	def calculated_on(self, name):
+		value = frappe.db.get_value("Ninja Profile", name, "hours_calculated_on")
+		return get_datetime(value) if value else None
+
 	def logs(self, name):
 		return frappe.get_all(
 			"Ninja Lifecycle Log",
@@ -143,6 +147,16 @@ class TestActionRules(LifecycleTestCase):
 		self.assertEqual(self.profile(ninja), {"ninja_level": "2", "ninja_status": ACTIVE, "hours_last_12_months": 30})
 		(log,) = self.logs(ninja)
 		self.assertEqual((log.reason, log.from_level, log.to_level), ("Action", "1", "2"))
+		self.assertLessEqual(abs((now_datetime() - self.calculated_on(ninja)).total_seconds()), 60)
+
+	def test_hours_calculated_on_set_even_without_a_change(self):
+		ninja = self.make_ninja("1", ACTIVE)
+		self.add_event(ninja, 2, now_datetime())
+
+		result = lifecycle.evaluate_ninja(ninja)
+
+		self.assertFalse(result["changed"])
+		self.assertIsNotNone(self.calculated_on(ninja))
 
 	def test_inactive_ninja_reactivated(self):
 		ninja = self.make_ninja("1", INACTIVE)
@@ -313,6 +327,9 @@ class TestMonthlyJob(LifecycleTestCase):
 		self.assertEqual((self.profile(decayed).ninja_status, self.profile(decayed).ninja_level), (ACTIVE, "1"))
 		self.assertEqual(self.profile(acted_since).ninja_status, ACTIVE)
 		self.assertEqual(get_datetime(self.logs(went_inactive)[-1].changed_on), e)
+		self.assertEqual(self.calculated_on(went_inactive), e)
+		self.assertEqual(self.calculated_on(alumni), e)
+		self.assertIsNone(self.calculated_on(acted_since))
 
 		snapshots = {
 			row.ninja: row
@@ -369,6 +386,7 @@ class TestMonthlyJob(LifecycleTestCase):
 		count = mis.initialise_lifecycle(users=[busy, quiet, lapsed, veteran], commit=False)
 
 		self.assertEqual(count, 4)
+		self.assertIsNotNone(self.calculated_on(quiet))
 		self.assertEqual((self.profile(veteran).ninja_level, self.profile(veteran).ninja_status), ("3", INACTIVE))
 		self.add_event(veteran, 1, now)
 		lifecycle.evaluate_ninja(veteran)

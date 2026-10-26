@@ -242,20 +242,51 @@ def apply_month_end_rules(month_end, users=None, commit=True):
 	changes = 0
 	for start in range(0, len(candidates), CHUNK_SIZE):
 		chunk = candidates[start : start + CHUNK_SIZE]
-		for attempt in range(1, MAX_CHUNK_ATTEMPTS + 1):
-			if commit:
-				# Fresh snapshot, so the locked re-read sees actions committed meanwhile
-				frappe.db.commit()
-			try:
-				changes += _apply_month_end_chunk(chunk, activity, month_end)
-				if commit:
-					frappe.db.commit()
-				break
-			except Exception as error:
-				if not (commit and is_concurrent_update_error(error) and attempt < MAX_CHUNK_ATTEMPTS):
-					raise
-				frappe.db.rollback()
+		changes += _run_with_retry(lambda: _apply_month_end_chunk(chunk, activity, month_end), commit)
+	_run_with_retry(lambda: _stamp_hours_calculated_on(month_end, users), commit)
 	return changes
+
+
+def _run_with_retry(fn, commit):
+	"""Run fn in a fresh transaction, retrying when it clashes with a concurrent update."""
+	for attempt in range(1, MAX_CHUNK_ATTEMPTS + 1):
+		if commit:
+			# Fresh snapshot, so reads under lock see actions committed meanwhile
+			frappe.db.commit()
+		try:
+			result = fn()
+			if commit:
+				frappe.db.commit()
+			return result
+		except Exception as error:
+			if not (commit and is_concurrent_update_error(error) and attempt < MAX_CHUNK_ATTEMPTS):
+				raise
+			frappe.db.rollback()
+
+
+def _stamp_hours_calculated_on(month_end, users=None):
+	"""
+	Mark hours as calculated at month_end for every profile the month-end step evaluated.
+	Ninjas who acted after month_end already carry a later stamp from their action check.
+	"""
+	params = {"month_end": month_end}
+	user_condition = ""
+	if users:
+		user_condition = "and p.name in %(users)s"
+		params["users"] = tuple(users)
+	frappe.db.sql(
+		f"""
+		update `tabNinja Profile` p
+		set hours_calculated_on = %(month_end)s
+		where (p.hours_calculated_on is null or p.hours_calculated_on < %(month_end)s)
+			and not exists (
+				select 1 from `tabEvents` e
+				where e.`user` = p.name and e.date_of_action > %(month_end)s
+			)
+			{user_condition}
+		""",
+		params,
+	)
 
 
 def _apply_month_end_chunk(chunk, activity, month_end):
@@ -471,6 +502,7 @@ def initialise_lifecycle(as_of=None, users=None, commit=True):
 			"ninja_level": str(level),
 			"ninja_status": status,
 			"hours_last_12_months": hours_12m,
+			"hours_calculated_on": as_of,
 		}
 		logs.append(make_log_row(profile.name, None, None, level, status, REASON_INITIAL_SETUP, as_of))
 

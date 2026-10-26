@@ -22,6 +22,7 @@
   "ninja_status",
   "column_break_lifecycle",
   "hours_last_12_months",
+  "hours_calculated_on",
   "action_section",
   "last_action",
   "last_action_date",
@@ -104,10 +105,17 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Hours from actions dated within the last 12 months; Level 2 needs 30 or more",
+   "description": "Hours from actions dated within the 12 months up to Hours Calculated On; Level 2 needs 30 or more",
    "fieldname": "hours_last_12_months",
    "fieldtype": "Float",
    "label": "Hours (Last 12 Months)",
+   "read_only": 1
+  },
+  {
+   "description": "Updated on every action, at each month end (as of the last day 23:59:59) and on Recalculate",
+   "fieldname": "hours_calculated_on",
+   "fieldtype": "Datetime",
+   "label": "Hours Calculated On",
    "read_only": 1
   },
   {
@@ -211,7 +219,7 @@
    "link_fieldname": "ninja"
   }
  ],
- "modified": "2026-10-26 17:30:00.000000",
+ "modified": "2026-10-26 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Ninja Profile",

@@ -250,7 +250,7 @@ def evaluate_ninja(ninja, reason=REASON_ACTION, include_inactivity=False, as_of=
 	profile = frappe.db.get_value(
 		PROFILE_DOCTYPE,
 		ninja,
-		["name", "ninja_level", "ninja_status", "hours_last_12_months", "creation"],
+		["name", "ninja_level", "ninja_status", "creation"],
 		as_dict=True,
 		for_update=True,
 	)
@@ -285,16 +285,13 @@ def evaluate_ninja(ninja, reason=REASON_ACTION, include_inactivity=False, as_of=
 			logs.append(make_log_row(ninja, new_level, new_status, level, status, reason, as_of, event))
 			new_level, new_status = level, status
 
-	values = {}
+	values = {"hours_last_12_months": activity.hours_12m, "hours_calculated_on": as_of}
 	if new_level != old_level:
 		values["ninja_level"] = str(new_level)
 	if new_status != old_status:
 		values["ninja_status"] = new_status
-	if flt(profile.hours_last_12_months) != activity.hours_12m:
-		values["hours_last_12_months"] = activity.hours_12m
 
-	if values:
-		frappe.db.set_value(PROFILE_DOCTYPE, ninja, values, update_modified=False)
+	frappe.db.set_value(PROFILE_DOCTYPE, ninja, values, update_modified=False)
 	insert_log_rows(logs)
 
 	return {
