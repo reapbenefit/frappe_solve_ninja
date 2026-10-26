@@ -156,6 +156,12 @@ override_doctype_class = {
 # ---------------
 
 scheduler_events = {
+    "cron": {
+        # 00:30 on the 1st (site timezone): month-end status/level rules, then the monthly snapshot
+        "30 0 1 * *": [
+            "solve_ninja.services.ninja_mis.run_monthly_job",
+        ],
+    },
 #	"all": [
 #		"solve_ninja.tasks.all"
 #	],
@@ -272,5 +278,7 @@ ignore_links_on_delete = [
     "Event Source Metadata",
     "Login OTP",
     "Chat History",
-    "OAuth Bearer Token"
+    "OAuth Bearer Token",
+    "Ninja Lifecycle Log",
+    "Ninja Monthly Snapshot",
 ]

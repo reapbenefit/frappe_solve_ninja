@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
+from solve_ninja.services.ninja_lifecycle import log_manual_change
 from solve_ninja.utils import get_doc_by_unique_id
 
 class NinjaProfile(Document):
@@ -13,6 +14,11 @@ class NinjaProfile(Document):
 
 	def on_update(self):
 		self.update_action_details()
+		log_manual_change(self)
+
+	def on_trash(self):
+		frappe.db.delete("Ninja Lifecycle Log", {"ninja": self.name})
+		frappe.db.delete("Ninja Monthly Snapshot", {"ninja": self.name})
 
 	def update_action_details(self):
 		"""

@@ -54,6 +54,30 @@ frappe.ui.form.on('Ninja Profile', {
 					}
 				});
 			}, __('View'));
+
+			if (frappe.user.has_role('System Manager')) {
+				frm.add_custom_button(__('Recalculate Level & Status'), function() {
+					frappe.call({
+						method: 'solve_ninja.services.ninja_lifecycle.recalculate_ninja',
+						args: { ninja: frm.doc.name },
+						freeze: true,
+						freeze_message: __('Recalculating...'),
+						callback: function(r) {
+							const result = r.message;
+							if (!result) {
+								return;
+							}
+							const message = result.changed
+								? __('Updated from Level {0} / {1} to Level {2} / {3}.', [
+									result.from_level, result.from_status, result.level, result.status
+								])
+								: __('No change: Level {0} / {1}.', [result.level, result.status]);
+							frappe.show_alert({ message: message, indicator: result.changed ? 'green' : 'blue' }, 7);
+							frm.reload_doc();
+						}
+					});
+				}, __('Actions'));
+			}
 		}
 	}
 });
