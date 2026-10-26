@@ -8,6 +8,7 @@ from solve_ninja.api.common import fetch_data_gov_in
 def update_user_metadata_location(doc):
     """
     Enqueue-safe method to update location (city, state) from pincode.
+    Does not overwrite city/state when already set.
     """
     location_data = fetch_data_gov_in(doc.pincode)
     if location_data.get("records"):
@@ -15,15 +16,32 @@ def update_user_metadata_location(doc):
         city = record["district"].title()
         state = record["statename"].title()
 
-        # Create city if not exists
-        if not frappe.db.exists('Samaaja Cities', {'city_name': city}):
+        # Ensure Samaaja States exists when we have a state name
+        if state and not frappe.db.exists("Samaaja States", state):
             frappe.get_doc({
-                'doctype': 'Samaaja Cities',
-                'city_name': city
+                "doctype": "Samaaja States",
+                "state_name": state,
             }).insert(ignore_permissions=True)
 
-        doc.city = city
-        doc.state = state
+        # Create city if not exists, linking state when available
+        if not frappe.db.exists("Samaaja Cities", {"city_name": city}):
+            city_doc = {
+                "doctype": "Samaaja Cities",
+                "city_name": city,
+            }
+            if state and frappe.db.exists("Samaaja States", state):
+                city_doc["state"] = state
+            frappe.get_doc(city_doc).insert(ignore_permissions=True)
+        elif state and frappe.db.exists("Samaaja Cities", city):
+            if not frappe.db.get_value("Samaaja Cities", city, "state") and frappe.db.exists(
+                "Samaaja States", state
+            ):
+                frappe.db.set_value("Samaaja Cities", city, "state", state, update_modified=False)
+
+        if not doc.city:
+            doc.city = city
+        if not doc.state:
+            doc.state = state
 
 def on_save(doc, method):
     """

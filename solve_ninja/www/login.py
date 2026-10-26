@@ -1,6 +1,9 @@
 import frappe
 from frappe.www.login import get_context as original_get_context
 from frappe.website.utils import get_home_page
+from solve_ninja.www.signup_utils import apply_signup_form_context
+
+no_cache = True
 
 
 def get_context(context):
@@ -29,6 +32,7 @@ def get_context(context):
 	context["title"] = "Mobile Login - Solve Ninja"
 	context["disable_user_pass_login"] = 1  # Disable email/password login
 	context["disable_signup"] = 0  # Allow signup
+	apply_signup_form_context(context)
 	
 	return context
 
