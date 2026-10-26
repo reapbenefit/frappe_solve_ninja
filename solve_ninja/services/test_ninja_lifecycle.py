@@ -66,6 +66,18 @@ class TestLifecycleRules(IntegrationTestCase):
 		self.assertEqual(decide_initial("2026-01-01", "2024-01-01", 2, as_of), (1, INACTIVE))
 		self.assertEqual(decide_initial("2025-01-01", "2024-01-01", 0, as_of), (1, DORMANT))
 
+	def test_initial_setup_assigns_level_3_from_50_hours(self):
+		as_of = get_datetime("2026-10-26 12:00:00")
+		self.assertEqual(decide_initial("2026-10-01", "2024-01-01", 49.9, as_of), (2, ACTIVE))
+		self.assertEqual(decide_initial("2026-10-01", "2024-01-01", 50, as_of), (3, ACTIVE))
+		# Active within 12 months but not within 6: Level 3, Inactive (never Dormant)
+		self.assertEqual(decide_initial("2026-03-01", "2024-01-01", 80, as_of), (3, INACTIVE))
+
+	def test_level_3_is_not_reached_automatically_after_setup(self):
+		self.assertEqual(decide_on_activity(2, ACTIVE, 60, True, True), (2, ACTIVE))
+		self.assertEqual(decide_on_activity(1, INACTIVE, 60, True, True), (2, ACTIVE))
+		self.assertEqual(decide_level_decay(3, 10), 3)
+
 
 class LifecycleTestCase(IntegrationTestCase):
 	def tearDown(self):
@@ -350,15 +362,22 @@ class TestMonthlyJob(LifecycleTestCase):
 		quiet = self.make_ninja(created=add_months(now, -24))
 		lapsed = self.make_ninja(created=add_months(now, -24))
 		self.add_event(lapsed, 2, add_months(now, -9))
+		veteran = self.make_ninja(created=add_months(now, -24))
+		self.add_event(veteran, 30, add_months(now, -10))
+		self.add_event(veteran, 25, add_months(now, -7))
 
-		count = mis.initialise_lifecycle(users=[busy, quiet, lapsed], commit=False)
+		count = mis.initialise_lifecycle(users=[busy, quiet, lapsed, veteran], commit=False)
 
-		self.assertEqual(count, 3)
+		self.assertEqual(count, 4)
+		self.assertEqual((self.profile(veteran).ninja_level, self.profile(veteran).ninja_status), ("3", INACTIVE))
+		self.add_event(veteran, 1, now)
+		lifecycle.evaluate_ninja(veteran)
+		self.assertEqual((self.profile(veteran).ninja_level, self.profile(veteran).ninja_status), ("3", ACTIVE))
 		self.assertEqual((self.profile(busy).ninja_level, self.profile(busy).ninja_status), ("2", ACTIVE))
 		self.assertEqual((self.profile(quiet).ninja_level, self.profile(quiet).ninja_status), ("0", DORMANT))
 		self.assertEqual((self.profile(lapsed).ninja_level, self.profile(lapsed).ninja_status), ("1", INACTIVE))
 		self.assertEqual(self.logs(busy)[0].reason, "Initial Setup")
-		self.assertEqual(mis.initialise_lifecycle(users=[busy, quiet, lapsed], commit=False), 0)
+		self.assertEqual(mis.initialise_lifecycle(users=[busy, quiet, lapsed, veteran], commit=False), 0)
 
 	def test_run_validation(self):
 		next_month = get_first_day(add_months(today(), 1))

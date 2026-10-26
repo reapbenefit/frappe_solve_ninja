@@ -7,7 +7,8 @@ Rules (MIS requirements):
   or Level 2 (>= 30 hours). Dormant becomes Active at Level 1.
 - Month end: no action in 6 months -> Inactive; no action in 12 months -> Dormant
   (never for Level 3). Level 2 with < 30 hours in the last 12 months -> Level 1.
-- Level 3 and Alumni are assigned manually and never changed automatically.
+- Level 3 and Alumni are assigned manually and never changed automatically. The one exception
+  is the initial setup of existing profiles: >= 50 hours in the last 12 months starts at Level 3.
 
 Every level / status change is recorded in Ninja Lifecycle Log.
 """
@@ -16,6 +17,8 @@ import frappe
 from frappe.utils import add_months, cint, flt, get_datetime, now_datetime
 
 LEVEL_2_MIN_HOURS = 30
+# Only used when first setting up existing profiles; afterwards Level 3 is assigned manually
+LEVEL_3_SETUP_MIN_HOURS = 50
 INACTIVE_AFTER_MONTHS = 6
 DORMANT_AFTER_MONTHS = 12
 ACTIVITY_WINDOW_MONTHS = 12
@@ -99,10 +102,12 @@ def decide_initial(last_action_on, profile_created_on, hours_12m, as_of):
 	as_of = get_datetime(as_of)
 	if not last_action_on:
 		level = 0
-	elif get_datetime(last_action_on) > add_months(as_of, -ACTIVITY_WINDOW_MONTHS):
-		level = level_for_hours(hours_12m)
-	else:
+	elif get_datetime(last_action_on) <= add_months(as_of, -ACTIVITY_WINDOW_MONTHS):
 		level = 1
+	elif flt(hours_12m) >= LEVEL_3_SETUP_MIN_HOURS:
+		level = MANUAL_LEVEL
+	else:
+		level = level_for_hours(hours_12m)
 	_, status = decide_on_inactivity(level, ACTIVE, last_action_on or profile_created_on, as_of)
 	return level, status
 
