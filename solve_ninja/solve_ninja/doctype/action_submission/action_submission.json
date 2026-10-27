@@ -12,6 +12,7 @@
   "action_completeness",
   "column_break_main",
   "event_id",
+  "action_title",
   "last_completed_step",
   "submission_section",
   "raw_text",
@@ -28,6 +29,7 @@
   "publish_override_sent",
   "language",
   "assessment_json_section",
+  "skills",
   "assessment",
   "error_section",
   "error"
@@ -71,6 +73,13 @@
    "fieldname": "event_id",
    "fieldtype": "Data",
    "label": "Event ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "action_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Action Title",
    "read_only": 1
   },
   {
@@ -176,6 +185,13 @@
    "fieldtype": "Section Break"
   },
   {
+   "description": "Skills CMP returned for this action: label and explanation",
+   "fieldname": "skills",
+   "fieldtype": "JSON",
+   "label": "Skills",
+   "read_only": 1
+  },
+  {
    "fieldname": "assessment",
    "fieldtype": "JSON",
    "label": "Assessment",
@@ -196,7 +212,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-27 15:30:00.000000",
+ "modified": "2026-10-27 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Action Submission",

@@ -262,14 +262,28 @@ def process_submission(submission_name):
 					],
 				)
 				_save(submission, publish_override_sent=1)
+			metadata = {}
 			try:
-				_cmp("POST", "/ai/extract_action_metadata", params={"action_uuid": uuid}, timeout=180)
+				metadata = (
+					_cmp("POST", "/ai/extract_action_metadata", params={"action_uuid": uuid}, timeout=180) or {}
+				)
 			except Exception:
 				# CMP creates the event before refreshing the summary; only the summary may have failed.
 				if not frappe.db.exists("Events", uuid):
 					raise
 			step = 3
-			_save(submission, last_completed_step=step)
+			_save(
+				submission,
+				last_completed_step=step,
+				action_title=metadata.get("action_title") or frappe.db.get_value("Events", uuid, "title"),
+				skills=json.dumps(
+					[
+						{"label": s.get("label") or s.get("name"), "response": s.get("response")}
+						for s in metadata.get("skills") or []
+					],
+					ensure_ascii=False,
+				),
+			)
 
 		if step < 4:
 			_cmp(
@@ -325,6 +339,8 @@ def get_submission_status(submission_name):
 	return {
 		"status": submission.status,
 		"event_id": submission.event_id,
+		"action_title": submission.action_title,
+		"skills": json.loads(submission.skills or "[]"),
 		"action_completeness": submission.action_completeness,
 		"missing_details": json.loads(submission.missing_details or "[]"),
 		"suggested_followup": submission.suggested_followup,
