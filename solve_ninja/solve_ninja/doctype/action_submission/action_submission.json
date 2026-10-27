@@ -15,6 +15,7 @@
   "last_completed_step",
   "submission_section",
   "raw_text",
+  "additional_details",
   "audio_file",
   "photo_url",
   "column_break_submission",
@@ -23,6 +24,7 @@
   "assessment_section",
   "missing_details",
   "suggested_followup",
+  "previous_event_ids",
   "assessment",
   "error_section",
   "error"
@@ -45,7 +47,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Pending\nNot an Action\nProcessing\nDone\nFailed",
+   "options": "Pending\nNot an Action\nProcessing\nNeeds Details\nDone\nFailed",
    "read_only": 1
   },
   {
@@ -87,6 +89,13 @@
    "label": "Message",
    "read_only": 1,
    "reqd": 1
+  },
+  {
+   "description": "The user's answers to the follow-up question, one per line",
+   "fieldname": "additional_details",
+   "fieldtype": "Long Text",
+   "label": "Additional Details",
+   "read_only": 1
   },
   {
    "fieldname": "audio_file",
@@ -132,10 +141,17 @@
    "read_only": 1
   },
   {
-   "description": "The AI's follow-up question from CMP /actions. Not shown to the user.",
+   "description": "The AI's follow-up question from CMP /actions. Shown to the user only when the status is Needs Details.",
    "fieldname": "suggested_followup",
    "fieldtype": "Small Text",
    "label": "Suggested Follow-up",
+   "read_only": 1
+  },
+  {
+   "description": "JSON list of CMP draft action UUIDs that CMP declined to publish before the user added details",
+   "fieldname": "previous_event_ids",
+   "fieldtype": "Small Text",
+   "label": "Previous Event IDs",
    "read_only": 1
   },
   {
@@ -159,7 +175,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-27 14:30:00.000000",
+ "modified": "2026-10-27 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Action Submission",
