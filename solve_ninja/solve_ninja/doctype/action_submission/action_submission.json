@@ -187,14 +187,16 @@
   {
    "description": "Skills CMP returned for this action: label and explanation",
    "fieldname": "skills",
-   "fieldtype": "JSON",
+   "fieldtype": "Code",
    "label": "Skills",
+   "options": "JSON",
    "read_only": 1
   },
   {
    "fieldname": "assessment",
-   "fieldtype": "JSON",
+   "fieldtype": "Code",
    "label": "Assessment",
+   "options": "JSON",
    "read_only": 1
   },
   {
@@ -212,7 +214,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-27 16:00:00.000000",
+ "modified": "2026-10-27 16:45:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Action Submission",
