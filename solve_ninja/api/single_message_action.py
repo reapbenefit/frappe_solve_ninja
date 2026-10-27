@@ -179,8 +179,12 @@ def record_action(text=None, hours_value=None, hours_unit="hours", photo_url=Non
 	}
 
 
-def _full_message(submission):
-	return "\n".join(filter(None, [submission.raw_text, submission.additional_details]))
+PUBLISH_OVERRIDE_TURN = {
+	"chain_of_thought": "Single-message submission: record the action as described.",
+	"response": "Thanks, your action has been recorded.",
+	"is_done": True,
+	"create_action": True,
+}
 
 
 def _cmp_will_publish(ai_response):
@@ -192,7 +196,7 @@ def _cmp_will_publish(ai_response):
 
 def process_submission(submission_name):
 	submission = frappe.get_doc("Action Submission", submission_name)
-	if submission.status in ("Done", "Not an Action", "Needs Details"):
+	if submission.status in ("Done", "Not an Action"):
 		return
 
 	user = frappe.get_doc("User", submission.user)
@@ -221,36 +225,43 @@ def process_submission(submission_name):
 				result = _cmp(
 					"POST",
 					"/actions",
-					{"user_email": user.email, "user_message": _full_message(submission)},
+					{"user_email": user.email, "user_message": submission.raw_text},
 				)
 				ai_response = result.get("ai_response") or {}
-				action_uuid = result["action"]["uuid"]
+				submission.event_id = result["action"]["uuid"]
 				submission.suggested_followup = ai_response.get("response")
-
-				if not _cmp_will_publish(ai_response):
-					# CMP refuses to extract metadata for this draft, so park it until the user adds details.
-					previous = json.loads(submission.previous_event_ids or "[]") + [action_uuid]
-					_save(
-						submission,
-						status="Needs Details",
-						suggested_followup=submission.suggested_followup,
-						previous_event_ids=json.dumps(previous),
-						error=None,
-					)
-					return
-
-				submission.event_id = action_uuid
+				submission.cmp_declined = 0 if _cmp_will_publish(ai_response) else 1
+				submission.language = ai_response.get("language")
 			step = 2
 			_save(
 				submission,
 				last_completed_step=step,
 				event_id=submission.event_id,
 				suggested_followup=submission.suggested_followup,
+				cmp_declined=submission.cmp_declined,
+				language=submission.language,
 			)
 
 		uuid = submission.event_id
 
 		if step < 3:
+			if submission.cmp_declined and not submission.publish_override_sent:
+				# CMP's extraction requires create_action on the latest coach turn; we publish every action and
+				# rely on action_completeness to flag vague ones.
+				_cmp(
+					"POST",
+					f"/chat_messages/{uuid}",
+					[
+						{
+							"role": "assistant",
+							"content": json.dumps(
+								{**PUBLISH_OVERRIDE_TURN, "language": submission.language or "english"}
+							),
+							"response_type": "text",
+						}
+					],
+				)
+				_save(submission, publish_override_sent=1)
 			try:
 				_cmp("POST", "/ai/extract_action_metadata", params={"action_uuid": uuid}, timeout=180)
 			except Exception:
@@ -321,53 +332,10 @@ def get_submission_status(submission_name):
 
 
 @frappe.whitelist(methods=["POST"])
-def answer_followup(submission_name, text=None):
-	submission = frappe.get_doc("Action Submission", submission_name)
-	if submission.user != frappe.session.user:
-		frappe.throw("Not permitted", frappe.PermissionError)
-	if submission.status != "Needs Details":
-		frappe.throw("This action doesn't need more details right now.")
-
-	text = (text or "").strip()
-	if not text:
-		frappe.throw("Please add some details about what you did.")
-
-	additional_details = "\n".join(filter(None, [submission.additional_details, text]))
-	full_message = "\n".join(filter(None, [submission.raw_text, additional_details]))
-
-	try:
-		assessment = assess_message(full_message)
-	except Exception:
-		frappe.log_error(title="Single message action: assessment failed", message=frappe.get_traceback())
-		frappe.throw("We couldn't read your message right now. Please try again in a minute.")
-
-	completeness = completeness_from(assessment.missing_details) if assessment.is_action else ""
-	_save(
-		submission,
-		additional_details=additional_details,
-		assessment=assessment.model_dump_json(),
-		missing_details=json.dumps(assessment.missing_details),
-		action_completeness=completeness,
-		status="Pending",
-		suggested_followup=None,
-		last_completed_step=1,
-	)
-	_enqueue_processing(submission.name)
-
-	return {
-		"accepted": True,
-		"submission": submission.name,
-		"action_completeness": completeness,
-		"missing_details": assessment.missing_details,
-		"message": "Thanks! We are adding your action to your portfolio.",
-	}
-
-
-@frappe.whitelist(methods=["POST"])
 def retry_submission(submission_name):
 	frappe.only_for("System Manager")
 	status = frappe.db.get_value("Action Submission", submission_name, "status")
-	if status in ("Done", "Not an Action", "Needs Details"):
+	if status in ("Done", "Not an Action"):
 		frappe.throw(f"Submission {submission_name} is {status} and does not need a retry.")
 	if not _enqueue_processing(submission_name):
 		return {"queued": False, "submission": submission_name, "message": "Already queued or running."}
