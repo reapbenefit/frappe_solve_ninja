@@ -340,7 +340,7 @@ def get_submission_status(submission_name):
 		"status": submission.status,
 		"event_id": submission.event_id,
 		"action_title": submission.action_title,
-		"skills": json.loads(submission.skills or "[]"),
+		"skills": frappe.parse_json(submission.skills) or [],
 		"action_completeness": submission.action_completeness,
 		"missing_details": json.loads(submission.missing_details or "[]"),
 		"suggested_followup": submission.suggested_followup,
