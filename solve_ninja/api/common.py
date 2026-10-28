@@ -247,11 +247,14 @@ def add_user():
         # Normalize and validate mobile number
         mobile = validate_and_normalize_mobile(user_data.get("mobile"))
 
-        # Validate pincode format
+        # Validate pincode format (optional — still supported for API/mobile clients)
         if user_data.get("pincode"):
             validate_pincode(user_data.get("pincode"))
         else:
             user_data["pincode"] = None
+
+        # Validate city/state when provided (website signup); pincode-only remains valid
+        validate_city_and_state(user_data)
 
         # Check if user already exists
         if frappe.db.exists("User", {"mobile_no": mobile}):
@@ -531,6 +534,46 @@ def validate_pincode(pincode):
 
     if not pincode_str.isdigit() or len(pincode_str) != 6:
         frappe.throw("Pincode must be a 6-digit number.")
+
+
+def validate_city_and_state(user_data):
+    """
+    Normalize and validate optional city/state against Samaaja DocTypes.
+    Does not require either field (pincode-only signup remains valid).
+    """
+    city = (user_data.get("city") or "").strip() or None
+    state = (user_data.get("state") or "").strip() or None
+    user_data["city"] = city
+    user_data["state"] = state
+
+    if state and not frappe.db.exists("Samaaja States", state):
+        frappe.throw("Invalid state.")
+
+    if city:
+        if not frappe.db.exists("Samaaja Cities", city):
+            frappe.throw("Invalid city.")
+
+        city_state = frappe.db.get_value("Samaaja Cities", city, "state")
+        if state and city_state and city_state != state:
+            frappe.throw("City does not belong to the selected state.")
+        if not state and city_state:
+            user_data["state"] = city_state
+
+
+@frappe.whitelist(allow_guest=True)
+def get_cities_by_state(state=None):
+    """Return Samaaja Cities names for a given Samaaja States name."""
+    state = (state or "").strip()
+    if not state or not frappe.db.exists("Samaaja States", state):
+        return []
+
+    return frappe.get_all(
+        "Samaaja Cities",
+        filters={"state": state},
+        pluck="name",
+        order_by="name",
+        ignore_permissions=True,
+    )
 
 def validate_and_normalize_mobile(mobile):
     if not mobile or len(mobile) not in [10, 12] or not mobile.isdigit():
@@ -1203,20 +1246,24 @@ def assign_city(user_doc, district):
 
 def update_user_metadata(user, user_data):
     """
-    Updates or creates User Metadata record with pincode if available.
+    Updates or creates User Metadata record with location fields when provided.
     """
 
     # Check if metadata already exists
     if frappe.db.exists("User Metadata", user):
         user_metadata = frappe.get_doc("User Metadata", user)
-        user_metadata.pincode = user_data.get("pincode")
-        user_metadata.city = user_data.get("city")
-        user_metadata.state = user_data.get("state")
-        user_metadata.year_of_birth = user_data.get("year_of_birth")
+        if "pincode" in user_data and user_data.get("pincode") is not None:
+            user_metadata.pincode = user_data.get("pincode")
+        if user_data.get("city"):
+            user_metadata.city = user_data.get("city")
+        if user_data.get("state"):
+            user_metadata.state = user_data.get("state")
+        if user_data.get("year_of_birth"):
+            user_metadata.year_of_birth = user_data.get("year_of_birth")
         if user_data.get("org_id") and frappe.db.exists("User Organization", user_data.get("org_id")):
             user_metadata.org_id = user_data.get("org_id")
         user_metadata.save(ignore_permissions=True)
-    
+ 
 def update_ninja_profile(user, user_data):
     """
     Updates Ninja Profile record with wa_id, acquisition_source_category, and acquisition_source_unique_id if available.

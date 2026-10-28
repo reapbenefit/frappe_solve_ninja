@@ -22,3 +22,5 @@ solve_ninja.patches.create_user_orgs_for_programs
 solve_ninja.patches.upsert_momentum_update_badge_template
 solve_ninja.patches.add_ninja_lifecycle_indexes
 solve_ninja.patches.setup_ninja_lifecycle
+solve_ninja.patches.seed_samaaja_states_cities
+solve_ninja.patches.pull_india_states_cities
