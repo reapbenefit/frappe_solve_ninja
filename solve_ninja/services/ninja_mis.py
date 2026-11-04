@@ -10,6 +10,8 @@ All steps are set-based (one aggregate pass over Events) and write in bulk, so t
 grows with the number of rows rather than ninjas x events.
 """
 
+import csv
+
 import frappe
 from frappe import _
 from frappe.utils import (
@@ -28,7 +30,9 @@ from solve_ninja.services.ninja_lifecycle import (
 	ACTIVE,
 	ACTIVITY_WINDOW_MONTHS,
 	DORMANT,
+	INACTIVE,
 	LOG_DOCTYPE,
+	MANUAL_LEVEL,
 	PROFILE_DOCTYPE,
 	REASON_DORMANT,
 	REASON_HOURS_BELOW,
@@ -37,6 +41,7 @@ from solve_ninja.services.ninja_lifecycle import (
 	decide_initial,
 	decide_level_decay,
 	decide_on_inactivity,
+	evaluate_ninja,
 	insert_log_rows,
 	is_concurrent_update_error,
 	make_log_row,
@@ -514,3 +519,136 @@ def initialise_lifecycle(as_of=None, users=None, commit=True):
 		if commit:
 			frappe.db.commit()
 	return len(names)
+
+
+def apply_setup_level_3(csv_path, dry_run=True, commit=True):
+	"""
+	One-off after go-live: start the ninjas listed in a CSV at Level 3.
+
+	Rewrites their Initial Setup entry instead of logging a later change, so snapshots treat them
+	as Level 3 from go-live rather than as promoted afterwards. The CSV needs a header row with a
+	"ninja", "user" or "email" column holding the Ninja Profile ID.
+
+	bench --site <site> execute solve_ninja.services.ninja_mis.apply_setup_level_3 \
+		--kwargs "{'csv_path': '/path/to/level_3.csv', 'dry_run': False}"
+	"""
+	requested = _read_ninja_ids(csv_path)
+	profiles = _profiles_by_lower_name(requested)
+	names = list(profiles.values())
+	setup_rows = {
+		row.ninja: row
+		for row in frappe.get_all(
+			LOG_DOCTYPE,
+			filters={"reason": REASON_INITIAL_SETUP, "ninja": ["in", names or [""]]},
+			fields=["name", "ninja", "to_level", "to_status"],
+			limit_page_length=0,
+		)
+	}
+	changed_since_setup = set(
+		frappe.get_all(
+			LOG_DOCTYPE,
+			filters={"reason": ["!=", REASON_INITIAL_SETUP], "ninja": ["in", names or [""]]},
+			pluck="ninja",
+			distinct=True,
+			limit_page_length=0,
+		)
+	)
+
+	result = {
+		"set_to_level_3": [],
+		"already_level_3": [],
+		"not_found": [],
+		"no_initial_setup": [],
+		"changed_since_setup": [],
+	}
+	for requested_id in requested:
+		ninja = profiles.get(requested_id.lower())
+		row = setup_rows.get(ninja)
+		if not ninja:
+			result["not_found"].append(requested_id)
+		elif not row:
+			result["no_initial_setup"].append(ninja)
+		elif ninja in changed_since_setup:
+			# A later log entry would override the rewritten setup; set these in the Ninja Profile form
+			result["changed_since_setup"].append(ninja)
+		elif row.to_level == str(MANUAL_LEVEL):
+			result["already_level_3"].append(ninja)
+		else:
+			result["set_to_level_3"].append(ninja)
+
+	if not dry_run:
+		for ninja in result["set_to_level_3"]:
+			row = setup_rows[ninja]
+			# Level 3 is never Dormant
+			status = INACTIVE if row.to_status == DORMANT else row.to_status
+			values = {"to_level": str(MANUAL_LEVEL), "to_status": status}
+			frappe.db.set_value(LOG_DOCTYPE, row.name, values, update_modified=False)
+			frappe.db.set_value(
+				PROFILE_DOCTYPE,
+				ninja,
+				{"ninja_level": str(MANUAL_LEVEL), "ninja_status": status},
+				update_modified=False,
+			)
+		if commit:
+			frappe.db.commit()
+
+	result["dry_run"] = bool(dry_run)
+	result["counts"] = {key: len(value) for key, value in result.items() if isinstance(value, list)}
+	return result
+
+
+def evaluate_ninjas_acted_since_setup(dry_run=True, commit=True):
+	"""
+	One-off after go-live: apply the action rules to ninjas whose actions are dated after the
+	setup cut-off. Those actions were recorded before the lifecycle code was deployed, so they
+	never triggered an evaluation.
+
+	bench --site <site> execute solve_ninja.services.ninja_mis.evaluate_ninjas_acted_since_setup \
+		--kwargs "{'dry_run': False}"
+	"""
+	go_live = get_go_live()
+	if not go_live:
+		frappe.throw(_("Ninja lifecycle has not been initialised yet (run bench migrate)."))
+	ninjas = [
+		row[0]
+		for row in frappe.db.sql(
+			"""select distinct e.`user` from `tabEvents` e
+			join `tabNinja Profile` p on p.name = e.`user`
+			where e.date_of_action > %(go_live)s""",
+			{"go_live": go_live},
+		)
+	]
+	changed = []
+	if not dry_run:
+		for ninja in ninjas:
+			outcome = evaluate_ninja(ninja)
+			if outcome and outcome["changed"]:
+				changed.append(outcome)
+		if commit:
+			frappe.db.commit()
+	return {"dry_run": bool(dry_run), "ninjas": len(ninjas), "changed": changed}
+
+
+def _read_ninja_ids(csv_path):
+	with open(csv_path, newline="", encoding="utf-8-sig") as f:
+		reader = csv.DictReader(f)
+		columns = {(name or "").strip().lower(): name for name in reader.fieldnames or []}
+		column = next((columns[key] for key in ("ninja", "user", "email") if key in columns), None)
+		if not column:
+			frappe.throw(
+				_("CSV needs a 'ninja', 'user' or 'email' column. Found: {0}").format(
+					", ".join(reader.fieldnames or [])
+				)
+			)
+		ids = [(row.get(column) or "").strip() for row in reader]
+	return list({ninja.lower(): ninja for ninja in ids if ninja}.values())
+
+
+def _profiles_by_lower_name(ids):
+	if not ids:
+		return {}
+	rows = frappe.db.sql(
+		"""select name from `tabNinja Profile` where lower(name) in %(ids)s""",
+		{"ids": tuple(ninja.lower() for ninja in ids)},
+	)
+	return {row[0].lower(): row[0] for row in rows}
