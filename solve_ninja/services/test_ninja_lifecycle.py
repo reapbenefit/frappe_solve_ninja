@@ -1,6 +1,8 @@
 # Copyright (c) 2026, ReapBenefit and Contributors
 # See license.txt
 
+import os
+import tempfile
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -66,12 +68,11 @@ class TestLifecycleRules(IntegrationTestCase):
 		self.assertEqual(decide_initial("2026-01-01", "2024-01-01", 2, as_of), (1, INACTIVE))
 		self.assertEqual(decide_initial("2025-01-01", "2024-01-01", 0, as_of), (1, DORMANT))
 
-	def test_initial_setup_assigns_level_3_from_50_hours(self):
-		as_of = get_datetime("2026-10-26 12:00:00")
-		self.assertEqual(decide_initial("2026-10-01", "2024-01-01", 49.9, as_of), (2, ACTIVE))
-		self.assertEqual(decide_initial("2026-10-01", "2024-01-01", 50, as_of), (3, ACTIVE))
-		# Active within 12 months but not within 6: Level 3, Inactive (never Dormant)
-		self.assertEqual(decide_initial("2026-03-01", "2024-01-01", 80, as_of), (3, INACTIVE))
+	def test_initial_setup_never_assigns_level_3(self):
+		as_of = get_datetime("2026-10-31 23:59:59")
+		self.assertEqual(decide_initial("2026-10-01", "2024-01-01", 50, as_of), (2, ACTIVE))
+		self.assertEqual(decide_initial("2026-10-01", "2024-01-01", 200, as_of), (2, ACTIVE))
+		self.assertEqual(decide_initial("2026-03-01", "2024-01-01", 80, as_of), (2, INACTIVE))
 
 	def test_level_3_is_not_reached_automatically_after_setup(self):
 		self.assertEqual(decide_on_activity(2, ACTIVE, 60, True, True), (2, ACTIVE))
@@ -387,15 +388,80 @@ class TestMonthlyJob(LifecycleTestCase):
 
 		self.assertEqual(count, 4)
 		self.assertIsNotNone(self.calculated_on(quiet))
-		self.assertEqual((self.profile(veteran).ninja_level, self.profile(veteran).ninja_status), ("3", INACTIVE))
+		self.assertEqual((self.profile(veteran).ninja_level, self.profile(veteran).ninja_status), ("2", INACTIVE))
 		self.add_event(veteran, 1, now)
 		lifecycle.evaluate_ninja(veteran)
-		self.assertEqual((self.profile(veteran).ninja_level, self.profile(veteran).ninja_status), ("3", ACTIVE))
+		self.assertEqual((self.profile(veteran).ninja_level, self.profile(veteran).ninja_status), ("2", ACTIVE))
 		self.assertEqual((self.profile(busy).ninja_level, self.profile(busy).ninja_status), ("2", ACTIVE))
 		self.assertEqual((self.profile(quiet).ninja_level, self.profile(quiet).ninja_status), ("0", DORMANT))
 		self.assertEqual((self.profile(lapsed).ninja_level, self.profile(lapsed).ninja_status), ("1", INACTIVE))
 		self.assertEqual(self.logs(busy)[0].reason, "Initial Setup")
 		self.assertEqual(mis.initialise_lifecycle(users=[busy, quiet, lapsed, veteran], commit=False), 0)
+
+	def test_initialise_lifecycle_as_of_cut_off(self):
+		cut_off = get_datetime(add_days(now_datetime(), -3))
+		ninja = self.make_ninja(created=add_months(cut_off, -24))
+		self.add_event(ninja, 10, add_months(cut_off, -2))
+		# Dated after the cut-off: not counted in the starting level
+		self.add_event(ninja, 25, add_days(cut_off, 1))
+
+		mis.initialise_lifecycle(as_of=cut_off, users=[ninja], commit=False)
+
+		self.assertEqual(self.profile(ninja), {"ninja_level": "1", "ninja_status": ACTIVE, "hours_last_12_months": 10})
+		self.assertEqual(self.calculated_on(ninja), cut_off)
+		(log,) = self.logs(ninja)
+		self.assertEqual(get_datetime(log.changed_on), cut_off)
+
+		with patch.object(mis, "get_go_live", return_value=cut_off):
+			self.assertGreaterEqual(mis.evaluate_ninjas_acted_since_setup()["ninjas"], 1)
+			result = mis.evaluate_ninjas_acted_since_setup(dry_run=False, commit=False)
+		self.assertIn(ninja, [outcome["ninja"] for outcome in result["changed"]])
+		self.assertEqual(self.profile(ninja).ninja_level, "2")
+		self.assertEqual(self.logs(ninja)[-1].reason, "Action")
+
+	def test_apply_setup_level_3(self):
+		setup_on = self.before
+		promoted = self.make_ninja("2", ACTIVE, created=self.long_ago, logged_on=setup_on)
+		dormant = self.make_ninja("1", DORMANT, created=self.long_ago, logged_on=setup_on)
+		already = self.make_ninja("3", ACTIVE, created=self.long_ago, logged_on=setup_on)
+		moved_on = self.make_ninja("1", ACTIVE, created=self.long_ago, logged_on=setup_on)
+		lifecycle.insert_log_rows(
+			[lifecycle.make_log_row(moved_on, 1, ACTIVE, 2, ACTIVE, lifecycle.REASON_ACTION, now_datetime())]
+		)
+		no_setup = self.make_ninja("1", ACTIVE)
+
+		with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as f:
+			f.write("Name,Email\n")
+			for email in (promoted.upper(), dormant, already, moved_on, no_setup, "missing@solveninja.org", promoted):
+				f.write(f"Someone,{email}\n")
+		csv_path = f.name
+		self.addCleanup(os.remove, csv_path)
+
+		preview = mis.apply_setup_level_3(csv_path, commit=False)
+		self.assertEqual(preview["counts"]["set_to_level_3"], 2)
+		self.assertEqual(self.profile(promoted).ninja_level, "2")
+
+		result = mis.apply_setup_level_3(csv_path, dry_run=False, commit=False)
+
+		self.assertCountEqual(result["set_to_level_3"], [promoted, dormant])
+		self.assertEqual(result["already_level_3"], [already])
+		self.assertEqual(result["changed_since_setup"], [moved_on])
+		self.assertEqual(result["no_initial_setup"], [no_setup])
+		self.assertEqual(result["not_found"], ["missing@solveninja.org"])
+
+		self.assertEqual((self.profile(promoted).ninja_level, self.profile(promoted).ninja_status), ("3", ACTIVE))
+		self.assertEqual((self.profile(dormant).ninja_level, self.profile(dormant).ninja_status), ("3", INACTIVE))
+		(log,) = self.logs(promoted)
+		self.assertEqual((log.reason, log.to_level, get_datetime(log.changed_on)), ("Initial Setup", "3", setup_on))
+
+		# Snapshot sees Level 3 from the start of the month, not a promotion during it
+		mis.build_snapshot(self.month_start, users=[promoted], commit=False)
+		row = frappe.get_all(
+			"Ninja Monthly Snapshot",
+			filters={"month": self.month_start, "ninja": promoted},
+			fields=["level_start", "level_end", "level_changed"],
+		)[0]
+		self.assertEqual((row.level_start, row.level_end, row.level_changed), ("3", "3", 0))
 
 	def test_run_validation(self):
 		next_month = get_first_day(add_months(today(), 1))
@@ -405,3 +471,10 @@ class TestMonthlyJob(LifecycleTestCase):
 			mis.validate_run(get_first_day(add_months(today(), -3)), mis.STEPS_ALL)
 		with self.assertRaises(frappe.ValidationError):
 			mis.validate_run(self.month_start, "everything")
+
+	def test_setup_at_month_end_allows_that_months_snapshot(self):
+		with patch.object(mis, "get_go_live", return_value=self.month_end):
+			self.assertEqual(mis.validate_run(self.month_start, mis.STEPS_SNAPSHOT), self.month_start)
+		with patch.object(mis, "get_go_live", return_value=self.month_end + timedelta(seconds=1)):
+			with self.assertRaises(frappe.ValidationError):
+				mis.validate_run(self.month_start, mis.STEPS_SNAPSHOT)
