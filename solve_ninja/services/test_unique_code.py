@@ -5,15 +5,16 @@ import json
 import random
 from contextlib import ExitStack
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import now_datetime
 
-from solve_ninja.api.auth import apply_checkin_code
+from solve_ninja.api.auth import apply_checkin_code, verify_otp_login
 from solve_ninja.api.common import add_user, assign_user_organization
 from solve_ninja.services.unique_code import (
+	WEB_CHECKIN_LANDING,
 	apply_unique_code,
 	build_web_checkin_url,
 	normalize_code,
@@ -53,6 +54,7 @@ class TestUniqueCodeCheckin(IntegrationTestCase):
 			("Program Participation", {"program": self.program_name}),
 			("Solve Event Participation", {"solve_event": ["like", f"TestWebEvent-{self.suffix}%"]}),
 			("Solve Event Registration", {"solve_event": ["like", f"TestWebEvent-{self.suffix}%"]}),
+			("Login OTP", {"user": f"91{self.suffix}@solveninja.org"}),
 		):
 			for name in frappe.get_all(doctype, filters=filters, pluck="name"):
 				frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
@@ -274,6 +276,44 @@ class TestUniqueCodeCheckin(IntegrationTestCase):
 		self.assertTrue(
 			frappe.db.exists("Program Participation", {"user": user, "program": self.program_name})
 		)
+
+	def _verify_otp(self, user, code=None):
+		mobile = frappe.db.get_value("User", user, "mobile_no")
+		frappe.get_doc(
+			{
+				"doctype": "Login OTP",
+				"mobile": mobile,
+				"user": user,
+				"otp": "123456",
+				"valid_till": now_datetime() + timedelta(minutes=5),
+				"status": "Pending",
+			}
+		).insert(ignore_permissions=True)
+
+		previous_login_manager = getattr(frappe.local, "login_manager", None)
+		frappe.local.login_manager = MagicMock()
+		try:
+			return verify_otp_login(mobile, "123456", code=code)
+		finally:
+			frappe.local.login_manager = previous_login_manager
+
+	def test_otp_login_with_code_lands_on_quick_add(self):
+		self._create_program()
+		user = self._create_user()
+
+		result = self._verify_otp(user, code=self.program_code)
+
+		self.assertTrue(result["success"], result)
+		self.assertEqual(result["redirect_to"], WEB_CHECKIN_LANDING)
+		self.assertTrue(result["code_result"]["applied"])
+
+	def test_otp_login_without_code_lands_on_profile(self):
+		user = self._create_user()
+
+		result = self._verify_otp(user)
+
+		self.assertTrue(result["success"], result)
+		self.assertEqual(result["redirect_to"], "/user-profile/me")
 
 	def test_add_user_with_program_code(self):
 		self._create_program()

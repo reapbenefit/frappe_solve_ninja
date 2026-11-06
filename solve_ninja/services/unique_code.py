@@ -21,6 +21,8 @@ from frappe.utils import now_datetime
 from solve_ninja.utils import get_doc_by_unique_id
 
 WEB_CHECKIN_PATH = "/checkin"
+# Marketplace SPA route where website users land after a code-link login
+WEB_CHECKIN_LANDING = "/#/quick-add"
 WEB_REGISTRATION_SOURCE = "Web Form"
 # Staff accounts: changing their org would move Organisation Manager permissions.
 ORG_LOCKED_ROLES = ("Organisation Manager", "System Manager")
