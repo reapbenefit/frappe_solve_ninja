@@ -3,6 +3,7 @@ from typing import Literal
 
 import frappe
 import requests
+from frappe.utils import add_to_date, now_datetime
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
@@ -11,6 +12,8 @@ DEFAULT_COMPLETENESS_MODEL = "gpt-4.1-2025-04-14"
 REQUIRED_DETAILS = ["what"]  # add "impact" later if it becomes mandatory
 MAX_HOURS = 150
 HOURS_UNITS = ("hours", "minutes")
+DUPLICATE_WINDOW_MINUTES = 10
+RECORDED_MESSAGE = "Your action has been recorded! We are adding the skills you showed to your portfolio."
 
 ASSESSMENT_PROMPT = """You review a message from a young person describing an action they took to solve a local civic problem.
 Decide each field strictly from what is written. Never assume details that are not stated.
@@ -118,6 +121,37 @@ def _validate_own_file(file_url, user, label):
 	return file_url
 
 
+def normalize_text(text):
+	return " ".join((text or "").split()).lower()
+
+
+def _find_recent_duplicate(user, text):
+	"""Same user, same message within the window: a double submit, not a new action."""
+	target = normalize_text(text)
+	recent = frappe.get_all(
+		"Action Submission",
+		filters={
+			"user": user,
+			"creation": (">=", add_to_date(now_datetime(), minutes=-DUPLICATE_WINDOW_MINUTES)),
+			# "Not an Action" records are never processed, so they can't stand in for a new submission.
+			"status": ("!=", "Not an Action"),
+		},
+		fields=["name", "raw_text", "action_completeness", "missing_details"],
+		order_by="creation desc",
+	)
+	return next((row for row in recent if normalize_text(row.raw_text) == target), None)
+
+
+def _recorded_response(submission_name, completeness, missing_details):
+	return {
+		"recorded": True,
+		"submission": submission_name,
+		"action_completeness": completeness,
+		"missing_details": missing_details,
+		"message": RECORDED_MESSAGE,
+	}
+
+
 @frappe.whitelist(methods=["POST"])
 def record_action(text=None, hours_value=None, hours_unit="hours", photo_url=None, audio_file_url=None):
 	user = frappe.session.user
@@ -135,13 +169,24 @@ def record_action(text=None, hours_value=None, hours_unit="hours", photo_url=Non
 	if not frappe.db.get_value("User", user, "username"):
 		frappe.throw("Your account has no username yet. Please complete your profile first.")
 
+	duplicate = _find_recent_duplicate(user, text)
+	if duplicate:
+		return _recorded_response(
+			duplicate.name, duplicate.action_completeness, json.loads(duplicate.missing_details or "[]")
+		)
+
+	# Every submission is recorded; the assessment only labels it Complete/Incomplete.
+	assessment = None
 	try:
 		assessment = assess_message(text)
 	except Exception:
 		frappe.log_error(title="Single message action: assessment failed", message=frappe.get_traceback())
-		frappe.throw("We couldn't read your message right now. Please try again in a minute.")
 
-	completeness = completeness_from(assessment.missing_details) if assessment.is_action else ""
+	if assessment is None:
+		missing_details, completeness = [], "Incomplete"
+	else:
+		missing_details = assessment.missing_details
+		completeness = completeness_from(missing_details) if assessment.is_action else "Incomplete"
 
 	submission = frappe.get_doc(
 		{
@@ -152,31 +197,17 @@ def record_action(text=None, hours_value=None, hours_unit="hours", photo_url=Non
 			"photo_url": photo_url,
 			"hours_value": hours_value,
 			"hours_unit": hours_unit,
-			"assessment": assessment.model_dump_json(),
-			"missing_details": json.dumps(assessment.missing_details),
+			"assessment": assessment.model_dump_json() if assessment else None,
+			"missing_details": json.dumps(missing_details),
 			"action_completeness": completeness,
-			"status": "Pending" if assessment.is_action else "Not an Action",
+			"status": "Pending",
 			"last_completed_step": 0,
 		}
 	).insert(ignore_permissions=True)
 
-	if not assessment.is_action:
-		return {
-			"recorded": False,
-			"submission": submission.name,
-			"message": "This sounds like something you are planning or haven't done yet. "
-			"Come back and share it once you have taken the action!",
-		}
-
 	_enqueue_processing(submission.name, enqueue_after_commit=True)
 
-	return {
-		"recorded": True,
-		"submission": submission.name,
-		"action_completeness": completeness,
-		"missing_details": assessment.missing_details,
-		"message": "Your action has been recorded! We are adding the skills you showed to your portfolio.",
-	}
+	return _recorded_response(submission.name, completeness, missing_details)
 
 
 PUBLISH_OVERRIDE_TURN = {
