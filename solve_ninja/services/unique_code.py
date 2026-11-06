@@ -21,11 +21,12 @@ from frappe.utils import now_datetime
 from solve_ninja.utils import get_doc_by_unique_id
 
 WEB_CHECKIN_PATH = "/checkin"
-# Marketplace SPA route where website users land after a code-link login
+# Marketplace SPA route where non-staff users land after a code-link login
 WEB_CHECKIN_LANDING = "/#/quick-add"
 WEB_REGISTRATION_SOURCE = "Web Form"
-# Staff accounts: changing their org would move Organisation Manager permissions.
-ORG_LOCKED_ROLES = ("Organisation Manager", "System Manager")
+# Staff keep their org (it drives Organisation Manager permissions) and land on /desk.
+# Mentors are System Users too, so user_type alone does not identify staff.
+STAFF_ROLES = ("Organisation Manager", "System Manager")
 
 _CODE_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9_-]{1,63}$")
 
@@ -126,9 +127,14 @@ def apply_unique_code_safely(user, code, is_new_user=False):
 	return result
 
 
-def _is_org_locked(user):
+def is_staff_user(user):
 	roles = set(frappe.get_roles(user))
-	return any(role in roles for role in ORG_LOCKED_ROLES)
+	return any(role in roles for role in STAFF_ROLES)
+
+
+def get_checkin_landing(user):
+	"""Default page after a code-link login: Quick Add, or /desk for staff."""
+	return "/desk" if is_staff_user(user) else WEB_CHECKIN_LANDING
 
 
 def _apply_program(user, target):
@@ -137,7 +143,7 @@ def _apply_program(user, target):
 
 	program = target["name"]
 	org_updated = False
-	if frappe.db.exists("User Organization", program) and not _is_org_locked(user):
+	if frappe.db.exists("User Organization", program) and not is_staff_user(user):
 		assign_user_organization(user, program)
 		org_updated = True
 

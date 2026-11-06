@@ -2,7 +2,7 @@ from urllib.parse import urlencode
 
 import frappe
 
-from solve_ninja.services.unique_code import WEB_CHECKIN_LANDING, resolve_unique_code
+from solve_ninja.services.unique_code import get_checkin_landing, resolve_unique_code
 from solve_ninja.www.login import sanitize_redirect
 
 no_cache = True
@@ -27,10 +27,7 @@ def get_context(context):
 		raise frappe.Redirect
 
 	if not redirect_to:
-		if frappe.session.data.user_type == "Website User":
-			redirect_to = WEB_CHECKIN_LANDING
-		else:
-			redirect_to = "/desk"
+		redirect_to = get_checkin_landing(frappe.session.user)
 
 	target = resolve_unique_code(code)
 	context.no_cache = 1

@@ -307,6 +307,24 @@ class TestUniqueCodeCheckin(IntegrationTestCase):
 		self.assertEqual(result["redirect_to"], WEB_CHECKIN_LANDING)
 		self.assertTrue(result["code_result"]["applied"])
 
+	def test_otp_login_with_code_mentor_lands_on_quick_add(self):
+		self._create_program()
+		# Mentor accounts also carry Desk User, which makes them System Users
+		user = self._create_user(roles=["Mentor", "Desk User"])
+		self.assertEqual(frappe.db.get_value("User", user, "user_type"), "System User")
+
+		result = self._verify_otp(user, code=self.program_code)
+
+		self.assertEqual(result["redirect_to"], WEB_CHECKIN_LANDING)
+
+	def test_otp_login_with_code_organisation_manager_lands_on_desk(self):
+		self._create_program()
+		user = self._create_user(roles=["Organisation Manager"])
+
+		result = self._verify_otp(user, code=self.program_code)
+
+		self.assertEqual(result["redirect_to"], "/desk")
+
 	def test_otp_login_without_code_lands_on_profile(self):
 		user = self._create_user()
 

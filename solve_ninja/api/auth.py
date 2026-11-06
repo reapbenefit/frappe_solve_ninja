@@ -3,7 +3,7 @@ import random
 from frappe.rate_limiter import rate_limit
 from frappe.utils import now_datetime, add_to_date
 from samaaja.api.common import custom_response
-from solve_ninja.services.unique_code import WEB_CHECKIN_LANDING, apply_unique_code_safely
+from solve_ninja.services.unique_code import apply_unique_code_safely, get_checkin_landing
 from solve_ninja.utils import find_user_by_mobile, parse_request_data, validate_and_normalize_mobile
 
 
@@ -251,8 +251,10 @@ def verify_otp_login(mobile, otp, redirect_to=None, code=None):
 		
 		# Determine redirect URL
 		default_redirect = "/desk"
-		if user.user_type == "Website User":
-			default_redirect = WEB_CHECKIN_LANDING if code else "/user-profile/me"
+		if code:
+			default_redirect = get_checkin_landing(user_name)
+		elif user.user_type == "Website User":
+			default_redirect = "/user-profile/me"
 		
 		# Check for redirect-to parameter
 		if redirect_to:
