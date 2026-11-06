@@ -21,6 +21,7 @@
   "additional_notification_emails",
   "checkin_section",
   "checkin_url",
+  "web_checkin_url",
   "column_break_jt4bc",
   "unique_id",
   "checkin_qr"
@@ -81,6 +82,15 @@
    "read_only": 1
   },
   {
+   "description": "Share this link so people can sign up or log in on the website and get checked in with this code.",
+   "fieldname": "web_checkin_url",
+   "fieldtype": "Data",
+   "label": "Website URL",
+   "no_copy": 1,
+   "options": "URL",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_jt4bc",
    "fieldtype": "Column Break"
   },
@@ -137,7 +147,7 @@
    "link_fieldname": "program"
   }
  ],
- "modified": "2026-01-16 11:50:32.556016",
+ "modified": "2026-11-06 16:45:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Program",

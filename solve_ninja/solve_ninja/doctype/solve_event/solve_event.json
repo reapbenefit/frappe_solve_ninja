@@ -30,6 +30,7 @@
   "cover_image",
   "checkin_section",
   "checkin_url",
+  "web_checkin_url",
   "column_break_zvyo6",
   "checkin_qr",
   "ignore_reg",
@@ -151,6 +152,15 @@
    "read_only": 1
   },
   {
+   "description": "Share this link so people can sign up or log in on the website and get checked in with this code.",
+   "fieldname": "web_checkin_url",
+   "fieldtype": "Data",
+   "label": "Website URL",
+   "no_copy": 1,
+   "options": "URL",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_zvyo6",
    "fieldtype": "Column Break"
   },
@@ -223,7 +233,7 @@
    "link_fieldname": "solve_event"
   }
  ],
- "modified": "2026-08-06 15:05:20.218845",
+ "modified": "2026-11-06 16:45:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Solve Event",

@@ -4,6 +4,7 @@
 import frappe
 import io
 from frappe.model.document import Document
+from solve_ninja.services.unique_code import build_web_checkin_url
 from solve_ninja.utils import is_unique_id_duplicate
 
 class Program(Document):
@@ -42,6 +43,7 @@ class Program(Document):
 		# Update checkin_url if unique_id is set/changed
 		if self.get("unique_id"):
 			self.update_checkin_url()
+		self.web_checkin_url = build_web_checkin_url(self.get("unique_id"))
 		
 		# Update flow keywords if unique_id has changed
 		if unique_id_changed and self.get("unique_id"):

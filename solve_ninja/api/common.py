@@ -15,6 +15,7 @@ from frappe import _
 from frappe.utils import flt
 import requests
 from solve_ninja.utils import find_user_by_mobile, log_integration_request
+from solve_ninja.services.unique_code import apply_unique_code_safely, resolve_unique_code
 
 logger.set_log_level("DEBUG")
 logger = frappe.logger("api", allow_site=True, file_count=50)
@@ -260,6 +261,20 @@ def add_user():
         if frappe.db.exists("User", {"mobile_no": mobile}):
             frappe.throw(f"User with mobile number {mobile} already exists.", frappe.DuplicateEntryError)
 
+        # Website signup link: ?code=<Program / Solve Event / Social Media unique_id>
+        code_target = resolve_unique_code(user_data.get("code"))
+        if code_target:
+            user_data["code"] = code_target["code"]
+            user_data["acquisition_source_category"] = code_target["doctype"]
+            if (
+                code_target["doctype"] == "Program"
+                and not user_data.get("org_id")
+                and frappe.db.exists("User Organization", code_target["name"])
+            ):
+                user_data["org_id"] = code_target["name"]
+        else:
+            user_data.pop("code", None)
+
         # When program_id is provided, set org_id to Program name (shared ID with
         # User Organization created on Program save) unless org_id was passed explicitly.
         if user_data.get("program_id"):
@@ -284,6 +299,12 @@ def add_user():
         # Create Program Participation if program unique_id is provided
         if user_data.get("program_id"):
             create_program_participation(user_doc.name, user_data.get("program_id").upper())
+
+        if code_target:
+            code_result = apply_unique_code_safely(
+                user_doc.name, code_target["code"], is_new_user=True
+            )
+            message = f"{message}. {code_result['message']}"
 
         # Ensure Glific contact so WhatsApp OTP works after signup.
         # Soft-continue on failure — send_hsm_otp will retry later.
@@ -1280,8 +1301,8 @@ def update_ninja_profile(user, user_data):
         ninja_profile.wa_id = user_data.get("wa_id")
         updated = True
     
-    # Update acquisition_source_unique_id from program_id or event_id
-    acquisition_id = user_data.get("program_id") or user_data.get("event_id")
+    # Update acquisition_source_unique_id from program_id, event_id or website signup code
+    acquisition_id = user_data.get("program_id") or user_data.get("event_id") or user_data.get("code")
     if acquisition_id:
         ninja_profile.acquisition_source_unique_id = str(acquisition_id).upper()
         updated = True

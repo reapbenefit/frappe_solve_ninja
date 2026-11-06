@@ -24,3 +24,4 @@ solve_ninja.patches.add_ninja_lifecycle_indexes
 solve_ninja.patches.setup_ninja_lifecycle
 solve_ninja.patches.seed_samaaja_states_cities
 solve_ninja.patches.pull_india_states_cities
+solve_ninja.patches.set_web_checkin_urls

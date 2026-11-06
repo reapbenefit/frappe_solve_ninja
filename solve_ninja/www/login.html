@@ -124,6 +124,9 @@
 <div class="page-card-head">
 	<img class="app-logo" src="{{ logo }}">
 	<h4>{{ _('Login to {0}').format(app_name or _("Solve Ninja")) }}</h4>
+	{%- if checkin_title %}
+	<p class="text-muted checkin-banner">{{ _("Log in or sign up to join {0}").format(checkin_title | e) }}</p>
+	{%- endif %}
 </div>
 {% endmacro %}
 

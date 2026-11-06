@@ -1,0 +1,80 @@
+{% extends "templates/web.html" %}
+
+{% block head_include %}
+{{ include_style('login.bundle.css') }}
+<style>
+.checkin-status {
+	font-size: 15px;
+	margin: 12px 0;
+}
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="for-checkin">
+	<div class="login-content page-card">
+		<div class="page-card-head">
+			<h4>
+				{%- if checkin_title -%}
+				{{ checkin_title | e }}
+				{%- else -%}
+				{{ _("Check in") }}
+				{%- endif -%}
+			</h4>
+		</div>
+		<div class="page-card-body text-center">
+			<p class="checkin-status text-muted">
+				{%- if checkin_code -%}
+				{{ _("Checking you in...") }}
+				{%- else -%}
+				{{ _("This link is not valid.") }}
+				{%- endif -%}
+			</p>
+			<a class="btn btn-sm btn-primary btn-block checkin-continue" href="{{ redirect_to | e }}"
+				{% if checkin_code %}style="display: none;"{% endif %}>
+				{{ _("Continue") }}
+			</a>
+		</div>
+	</div>
+</section>
+{% endblock %}
+
+{% block script %}
+<script>
+frappe.ready(function () {
+	var code = {{ checkin_code | tojson }};
+	var redirectTo = {{ redirect_to | tojson }};
+	var REDIRECT_MS = 2500;
+
+	if (!code) {
+		return;
+	}
+
+	function showResult(message, ok) {
+		$(".checkin-status")
+			.removeClass("text-muted text-success text-danger")
+			.addClass(ok ? "text-success" : "text-danger")
+			.text(message);
+		$(".checkin-continue").show();
+	}
+
+	frappe.call({
+		type: "POST",
+		method: "solve_ninja.api.auth.apply_checkin_code",
+		args: { code: code },
+		callback: function (r) {
+			var result = (r && r.message) || {};
+			showResult(result.message || __("Done"), !!result.applied);
+			setTimeout(function () {
+				window.location.href = redirectTo;
+			}, REDIRECT_MS);
+		},
+		error: function () {
+			showResult(__("We could not record your check-in. Please try again."), false);
+		},
+	});
+});
+</script>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

@@ -646,7 +646,7 @@ def event_checkin(mobile=None, event_id=None, whatsapp_name=None):
 		return response
 
 
-def find_or_create_registration(user, solve_event_name):
+def find_or_create_registration(user, solve_event_name, source="snbot"):
 	"""
 	Find existing Solve Event Registration or create a new one.
 	Prevents duplicate registrations by checking for any existing registration first.
@@ -654,6 +654,7 @@ def find_or_create_registration(user, solve_event_name):
 	Args:
 	- user: User name (email)
 	- solve_event: Solve Event name
+	- source: Registration source ("snbot" for WhatsApp, "Web Form" for website)
 	
 	Returns:
 	- Registration name
@@ -680,7 +681,7 @@ def find_or_create_registration(user, solve_event_name):
 			"doctype": "Solve Event Registration",
 			"user": user,
 			"solve_event": solve_event_name,
-			"source": "snbot"
+			"source": source
 		})
 		registration_doc.flags.created_via_event_checkin = True
 		registration_doc.insert(ignore_permissions=True,ignore_links=True)

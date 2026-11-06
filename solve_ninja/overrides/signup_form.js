@@ -90,17 +90,56 @@
 		return payload;
 	}
 
-	function redirectAfterSuccess(redirectTo) {
-		if (redirectTo) {
-			window.location.href =
-				"/login?redirect-to=" +
-				encodeURIComponent(
-					frappe.utils.sanitise_redirect(frappe.utils.get_url_arg("redirect-to"))
-				) +
-				"#login";
-			return;
+	function getCheckinCode() {
+		// Website check-in link: ?code=<unique_id>, or redirect-to=/checkin?code=<unique_id>
+		var code = frappe.utils.get_url_arg("code");
+		if (code) {
+			return code;
 		}
-		window.location.href = "/login#login";
+		var redirectTo = frappe.utils.get_url_arg("redirect-to");
+		if (!redirectTo) {
+			return "";
+		}
+		try {
+			var url = new URL(redirectTo, window.location.origin);
+			return url.pathname === "/checkin" ? url.searchParams.get("code") || "" : "";
+		} catch (e) {
+			return "";
+		}
+	}
+
+	function buildLoginUrl() {
+		var params = new URLSearchParams();
+		var code = frappe.utils.get_url_arg("code");
+		var redirectTo = frappe.utils.sanitise_redirect(frappe.utils.get_url_arg("redirect-to"));
+		if (code) {
+			params.set("code", code);
+		}
+		if (redirectTo) {
+			params.set("redirect-to", redirectTo);
+		}
+		var query = params.toString();
+		return "/login" + (query ? "?" + query : "") + "#login";
+	}
+
+	function redirectAfterSuccess() {
+		window.location.href = buildLoginUrl();
+	}
+
+	function isExistingUserError(message) {
+		return /already exists/i.test(message || "");
+	}
+
+	function switchToLogin(mobile) {
+		frappe.show_alert(
+			{
+				message: __("You already have an account. Please log in with OTP."),
+				indicator: "blue",
+			},
+			7
+		);
+		window.location.hash = "#login";
+		$("#login_mobile").val(mobile);
 	}
 
 	function enableSignupButton() {
@@ -144,9 +183,6 @@
 				if ($btn.prop("disabled")) {
 					return false;
 				}
-
-				var urlParams = new URLSearchParams(window.location.search);
-				var redirectTo = urlParams.get("redirect-to");
 
 				var full_name = ($("#signup_fullname").val() || "").trim();
 				var mobile = ($("#signup_mobile").val() || "").trim();
@@ -204,6 +240,10 @@
 					year_of_birth: year_of_birth,
 					acquisition_source_category: "Website Direct",
 				};
+				var code = getCheckinCode();
+				if (code) {
+					args.code = code;
+				}
 
 				// Frappe login pattern: disable button + status on button + freeze
 				$form.find(".page-card-body").removeClass("invalid");
@@ -219,6 +259,11 @@
 						var payload = parseAddUserPayload(r);
 
 						if (payload.status === "error") {
+							if (isExistingUserError(payload.message)) {
+								resetSignupButton($btn);
+								switchToLogin(mobile);
+								return;
+							}
 							showSignupError(
 								$btn,
 								payload.message || __("Please connect with ReapBenefit team for help")
@@ -233,7 +278,9 @@
 							successMsg =
 								payload.message.toLowerCase().indexOf("login") >= 0
 									? payload.message
-									: payload.message + ". " + __("Please login with OTP.");
+									: payload.message.replace(/\.\s*$/, "") +
+									  ". " +
+									  __("Please login with OTP.");
 						}
 
 						setSignupStatus(__("Success"), "green");
@@ -246,7 +293,7 @@
 
 						// Delay redirect so the success message is visible
 						setTimeout(function () {
-							redirectAfterSuccess(redirectTo);
+							redirectAfterSuccess();
 						}, SUCCESS_REDIRECT_MS);
 					},
 					error: function (xhr) {
@@ -259,6 +306,11 @@
 								error = body.message;
 							}
 						} catch (e) {}
+						if (isExistingUserError(error)) {
+							resetSignupButton($btn);
+							switchToLogin(mobile);
+							return;
+						}
 						showSignupError($btn, error);
 					},
 				});

@@ -170,9 +170,10 @@ login.send_otp = function (mobile) {
 login.verify_otp = function (mobile, otp) {
 	login.set_status("Verifying OTP...", 'blue');
 	
-	// Get redirect-to parameter from URL
+	// Get redirect-to and website check-in code from URL
 	var urlParams = new URLSearchParams(window.location.search);
 	var redirectTo = urlParams.get('redirect-to');
+	var code = urlParams.get('code');
 	
 	return frappe.call({
 		type: "POST",
@@ -180,15 +181,23 @@ login.verify_otp = function (mobile, otp) {
 		args: {
 			mobile: mobile,
 			otp: otp,
-			redirect_to: redirectTo
+			redirect_to: redirectTo,
+			code: code
 		},
 		callback: function (response) {
 			if (response.message && response.message.success) {
-				login.set_status("Login successful", 'green');
+				var codeResult = response.message.code_result;
+				var redirectDelay = 1000;
+				if (codeResult && codeResult.message) {
+					login.set_status(codeResult.message, codeResult.applied ? 'green' : 'blue');
+					redirectDelay = 2500;
+				} else {
+					login.set_status("Login successful", 'green');
+				}
 				// Redirect to home page or dashboard
 				setTimeout(function () {
 					window.location.href = response.message.redirect_to || "/desk";
-				}, 1000);
+				}, redirectDelay);
 			} else {
 				login.set_status(response.message.message || "Invalid OTP", 'red');
 				$("#login_otp").val("").focus();

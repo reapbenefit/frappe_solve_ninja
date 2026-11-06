@@ -3,6 +3,7 @@ import random
 from frappe.rate_limiter import rate_limit
 from frappe.utils import now_datetime, add_to_date
 from samaaja.api.common import custom_response
+from solve_ninja.services.unique_code import apply_unique_code_safely
 from solve_ninja.utils import find_user_by_mobile, parse_request_data, validate_and_normalize_mobile
 
 
@@ -143,9 +144,11 @@ def send_otp(mobile):
 
 
 @frappe.whitelist(allow_guest=True)
-def verify_otp_login(mobile, otp, redirect_to=None):
+def verify_otp_login(mobile, otp, redirect_to=None, code=None):
 	"""
-	Verify OTP and login user
+	Verify OTP and login user.
+	Optional code: Program / Solve Event / Social Media unique_id from a website check-in link,
+	applied to the user after a successful login.
 	"""
 	try:
 		# Clean mobile number
@@ -243,6 +246,8 @@ def verify_otp_login(mobile, otp, redirect_to=None):
 		# Login the user
 		frappe.local.login_manager.user = user_name
 		frappe.local.login_manager.post_login()
+
+		code_result = apply_unique_code_safely(user_name, code) if code else None
 		
 		# Determine redirect URL
 		default_redirect = "/desk"
@@ -268,7 +273,8 @@ def verify_otp_login(mobile, otp, redirect_to=None):
 			"success": True,
 			"message": "Login successful",
 			"redirect_to": redirect_to,
-			"user": user_name
+			"user": user_name,
+			"code_result": code_result,
 		}
 		
 	except Exception as e:
@@ -277,6 +283,16 @@ def verify_otp_login(mobile, otp, redirect_to=None):
 			"success": False,
 			"message": "Login failed. Please try again."
 		}
+
+
+@frappe.whitelist(methods=["POST"])
+@rate_limit(limit=30, seconds=60 * 60)
+def apply_checkin_code(code):
+	"""
+	Apply a website check-in code (Program / Solve Event / Social Media unique_id)
+	to the logged-in user. Used by /checkin for users who already have a session.
+	"""
+	return apply_unique_code_safely(frappe.session.user, code)
 
 
 def send_hsm_otp(mobile, otp):

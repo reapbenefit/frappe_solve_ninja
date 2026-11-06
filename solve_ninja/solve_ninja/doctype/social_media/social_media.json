@@ -14,6 +14,7 @@
   "city",
   "section_break_kpajy",
   "checkin_url",
+  "web_checkin_url",
   "unique_id",
   "column_break_afws0",
   "qr"
@@ -75,6 +76,15 @@
    "read_only": 1
   },
   {
+   "description": "Share this link so people can sign up or log in on the website and get checked in with this code.",
+   "fieldname": "web_checkin_url",
+   "fieldtype": "Data",
+   "label": "Website URL",
+   "no_copy": 1,
+   "options": "URL",
+   "read_only": 1
+  },
+  {
    "description": "Comma-separated emails. Example: a@x.com, b@y.com",
    "fieldname": "additional_notification_emails",
    "fieldtype": "Data",
@@ -84,7 +94,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-16 11:45:48.928729",
+ "modified": "2026-11-06 16:45:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Social Media",
