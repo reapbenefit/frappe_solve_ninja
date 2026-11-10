@@ -133,6 +133,38 @@ login.login = function () {
 	$(".for-login").toggle(true);
 	login.reset_button_states();
 	$("#login_mobile").focus();
+
+	// Set by start_otp_login: send only after the reset above, or the OTP box gets hidden again
+	if (login.pending_otp_mobile) {
+		var mobile = login.pending_otp_mobile;
+		login.pending_otp_mobile = null;
+		$("#login_mobile").val(mobile);
+		login.send_otp(mobile);
+	}
+};
+
+// Show the login form for this number and send the OTP (used right after signup)
+login.start_otp_login = function (mobile) {
+	login.pending_otp_mobile = mobile;
+	if (window.location.hash === "#login") {
+		login.login();
+	} else {
+		window.location.hash = "#login";
+	}
+};
+
+// Number has no account: open signup with the number filled in
+login.go_to_signup = function (mobile) {
+	var digits = String(mobile || "").replace(/[^0-9]/g, "");
+	if (digits.length === 12 && digits.indexOf("91") === 0) {
+		digits = digits.slice(2);
+	}
+	frappe.show_alert({
+		message: __("No account found for this number. Please sign up."),
+		indicator: "blue"
+	}, 7);
+	window.location.hash = "#signup";
+	$("#signup_mobile").val(digits);
 };
 
 login.signup = function () {
@@ -152,12 +184,16 @@ login.send_otp = function (mobile) {
 			mobile: mobile
 		},
 		callback: function (response) {
-			if (response.message && response.message.success) {
+			var result = response.message || {};
+			if (result.success) {
 				login.set_status("OTP sent successfully", 'green');
 				login.show_otp_section();
 				login.start_countdown();
+			} else if (result.reason === "user_not_found") {
+				$(".for-login .status-message").hide();
+				login.go_to_signup(mobile);
 			} else {
-				login.set_status(response.message.message || "Failed to send OTP", 'red');
+				login.set_status(result.message || "Failed to send OTP", 'red');
 			}
 		},
 		error: function (xhr, data) {

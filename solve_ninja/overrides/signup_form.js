@@ -126,6 +126,22 @@
 		window.location.href = buildLoginUrl();
 	}
 
+	function canStartOtpLogin() {
+		// Only the mobile OTP page (/login) has login.start_otp_login; /email-login keeps the redirect
+		return !!(window.login && typeof login.start_otp_login === "function");
+	}
+
+	function startOtpLoginAfterSignup(serverMessage, mobile) {
+		var message = __("Account created. We're sending an OTP to your WhatsApp.");
+		// add_user appends the check-in result, e.g. "User added successfully. You have joined X."
+		var checkin = String(serverMessage || "").replace(/^User added successfully\.?\s*/i, "");
+		if (checkin) {
+			message = checkin.replace(/\.\s*$/, "") + ". " + message;
+		}
+		frappe.show_alert({ message: message, indicator: "green" }, 7);
+		login.start_otp_login(mobile);
+	}
+
 	function isExistingUserError(message) {
 		return /already exists/i.test(message || "");
 	}
@@ -281,6 +297,12 @@
 									: payload.message.replace(/\.\s*$/, "") +
 									  ". " +
 									  __("Please login with OTP.");
+						}
+
+						if (canStartOtpLogin()) {
+							resetSignupButton($btn);
+							startOtpLoginAfterSignup(payload.message, mobile);
+							return;
 						}
 
 						setSignupStatus(__("Success"), "green");

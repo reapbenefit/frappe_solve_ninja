@@ -52,10 +52,26 @@ def generate_login_url():
 		return custom_response("Failed to generate login URL. Please try again.", "", 500, True)
 
 
+OTP_SENDS_PER_HOUR = 5
+
+
+def is_otp_rate_limited(mobile):
+	"""Count an OTP send for this number; True once it exceeds OTP_SENDS_PER_HOUR in an hour."""
+	# Last 10 digits so 98..., 9198... and 919198... share one counter
+	cache_key = frappe.cache.make_key(f"sn:login_otp_sends:{mobile[-10:]}")
+	if not frappe.cache.get(cache_key):
+		frappe.cache.setex(cache_key, 60 * 60, 0)
+	return frappe.cache.incrby(cache_key, 1) > OTP_SENDS_PER_HOUR
+
+
 @frappe.whitelist(allow_guest=True)
 def send_otp(mobile):
 	"""
-	Send OTP to mobile number for login
+	Send OTP to mobile number for login.
+
+	On failure the response has a "reason" the login page acts on:
+	invalid_mobile, user_not_found (page switches to signup), user_disabled,
+	rate_limited, whatsapp_failed, error.
 	"""
 	try:
 		# Clean mobile number (remove any non-digit characters)
@@ -65,6 +81,7 @@ def send_otp(mobile):
 		if len(mobile) not in [10, 12]:
 			return {
 				"success": False,
+				"reason": "invalid_mobile",
 				"message": "Please enter a valid 10 or 12-digit mobile number"
 			}
 		
@@ -88,13 +105,22 @@ def send_otp(mobile):
 		if not user:
 			return {
 				"success": False,
+				"reason": "user_not_found",
 				"message": "No account found with this mobile number. Please sign up first."
 			}
 		
 		if not user.enabled:
 			return {
 				"success": False,
+				"reason": "user_disabled",
 				"message": "Your account is disabled. Please contact administrator."
+			}
+
+		if is_otp_rate_limited(mobile):
+			return {
+				"success": False,
+				"reason": "rate_limited",
+				"message": "Too many OTP requests. Please try again in a while."
 			}
 		
 		# Generate 6-digit OTP
@@ -132,6 +158,7 @@ def send_otp(mobile):
 		else:
 			return {
 				"success": False,
+				"reason": "whatsapp_failed",
 				"message": "Your OTP was not sent to your WhatsApp. Please try again."
 			}
 		
@@ -139,6 +166,7 @@ def send_otp(mobile):
 		frappe.log_error(f"Error sending OTP", e)
 		return {
 			"success": False,
+			"reason": "error",
 			"message": "Failed to send OTP. Please try again."
 		}
 
