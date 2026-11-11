@@ -1159,8 +1159,11 @@ def build_user_doc(user_data, mobile):
         'gender': user_data.get("gender"),
         'age': user_data.get("age"),
         'birth_date': frappe.utils.getdate(user_data.get("dob")) if user_data.get("dob") else None,
-        'new_password': mobile
+        'new_password': mobile,
+        'send_welcome_email': 0
     })
+    # Same role as WhatsApp signups; without a role Frappe shows "No Roles Specified" on insert
+    user_doc.append("roles", {"role": "Solve Ninja"})
 
     assign_org(user_doc, user_data.get("org_id"))
     assign_language(user_doc, user_data.get("language"))

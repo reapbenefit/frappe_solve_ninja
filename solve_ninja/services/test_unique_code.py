@@ -333,22 +333,14 @@ class TestUniqueCodeCheckin(IntegrationTestCase):
 		self.assertTrue(result["success"], result)
 		self.assertEqual(result["redirect_to"], "/user-profile/me")
 
-	def test_add_user_with_program_code(self):
-		self._create_program()
-		mobile = self.suffix
-		email = f"91{mobile}@solveninja.org"
+	def _call_add_user(self, payload):
+		"""Run add_user as the website signup does; return (response, signup email)."""
+		email = f"91{payload['mobile']}@solveninja.org"
 		self.track("User", email)
 		self.track("Ninja Profile", email)
 		self.track("User Metadata", email)
 
-		frappe.local.form_dict = frappe._dict(
-			{
-				"mobile": mobile,
-				"first_name": "Web Signup",
-				"acquisition_source_category": "Website Direct",
-				"code": self.program_code,
-			}
-		)
+		frappe.local.form_dict = frappe._dict(payload)
 
 		class _TestRequest:
 			host = frappe.local.site
@@ -367,6 +359,18 @@ class TestUniqueCodeCheckin(IntegrationTestCase):
 		finally:
 			frappe.local.request = previous_request
 			frappe.local.form_dict = frappe._dict()
+		return response, email
+
+	def test_add_user_with_program_code(self):
+		self._create_program()
+		response, email = self._call_add_user(
+			{
+				"mobile": self.suffix,
+				"first_name": "Web Signup",
+				"acquisition_source_category": "Website Direct",
+				"code": self.program_code,
+			}
+		)
 
 		body = json.loads(response.get_data(as_text=True))
 		self.assertEqual(response.status_code, 200, body)
@@ -378,6 +382,23 @@ class TestUniqueCodeCheckin(IntegrationTestCase):
 		self.assertEqual(
 			frappe.db.get_value("Ninja Profile", email, "acquisition_source_category"), "Program"
 		)
+
+	def test_add_user_matches_whatsapp_signup_without_role_popup(self):
+		frappe.local.message_log = []
+		response, email = self._call_add_user(
+			{
+				"mobile": self.suffix,
+				"first_name": "Web Signup",
+				"acquisition_source_category": "Website Direct",
+			}
+		)
+
+		self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+		self.assertEqual(frappe.get_roles(email).count("Solve Ninja"), 1)
+		self.assertEqual(frappe.db.get_value("User", email, "user_type"), "Website User")
+		self.assertEqual(frappe.db.get_value("User", email, "send_welcome_email"), 0)
+		titles = [str(message.get("title")) for message in frappe.local.message_log]
+		self.assertNotIn("No Roles Specified", titles)
 
 	def test_web_checkin_url_set_on_save(self):
 		self._create_program()
