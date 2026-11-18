@@ -92,6 +92,19 @@ def _enqueue_processing(submission_name, enqueue_after_commit=False):
 	)
 
 
+def _enqueue_assess_and_process(submission_name, enqueue_after_commit=False):
+	"""Background path for Glific: assess (and resolve remote photo) then process."""
+	return frappe.enqueue(
+		f"{JOB_PATH}.assess_and_process_submission",
+		queue="long",
+		timeout=900,
+		job_id=f"action_submission::{submission_name}",
+		deduplicate=True,
+		enqueue_after_commit=enqueue_after_commit,
+		submission_name=submission_name,
+	)
+
+
 def _validate_hours(hours_value, hours_unit):
 	unit = (hours_unit or "hours").strip().lower()
 	if unit not in HOURS_UNITS:
@@ -136,7 +149,7 @@ def _find_recent_duplicate(user, text):
 			# "Not an Action" records are never processed, so they can't stand in for a new submission.
 			"status": ("!=", "Not an Action"),
 		},
-		fields=["name", "raw_text", "action_completeness", "missing_details"],
+		fields=["name", "raw_text", "action_completeness", "missing_details", "status"],
 		order_by="creation desc",
 	)
 	return next((row for row in recent if normalize_text(row.raw_text) == target), None)
@@ -152,41 +165,245 @@ def _recorded_response(submission_name, completeness, missing_details):
 	}
 
 
-@frappe.whitelist(methods=["POST"])
-def record_action(text=None, hours_value=None, hours_unit="hours", photo_url=None, audio_file_url=None):
-	user = frappe.session.user
-	if user == "Guest":
-		frappe.throw("Login required", frappe.PermissionError)
+def _profile_url_for_user(user_name):
+	username = frappe.db.get_value("User", user_name, "username")
+	if not username:
+		return frappe.utils.get_url("/user-profile")
+	base = (frappe.conf.get("cmp_base_url") or "").rstrip("/")
+	if base:
+		return f"{base}/user-profile/{username}"
+	return frappe.utils.get_url(f"/user-profile/{username}")
 
+
+def _events_url():
+	base = (frappe.conf.get("cmp_base_url") or "").rstrip("/")
+	if base:
+		return f"{base}/events"
+	return frappe.utils.get_url("/events")
+
+
+def _hours_as_hours(hours_value, hours_unit):
+	value = float(hours_value or 0)
+	if (hours_unit or "hours") == "minutes":
+		return value / 60
+	return value
+
+
+def _parse_skills(skills_json):
+	"""Normalize Action Submission.skills JSON into [{label, response}, ...]."""
+	skills = frappe.parse_json(skills_json) or []
+	parsed = []
+	for skill in skills:
+		if isinstance(skill, dict):
+			label = skill.get("label") or skill.get("name")
+			if not label:
+				continue
+			parsed.append({"label": str(label), "response": (skill.get("response") or "").strip()})
+		elif skill:
+			parsed.append({"label": str(skill), "response": ""})
+	return parsed
+
+
+def _skill_labels(skills_json):
+	return [s["label"] for s in _parse_skills(skills_json)]
+
+
+def _skills_message_block(skills_json):
+	"""WhatsApp-friendly 'What this built' lines: skill — short why."""
+	parsed = _parse_skills(skills_json)
+	if not parsed:
+		return "What this built\n• —"
+	lines = ["What this built"]
+	for skill in parsed:
+		if skill["response"]:
+			lines.append(f"• {skill['label']} — {skill['response']}")
+		else:
+			lines.append(f"• {skill['label']}")
+	return "\n".join(lines)
+
+
+def _glific_resume_payload(submission):
+	"""Fields Glific Wait-for-result can use for the post-Done summary + CTAs."""
+	parsed_skills = _parse_skills(submission.skills)
+	labels = [s["label"] for s in parsed_skills]
+	hours = _hours_as_hours(submission.hours_value, submission.hours_unit)
+	profile_url = _profile_url_for_user(submission.user)
+	status = submission.status
+	if status == "Done":
+		message = (
+			f"Your action is logged!\n\n"
+			f"*{submission.action_title or 'Your action'}*\n"
+			f"Hours: {hours:g}\n\n"
+			f"{_skills_message_block(submission.skills)}\n\n"
+			f"See it anytime:\n{profile_url}"
+		)
+	elif status == "Failed":
+		message = (
+			"We could not finish recording your action right now. "
+			"Please try again in a bit, or check your profile later."
+		)
+	else:
+		message = f"Your action status: {status}."
+
+	return {
+		"status": status,
+		"submission": submission.name,
+		"event_id": submission.event_id,
+		"action_title": submission.action_title or "",
+		"hours": hours,
+		"hours_value": submission.hours_value,
+		"hours_unit": submission.hours_unit or "hours",
+		"skills": ", ".join(labels),
+		"skills_list": labels,
+		"skills_detail": parsed_skills,
+		"profile_url": profile_url,
+		"events_url": _events_url(),
+		"action_completeness": submission.action_completeness,
+		"message": message,
+	}
+
+
+def _attach_glific_resume_target(submission_name, glific_contact_id, glific_flow_id):
+	contact_id = (glific_contact_id or "").strip() or None
+	flow_id = (glific_flow_id or "").strip() or None
+	if not contact_id or not flow_id:
+		return False
+	frappe.db.set_value(
+		"Action Submission",
+		submission_name,
+		{"glific_contact_id": contact_id, "glific_flow_id": flow_id},
+	)
+	return True
+
+
+def resume_glific_for_submission(submission_name):
+	"""Resume the waiting Glific flow with a summary payload. No-ops if IDs missing."""
+	submission = frappe.get_doc("Action Submission", submission_name)
+	if not (submission.glific_contact_id and submission.glific_flow_id):
+		return False
+	try:
+		glific_settings = frappe.get_doc("Glific Settings")
+		glific_settings.resume_glific_flow(
+			flow_id=submission.glific_flow_id,
+			contact_id=submission.glific_contact_id,
+			result=_glific_resume_payload(submission),
+		)
+		return True
+	except Exception:
+		frappe.log_error(
+			title=f"Glific resume failed: {submission_name}",
+			message=frappe.get_traceback(),
+		)
+		return False
+
+
+def has_glific_resume_path(event_name=None, submission=None):
+	"""True when chatbot SMA will resume Glific with a summary (needs contact + flow ids)."""
+	if submission is not None:
+		return bool(getattr(submission, "glific_contact_id", None) and getattr(submission, "glific_flow_id", None))
+	if not event_name:
+		return False
+	row = frappe.db.get_value(
+		"Action Submission",
+		{"event_id": event_name},
+		["glific_contact_id", "glific_flow_id"],
+		as_dict=True,
+	)
+	return bool(row and row.glific_contact_id and row.glific_flow_id)
+
+
+def is_single_message_action_event(event_name=None, submission=None):
+	"""True for web Quick Add / chatbot SMA — in-channel summary replaces Momentum HSM."""
+	if submission is not None:
+		return True
+	if not event_name:
+		return False
+	if frappe.db.exists("Action Submission", {"event_id": event_name}):
+		return True
+	# Events may be inserted before event_id is saved on the submission.
+	user = frappe.db.get_value("Events", event_name, "user")
+	if not user:
+		return False
+	recent = frappe.get_all(
+		"Action Submission",
+		filters={
+			"user": user,
+			"status": ("in", ["Pending", "Processing"]),
+			"creation": (">=", add_to_date(now_datetime(), minutes=-30)),
+		},
+		fields=["event_id"],
+		order_by="creation desc",
+		limit=5,
+	)
+	for row in recent:
+		if not row.event_id or row.event_id == event_name:
+			return True
+	return False
+
+
+def record_action_for_user(
+	user,
+	text=None,
+	hours_value=None,
+	hours_unit="hours",
+	photo_url=None,
+	audio_file_url=None,
+	*,
+	validate_files=True,
+	assess=True,
+	glific_contact_id=None,
+	glific_flow_id=None,
+):
+	"""Create an Action Submission for `user` and enqueue processing.
+
+	Shared by the logged-in web API and the Glific guest API. When the caller
+	has already saved the photo/audio File (e.g. downloaded a WhatsApp media
+	URL), pass validate_files=False.
+
+	When assess=False (Glific fast-ack), skip OpenAI in-request and enqueue
+	assess_and_process_submission so the webhook can return immediately.
+
+	Pass glific_contact_id + glific_flow_id for chatbot: on Done/Failed we resume
+	that flow with a summary and skip Momentum HSM for the linked event.
+	"""
 	text = (text or "").strip()
 	if not text:
 		frappe.throw("Please describe the action you took.")
 
 	hours_value, hours_unit = _validate_hours(hours_value, hours_unit)
-	photo_url = _validate_own_file(photo_url, user, "photo")
-	audio_file_url = _validate_own_file(audio_file_url, user, "voice recording")
+	if validate_files:
+		photo_url = _validate_own_file(photo_url, user, "photo")
+		audio_file_url = _validate_own_file(audio_file_url, user, "voice recording")
 
 	if not frappe.db.get_value("User", user, "username"):
 		frappe.throw("Your account has no username yet. Please complete your profile first.")
 
+	glific_contact_id = (glific_contact_id or "").strip() or None
+	glific_flow_id = (glific_flow_id or "").strip() or None
+
 	duplicate = _find_recent_duplicate(user, text)
 	if duplicate:
+		if glific_contact_id and glific_flow_id:
+			_attach_glific_resume_target(duplicate.name, glific_contact_id, glific_flow_id)
+			if duplicate.status in ("Done", "Failed"):
+				resume_glific_for_submission(duplicate.name)
 		return _recorded_response(
 			duplicate.name, duplicate.action_completeness, json.loads(duplicate.missing_details or "[]")
 		)
 
-	# Every submission is recorded; the assessment only labels it Complete/Incomplete.
 	assessment = None
-	try:
-		assessment = assess_message(text)
-	except Exception:
-		frappe.log_error(title="Single message action: assessment failed", message=frappe.get_traceback())
+	missing_details, completeness = [], "Incomplete"
 
-	if assessment is None:
-		missing_details, completeness = [], "Incomplete"
-	else:
-		missing_details = assessment.missing_details
-		completeness = completeness_from(missing_details) if assessment.is_action else "Incomplete"
+	if assess:
+		# Every submission is recorded; the assessment only labels it Complete/Incomplete.
+		try:
+			assessment = assess_message(text)
+		except Exception:
+			frappe.log_error(title="Single message action: assessment failed", message=frappe.get_traceback())
+
+		if assessment is not None:
+			missing_details = assessment.missing_details
+			completeness = completeness_from(missing_details) if assessment.is_action else "Incomplete"
 
 	submission = frappe.get_doc(
 		{
@@ -202,12 +419,84 @@ def record_action(text=None, hours_value=None, hours_unit="hours", photo_url=Non
 			"action_completeness": completeness,
 			"status": "Pending",
 			"last_completed_step": 0,
+			"glific_contact_id": glific_contact_id,
+			"glific_flow_id": glific_flow_id,
 		}
 	).insert(ignore_permissions=True)
 
-	_enqueue_processing(submission.name, enqueue_after_commit=True)
+	if assess:
+		_enqueue_processing(submission.name, enqueue_after_commit=True)
+	else:
+		_enqueue_assess_and_process(submission.name, enqueue_after_commit=True)
 
 	return _recorded_response(submission.name, completeness, missing_details)
+
+
+def _ensure_local_photo(submission):
+	"""Download a remote WhatsApp/http photo onto a site File before attach."""
+	photo_url = (submission.photo_url or "").strip()
+	if not photo_url:
+		return
+	if not (photo_url.startswith("http://") or photo_url.startswith("https://")):
+		return
+
+	from solve_ninja.services.events_manager import EventsManager
+
+	file_doc = EventsManager._save_file_from_url(photo_url, None)
+	_save(submission, photo_url=file_doc.file_url)
+	submission.photo_url = file_doc.file_url
+
+
+def assess_and_process_submission(submission_name):
+	"""Background entry for Glific: resolve photo, assess text, then process_submission."""
+	submission = frappe.get_doc("Action Submission", submission_name)
+	if submission.status in ("Done", "Not an Action"):
+		return
+
+	try:
+		_ensure_local_photo(submission)
+	except Exception:
+		frappe.log_error(
+			title=f"Single message action photo download failed: {submission_name}",
+			message=frappe.get_traceback(),
+		)
+
+	assessment = None
+	try:
+		assessment = assess_message(submission.raw_text)
+	except Exception:
+		frappe.log_error(title="Single message action: assessment failed", message=frappe.get_traceback())
+
+	if assessment is None:
+		missing_details, completeness = [], "Incomplete"
+	else:
+		missing_details = assessment.missing_details
+		completeness = completeness_from(missing_details) if assessment.is_action else "Incomplete"
+
+	_save(
+		submission,
+		assessment=assessment.model_dump_json() if assessment else None,
+		missing_details=json.dumps(missing_details),
+		action_completeness=completeness,
+	)
+
+	process_submission(submission_name)
+
+
+@frappe.whitelist(methods=["POST"])
+def record_action(text=None, hours_value=None, hours_unit="hours", photo_url=None, audio_file_url=None):
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw("Login required", frappe.PermissionError)
+
+	return record_action_for_user(
+		user,
+		text=text,
+		hours_value=hours_value,
+		hours_unit=hours_unit,
+		photo_url=photo_url,
+		audio_file_url=audio_file_url,
+	)
 
 
 PUBLISH_OVERRIDE_TURN = {
@@ -325,8 +614,17 @@ def process_submission(submission_name):
 					"time_invested_unit": submission.hours_unit or "hours",
 				},
 			)
+			# Ensure Events has hours before Momentum HSM reads action_hours (CMP sync can lag).
+			hours_on_event = (
+				float(submission.hours_value) / 60
+				if (submission.hours_unit or "hours") == "minutes"
+				else float(submission.hours_value)
+			)
+			if frappe.db.exists("Events", uuid):
+				frappe.db.set_value("Events", uuid, "hours_invested", hours_on_event)
 			step = 4
 			_save(submission, last_completed_step=step)
+			# Quick Add + chatbot SMA show an in-channel summary; never send Momentum HSM here.
 
 		if step < 5:
 			_cmp("POST", f"/ai/profile_summary/{username}", timeout=120)
@@ -338,9 +636,11 @@ def process_submission(submission_name):
 				_attach_photo(uuid, submission.photo_url)
 			step = 6
 			_save(submission, last_completed_step=step, status="Done", error=None)
+			resume_glific_for_submission(submission_name)
 	except Exception:
 		_save(submission, status="Failed", error=frappe.get_traceback())
 		frappe.log_error(title=f"Single message action failed: {submission_name}", message=frappe.get_traceback())
+		resume_glific_for_submission(submission_name)
 		raise
 
 
