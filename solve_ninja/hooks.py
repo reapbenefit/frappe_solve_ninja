@@ -250,6 +250,7 @@ doc_events = {
         "on_update": [
             "solve_ninja.doc_events.events.update_subcategory",
             "solve_ninja.doc_events.events.update_ninja_profile_hook",
+            "solve_ninja.doc_events.energy_point_log.send_badge_notification_on_update",
         ],
         "after_insert": [
 			"solve_ninja.doc_events.events.after_insert",

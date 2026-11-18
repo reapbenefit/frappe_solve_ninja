@@ -21,6 +21,10 @@
   "column_break_submission",
   "hours_value",
   "hours_unit",
+  "glific_section",
+  "glific_contact_id",
+  "column_break_glific",
+  "glific_flow_id",
   "assessment_section",
   "missing_details",
   "suggested_followup",
@@ -134,6 +138,30 @@
    "read_only": 1
   },
   {
+   "collapsible": 1,
+   "fieldname": "glific_section",
+   "fieldtype": "Section Break",
+   "label": "Glific"
+  },
+  {
+   "description": "Glific contact id for resumeContactFlow after processing",
+   "fieldname": "glific_contact_id",
+   "fieldtype": "Data",
+   "label": "Glific Contact ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_glific",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Glific flow id waiting on Wait for result / resume",
+   "fieldname": "glific_flow_id",
+   "fieldtype": "Data",
+   "label": "Glific Flow ID",
+   "read_only": 1
+  },
+  {
    "fieldname": "assessment_section",
    "fieldtype": "Section Break",
    "label": "Assessment"
@@ -214,7 +242,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-27 16:45:00.000000",
+ "modified": "2026-11-17 12:35:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Action Submission",
