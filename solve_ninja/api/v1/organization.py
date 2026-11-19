@@ -16,6 +16,7 @@ from solve_ninja.api.v1.ninja_query_utils import (
 	fetch_skills_unlocked_count_by_org,
 	fetch_top_action_types_for_org,
 	fetch_top_ninjas_by_org,
+	get_program_actions_start_date,
 	merge_org_stats,
 	normalize_export_format,
 	parse_list_params,
@@ -37,13 +38,18 @@ def _build_organization_results(page_length, start, days, filters):
 def _build_organization_dashboard_data(days, filters):
 	filters = resolve_organization_filters(filters, require_organization=True)
 	organization = filters.get("organization")
+	actions_from_date = get_program_actions_start_date(organization)
 
-	stats = fetch_organization_dashboard_stats(filters, days)
+	stats = fetch_organization_dashboard_stats(
+		filters, days, actions_from_date=actions_from_date
+	)
 	skills_unlocked, remaining_skills_count = fetch_skills_breakdown_for_org(
 		filters,
 		total_ninjas=stats.get("total_ninjas", 0),
 	)
-	top_action_types = fetch_top_action_types_for_org(filters)
+	top_action_types = fetch_top_action_types_for_org(
+		filters, actions_from_date=actions_from_date
+	)
 	org_name = frappe.db.get_value("User Organization", organization, "org_name") or organization
 
 	return {
@@ -54,6 +60,8 @@ def _build_organization_dashboard_data(days, filters):
 		"remaining_skills_count": remaining_skills_count,
 		"top_action_types": top_action_types,
 		"days": days,
+		"actions_from_date": str(actions_from_date) if actions_from_date else None,
+		"actions_scoped_to_program_start": bool(actions_from_date),
 		"applied_filters": filters,
 	}
 
@@ -200,9 +208,17 @@ def get_organization_dashboard(days=DEFAULT_DAYS, filters=None):
 				"skills_unlocked": dashboard_data["skills_unlocked"],
 				"remaining_skills_count": dashboard_data["remaining_skills_count"],
 				"top_action_types": dashboard_data["top_action_types"],
+				"actions_from_date": dashboard_data.get("actions_from_date"),
+				"actions_scoped_to_program_start": dashboard_data.get(
+					"actions_scoped_to_program_start", False
+				),
 				"meta": {
 					"days": dashboard_data["days"],
 					"applied_filters": dashboard_data["applied_filters"],
+					"actions_from_date": dashboard_data.get("actions_from_date"),
+					"actions_scoped_to_program_start": dashboard_data.get(
+						"actions_scoped_to_program_start", False
+					),
 				},
 			},
 			status_code=200,
