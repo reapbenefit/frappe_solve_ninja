@@ -42,14 +42,25 @@ def _register_glific_via_mobile(data):
 
 	existing = find_existing_registration(user, solve_event_name)
 	if existing:
-		return frappe.get_doc("Solve Event Registration", existing).as_dict()
+		result = frappe.get_doc("Solve Event Registration", existing).as_dict()
+		result["success"] = True
+		result["already_registered"] = True
+		result["registration_name"] = existing
+		result["event_id"] = data.get("solve_event") or solve_event_name
+		return result
 
 	data["user"] = user
 	data["doctype"] = "Solve Event Registration"
 	data["solve_event"] = solve_event_name
 	doc = frappe.get_doc(data)
 	doc.insert()
-	return doc.as_dict()
+
+	result = doc.as_dict()
+	result["success"] = True
+	result["already_registered"] = False
+	result["registration_name"] = doc.name
+	result["event_id"] = data.get("solve_event") or solve_event_name
+	return result
 
 
 @frappe.whitelist(allow_guest=True)

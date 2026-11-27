@@ -5,7 +5,7 @@ from datetime import timedelta
 import frappe
 from frappe.query_builder import Case, DocType, Order
 from frappe.query_builder.functions import Coalesce, Count, Sum
-from frappe.utils import cint, now_datetime
+from frappe.utils import cint, getdate, now_datetime
 
 EXCLUDED_ORGS = ["RBINT", "Reap Benefit Team", "Reap Benefit SNLA program"]
 DEFAULT_DAYS = 30
@@ -89,6 +89,23 @@ def parse_organization_request(defaults=None, **kwargs):
 def get_action_date_threshold(days):
 	time_condition = now_datetime() - timedelta(days=cint(days))
 	return frappe.utils.format_datetime(time_condition, "yyyy-MM-dd HH:mm:ss")
+
+
+def get_program_actions_start_date(org_id):
+	"""
+	Return Program.start_date when org_id is a program-created User Organization.
+
+	Program and User Organization share the same document name for program-backed
+	orgs. Returns None when there is no matching Program or start_date.
+	"""
+	org_id = normalize_organization_filter(org_id)
+	if not org_id or not frappe.db.exists("Program", org_id):
+		return None
+
+	start_date = frappe.db.get_value("Program", org_id, "start_date")
+	if not start_date:
+		return None
+	return getdate(start_date)
 
 
 def normalize_organization_filter(organization):
@@ -370,12 +387,104 @@ def _energy_point_log_skill_conditions(EnergyPointLog):
 	)
 
 
-def fetch_organization_dashboard_stats(filters, days):
+def fetch_org_event_action_metrics(filters, actions_from_date):
+	"""
+	Org-scoped action/hour totals from Events on/after actions_from_date.
+	"""
+	User, NinjaProfile, UserMetadata, _UserOrganization, Events, *_ = get_ninja_doctypes()
+	rows = (
+		_org_stats_base_query(User, NinjaProfile, UserMetadata, None, filters)
+		.join(Events).on(
+			(User.name == Events.user) & (Events.date_of_action >= actions_from_date)
+		)
+		.select(
+			Count(Events.name).as_("total_actions"),
+			Coalesce(Sum(Events.hours_invested), 0).as_("total_hours_logged"),
+			Count(User.name).distinct().as_("ninjas_taking_actions"),
+		)
+		.run(as_dict=True)
+	)
+	row = rows[0] if rows else {}
+	return {
+		"total_actions": row.get("total_actions") or 0,
+		"total_hours_logged": round(row.get("total_hours_logged") or 0, 2),
+		"ninjas_taking_actions": row.get("ninjas_taking_actions") or 0,
+	}
+
+
+def fetch_event_action_counts_by_user(user_ids, actions_from_date):
+	"""Per-user action/hour counts from Events on/after actions_from_date."""
+	if not user_ids or not actions_from_date:
+		return {}
+
+	Events = DocType("Events")
+	rows = (
+		frappe.qb.from_(Events)
+		.select(
+			Events.user,
+			Count(Events.name).as_("contributions"),
+			Coalesce(Sum(Events.hours_invested), 0).as_("hours_invested"),
+		)
+		.where(
+			(Events.user.isin(list(user_ids)))
+			& (Events.date_of_action >= actions_from_date)
+		)
+		.groupby(Events.user)
+		.run(as_dict=True)
+	)
+	return {
+		row.user: {
+			"contributions": row.contributions or 0,
+			"hours_invested": round(row.hours_invested or 0, 2),
+		}
+		for row in rows
+	}
+
+
+def apply_actions_from_date_to_ninja_rows(rows, actions_from_date, user_id_key="name"):
+	"""Replace lifetime contributions/hours with Events totals since actions_from_date."""
+	if not rows or not actions_from_date:
+		return rows
+
+	user_ids = [row.get(user_id_key) for row in rows if row.get(user_id_key)]
+	counts_map = fetch_event_action_counts_by_user(user_ids, actions_from_date)
+	for row in rows:
+		counts = counts_map.get(row.get(user_id_key), {})
+		row["contributions"] = counts.get("contributions", 0)
+		row["hours_invested"] = counts.get("hours_invested", 0)
+	return rows
+
+
+def fetch_organization_dashboard_stats(filters, days, actions_from_date=None):
 	User, NinjaProfile, UserMetadata, UserOrganization, _Events, *_ = get_ninja_doctypes()
 	threshold_str = get_action_date_threshold(days)
 	active_case = Sum(
 		Case().when(NinjaProfile.last_action_date >= threshold_str, 1).else_(0)
 	)
+
+	if actions_from_date:
+		rows = (
+			_org_stats_base_query(User, NinjaProfile, UserMetadata, UserOrganization, filters)
+			.select(
+				Count(User.name).as_("total_ninjas"),
+				active_case.as_("active_ninjas_last_30_days"),
+			)
+			.run(as_dict=True)
+		)
+		row = rows[0] if rows else {}
+		total_ninjas = row.get("total_ninjas") or 0
+		action_metrics = fetch_org_event_action_metrics(filters, actions_from_date)
+		total_actions = action_metrics["total_actions"]
+		avg_actions = round(total_actions / total_ninjas, 2) if total_ninjas else 0
+		return {
+			"total_ninjas": total_ninjas,
+			"ninjas_taking_actions": action_metrics["ninjas_taking_actions"],
+			"total_actions": total_actions,
+			"total_hours_logged": action_metrics["total_hours_logged"],
+			"avg_actions_per_ninja": avg_actions,
+			"active_ninjas_last_30_days": row.get("active_ninjas_last_30_days") or 0,
+		}
+
 	ninjas_taking_actions = Sum(
 		Case().when(NinjaProfile.contributions > 0, 1).else_(0)
 	)
@@ -441,12 +550,18 @@ def fetch_skills_breakdown_for_org(filters, total_ninjas=0, limit=DASHBOARD_SKIL
 	return skills_unlocked, remaining_skills_count
 
 
-def fetch_top_action_types_for_org(filters, limit=DASHBOARD_ACTION_TYPES_LIMIT):
+def fetch_top_action_types_for_org(
+	filters, limit=DASHBOARD_ACTION_TYPES_LIMIT, actions_from_date=None
+):
 	User, NinjaProfile, UserMetadata, _UserOrganization, Events, *_ = get_ninja_doctypes()
+
+	event_join = User.name == Events.user
+	if actions_from_date:
+		event_join = event_join & (Events.date_of_action >= actions_from_date)
 
 	rows = (
 		_org_stats_base_query(User, NinjaProfile, UserMetadata, None, filters)
-		.join(Events).on(User.name == Events.user)
+		.join(Events).on(event_join)
 		.select(
 			Events.type.as_("action_type"),
 			Count(Events.name).as_("action_count"),
@@ -531,6 +646,7 @@ def fetch_organization_ninjas(filters, sort_by="total_actions", sort_order="desc
 	sort_order = sort_order if sort_order in ("asc", "desc") else "desc"
 	sql_sort_by = "total_actions" if sort_by == "skills_count" else sort_by
 	order_clause = _build_org_ninja_order_clause(sql_sort_by, sort_order)
+	actions_from_date = get_program_actions_start_date(organization)
 
 	raw_rows = frappe.db.sql(
 		f"""
@@ -564,6 +680,16 @@ def fetch_organization_ninjas(filters, sort_by="total_actions", sort_order="desc
 		}
 		for row in raw_rows
 	]
+
+	if actions_from_date:
+		apply_actions_from_date_to_ninja_rows(rows, actions_from_date, user_id_key="name")
+		if sort_by in ("total_actions", "hours"):
+			reverse = sort_order != "asc"
+			sort_key = "contributions" if sort_by == "total_actions" else "hours_invested"
+			rows.sort(
+				key=lambda row: (row.get(sort_key) or 0, row.get("full_name") or ""),
+				reverse=reverse,
+			)
 
 	if sort_by == "skills_count":
 		user_names = [row["name"] for row in rows]
@@ -779,11 +905,13 @@ def build_export_download(rows, filename, sheet_name="Export", export_format="ex
 def build_org_dashboard_summary_rows(dashboard_data):
 	stats = dashboard_data.get("stats") or {}
 	days = dashboard_data.get("days", DEFAULT_DAYS)
-	return [
+	actions_from_date = dashboard_data.get("actions_from_date")
+	rows = [
 		["Metric", "Value"],
 		["Organization", dashboard_data.get("org_name")],
 		["Organization ID", dashboard_data.get("org_id")],
 		["Reporting Window (days)", days],
+		["Actions From Date", actions_from_date or "Lifetime (no program start date)"],
 		["Total Ninjas", stats.get("total_ninjas")],
 		["Ninjas Taking Actions", stats.get("ninjas_taking_actions")],
 		["Total Actions", stats.get("total_actions")],
@@ -792,6 +920,7 @@ def build_org_dashboard_summary_rows(dashboard_data):
 		[f"Active Ninjas (Last {days} Days)", stats.get("active_ninjas_last_30_days")],
 		["Remaining Skills Count", dashboard_data.get("remaining_skills_count")],
 	]
+	return rows
 
 
 def build_org_dashboard_skills_rows(skills_unlocked):
