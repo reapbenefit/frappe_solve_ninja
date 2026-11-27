@@ -65,7 +65,6 @@ def after_rename(doc, method, old_name, new_name, merge=False):
             SET `user` = %s
             WHERE `user` = %s
         """, (new_name, old_name))
-        frappe.db.commit()
         frappe.logger().info(f"Updated {len(events)} Events records from {old_name} to {new_name}")
 
 def on_user_update(doc, method):

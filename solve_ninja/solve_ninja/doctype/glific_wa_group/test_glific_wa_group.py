@@ -4,7 +4,7 @@
 from unittest.mock import MagicMock, patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from solve_ninja.solve_ninja.doctype.glific_wa_group.glific_wa_group import (
 	_maybe_sync_wa_group_contacts_from_maytapi,
@@ -18,7 +18,7 @@ from solve_ninja.solve_ninja.doctype.glific_wa_group.glific_wa_group import (
 from solve_ninja.api.glific_sync import bq_row_to_contact_dict
 
 
-class TestGlificWAGroup(FrappeTestCase):
+class TestGlificWAGroup(IntegrationTestCase):
 	def test_unwrap_wa_group_nested(self):
 		resp = {
 			"data": {

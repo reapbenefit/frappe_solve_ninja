@@ -150,7 +150,7 @@ class MentorshipRequest(Document):
 			)
 			if contact_id:
 				# Store wa_id in ninja profile for future use
-				ninja_profile.db_set("wa_id", contact_id, commit=True)
+				ninja_profile.db_set("wa_id", contact_id, commit=False)
 				ninja_profile.reload()
 		else:
 			# Use existing wa_id
@@ -528,7 +528,7 @@ class MentorshipRequest(Document):
 		
 		if contact_id:
 			# Store wa_id in ninja profile for future use
-			ninja_profile.db_set("wa_id", contact_id, commit=True)
+			ninja_profile.db_set("wa_id", contact_id, commit=False)
 			ninja_profile.reload()
 		
 		return contact_id

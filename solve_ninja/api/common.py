@@ -247,11 +247,14 @@ def add_user():
         # Normalize and validate mobile number
         mobile = validate_and_normalize_mobile(user_data.get("mobile"))
 
-        # Validate pincode format
+        # Validate pincode format (optional — still supported for API/mobile clients)
         if user_data.get("pincode"):
             validate_pincode(user_data.get("pincode"))
         else:
             user_data["pincode"] = None
+
+        # Validate city/state when provided (website signup); pincode-only remains valid
+        validate_city_and_state(user_data)
 
         # Check if user already exists
         if frappe.db.exists("User", {"mobile_no": mobile}):
@@ -351,11 +354,22 @@ def add_user():
     
     return custom_response(message, data, status_code, error)
 
+def _generate_username(first_name, last_name=None):
+    """Build a unique username using Samaaja's first/last name + random suffix logic."""
+    from samaaja.overrides.user import username as samaaja_generate_username
+
+    stub = frappe._dict(first_name=first_name, last_name=last_name, username=None)
+    samaaja_generate_username(stub, None)
+    return stub.username
+
+
 @frappe.whitelist()
 def update_user():
     """
     Public endpoint to update user profile information using mobile number.
-    Updates: first_name, age, dob/birth_date, gender, city, year_of_birth
+    Updates: first_name, age, dob/birth_date, gender, city, year_of_birth.
+    When first_name actually changes, regenerates username and syncs
+    User Metadata.full_name (if the metadata row already exists).
 
     Uses targeted frappe.db.set_value for User fields to avoid User.validate ->
     ask_pass_update() concurrency failures on the shared email_user_password default.
@@ -399,13 +413,19 @@ def update_user():
 
             if user_data.get("first_name"):
                 first_name = user_data.get("first_name")
+                existing_first_name, middle_name, last_name = frappe.db.get_value(
+                    "User", user_name, ["first_name", "middle_name", "last_name"]
+                ) or (None, None, None)
                 user_updates["first_name"] = first_name
-                middle_name, last_name = frappe.db.get_value(
-                    "User", user_name, ["middle_name", "last_name"]
-                ) or (None, None)
                 user_updates["full_name"] = " ".join(
                     filter(None, [first_name, middle_name, last_name])
                 )
+                # Same rule as desk: regenerate username only when first_name actually changes
+                if first_name != existing_first_name:
+                    new_username = _generate_username(first_name, last_name)
+                    if new_username:
+                        user_updates["username"] = new_username
+                        username = new_username
 
             # Prefer age if both age and dob are provided
             if user_data.get("age"):
@@ -428,22 +448,24 @@ def update_user():
             if user_updates:
                 frappe.db.set_value("User", user_name, user_updates)
 
-            # Upsert User Metadata for city and/or year_of_birth (independent of each other)
-            if resolved_city is not None or user_data.get("year_of_birth"):
-                year_of_birth = (
-                    int(user_data.get("year_of_birth"))
-                    if user_data.get("year_of_birth")
-                    else None
-                )
-                if frappe.db.exists("User Metadata", user_name):
+            new_full_name = user_updates.get("full_name")
+            metadata_exists = frappe.db.exists("User Metadata", user_name)
+            year_of_birth_raw = user_data.get("year_of_birth")
+
+            # Upsert User Metadata for city, year_of_birth, and/or full_name
+            if resolved_city is not None or year_of_birth_raw or (new_full_name and metadata_exists):
+                year_of_birth = int(year_of_birth_raw) if year_of_birth_raw else None
+                if metadata_exists:
                     metadata_updates = {}
                     if resolved_city is not None:
                         metadata_updates["city"] = resolved_city
                     if year_of_birth is not None:
                         metadata_updates["year_of_birth"] = year_of_birth
+                    if new_full_name:
+                        metadata_updates["full_name"] = new_full_name
                     if metadata_updates:
                         frappe.db.set_value("User Metadata", user_name, metadata_updates)
-                else:
+                elif resolved_city is not None or year_of_birth is not None:
                     metadata_doc = {
                         "doctype": "User Metadata",
                         "user": user_name,
@@ -512,6 +534,46 @@ def validate_pincode(pincode):
 
     if not pincode_str.isdigit() or len(pincode_str) != 6:
         frappe.throw("Pincode must be a 6-digit number.")
+
+
+def validate_city_and_state(user_data):
+    """
+    Normalize and validate optional city/state against Samaaja DocTypes.
+    Does not require either field (pincode-only signup remains valid).
+    """
+    city = (user_data.get("city") or "").strip() or None
+    state = (user_data.get("state") or "").strip() or None
+    user_data["city"] = city
+    user_data["state"] = state
+
+    if state and not frappe.db.exists("Samaaja States", state):
+        frappe.throw("Invalid state.")
+
+    if city:
+        if not frappe.db.exists("Samaaja Cities", city):
+            frappe.throw("Invalid city.")
+
+        city_state = frappe.db.get_value("Samaaja Cities", city, "state")
+        if state and city_state and city_state != state:
+            frappe.throw("City does not belong to the selected state.")
+        if not state and city_state:
+            user_data["state"] = city_state
+
+
+@frappe.whitelist(allow_guest=True)
+def get_cities_by_state(state=None):
+    """Return Samaaja Cities names for a given Samaaja States name."""
+    state = (state or "").strip()
+    if not state or not frappe.db.exists("Samaaja States", state):
+        return []
+
+    return frappe.get_all(
+        "Samaaja Cities",
+        filters={"state": state},
+        pluck="name",
+        order_by="name",
+        ignore_permissions=True,
+    )
 
 def validate_and_normalize_mobile(mobile):
     if not mobile or len(mobile) not in [10, 12] or not mobile.isdigit():
@@ -1184,20 +1246,24 @@ def assign_city(user_doc, district):
 
 def update_user_metadata(user, user_data):
     """
-    Updates or creates User Metadata record with pincode if available.
+    Updates or creates User Metadata record with location fields when provided.
     """
 
     # Check if metadata already exists
     if frappe.db.exists("User Metadata", user):
         user_metadata = frappe.get_doc("User Metadata", user)
-        user_metadata.pincode = user_data.get("pincode")
-        user_metadata.city = user_data.get("city")
-        user_metadata.state = user_data.get("state")
-        user_metadata.year_of_birth = user_data.get("year_of_birth")
+        if "pincode" in user_data and user_data.get("pincode") is not None:
+            user_metadata.pincode = user_data.get("pincode")
+        if user_data.get("city"):
+            user_metadata.city = user_data.get("city")
+        if user_data.get("state"):
+            user_metadata.state = user_data.get("state")
+        if user_data.get("year_of_birth"):
+            user_metadata.year_of_birth = user_data.get("year_of_birth")
         if user_data.get("org_id") and frappe.db.exists("User Organization", user_data.get("org_id")):
             user_metadata.org_id = user_data.get("org_id")
         user_metadata.save(ignore_permissions=True)
-    
+ 
 def update_ninja_profile(user, user_data):
     """
     Updates Ninja Profile record with wa_id, acquisition_source_category, and acquisition_source_unique_id if available.

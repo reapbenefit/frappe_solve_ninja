@@ -4,7 +4,7 @@
 from unittest.mock import patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from solve_ninja.api.v1.automated_cohort import (
 	_create_monthly_automated_collections_background,
@@ -15,7 +15,7 @@ from solve_ninja.api.v1.automated_cohort import (
 )
 
 
-class TestAutomatedCohort(FrappeTestCase):
+class TestAutomatedCohort(IntegrationTestCase):
 	def setUp(self):
 		super().setUp()
 		self.period = current_cohort_period()

@@ -1,0 +1,269 @@
+{
+ "actions": [],
+ "autoname": "ASUB-.#####",
+ "creation": "2026-10-27 14:30:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "status",
+  "action_completeness",
+  "column_break_main",
+  "event_id",
+  "action_title",
+  "last_completed_step",
+  "submission_section",
+  "raw_text",
+  "audio_file",
+  "photo_url",
+  "column_break_submission",
+  "hours_value",
+  "hours_unit",
+  "glific_section",
+  "glific_contact_id",
+  "column_break_glific",
+  "glific_flow_id",
+  "assessment_section",
+  "missing_details",
+  "suggested_followup",
+  "column_break_assessment",
+  "cmp_declined",
+  "publish_override_sent",
+  "language",
+  "assessment_json_section",
+  "skills",
+  "assessment",
+  "error_section",
+  "error"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "User",
+   "options": "User",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Pending\nNot an Action\nProcessing\nDone\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "action_completeness",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Action Completeness",
+   "options": "\nComplete\nIncomplete",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "CMP action UUID, which is also the name of the Events record",
+   "fieldname": "event_id",
+   "fieldtype": "Data",
+   "label": "Event ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "action_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Action Title",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "0 to 6. A retry resumes after this step.",
+   "fieldname": "last_completed_step",
+   "fieldtype": "Int",
+   "label": "Last Completed Step",
+   "read_only": 1
+  },
+  {
+   "fieldname": "submission_section",
+   "fieldtype": "Section Break",
+   "label": "Submission"
+  },
+  {
+   "fieldname": "raw_text",
+   "fieldtype": "Long Text",
+   "label": "Message",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "audio_file",
+   "fieldtype": "Attach",
+   "label": "Audio File",
+   "read_only": 1
+  },
+  {
+   "fieldname": "photo_url",
+   "fieldtype": "Data",
+   "label": "Photo URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_submission",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "hours_value",
+   "fieldtype": "Float",
+   "label": "Time Invested",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "hours",
+   "fieldname": "hours_unit",
+   "fieldtype": "Select",
+   "label": "Time Unit",
+   "options": "hours\nminutes",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "glific_section",
+   "fieldtype": "Section Break",
+   "label": "Glific"
+  },
+  {
+   "description": "Glific contact id for resumeContactFlow after processing",
+   "fieldname": "glific_contact_id",
+   "fieldtype": "Data",
+   "label": "Glific Contact ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_glific",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Glific flow id waiting on Wait for result / resume",
+   "fieldname": "glific_flow_id",
+   "fieldtype": "Data",
+   "label": "Glific Flow ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assessment_section",
+   "fieldtype": "Section Break",
+   "label": "Assessment"
+  },
+  {
+   "description": "JSON list, e.g. [\"impact\", \"how\"]",
+   "fieldname": "missing_details",
+   "fieldtype": "Small Text",
+   "label": "Missing Details",
+   "read_only": 1
+  },
+  {
+   "description": "The AI's follow-up question from CMP /actions. Not shown to the user.",
+   "fieldname": "suggested_followup",
+   "fieldtype": "Small Text",
+   "label": "Suggested Follow-up",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_assessment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "CMP's coach said the message was not detailed enough to create an action (create_action = false)",
+   "fieldname": "cmp_declined",
+   "fieldtype": "Check",
+   "in_standard_filter": 1,
+   "label": "CMP Declined",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "A create_action coach turn was added to the CMP chat history so the action could be published",
+   "fieldname": "publish_override_sent",
+   "fieldtype": "Check",
+   "label": "Publish Override Sent",
+   "read_only": 1
+  },
+  {
+   "description": "Language detected by CMP",
+   "fieldname": "language",
+   "fieldtype": "Data",
+   "label": "Language",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assessment_json_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "Skills CMP returned for this action: label and explanation",
+   "fieldname": "skills",
+   "fieldtype": "Code",
+   "label": "Skills",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assessment",
+   "fieldtype": "Code",
+   "label": "Assessment",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "error_section",
+   "fieldtype": "Section Break",
+   "label": "Error"
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Long Text",
+   "label": "Error",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-17 12:35:00.000000",
+ "modified_by": "Administrator",
+ "module": "Solve Ninja",
+ "name": "Action Submission",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

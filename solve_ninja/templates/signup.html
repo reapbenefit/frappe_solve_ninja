@@ -12,19 +12,30 @@
         <div class="form-group">
             <label class="form-label sr-only" for="signup_mobile">{{ _("Mobile Number") }}</label>
             <input type="text" id="signup_mobile" name="mobile_no" class="form-control"
-                   placeholder="{{ _('Mobile number') }}" required maxlength="10" 
+                   placeholder="{{ _('Mobile number') }}" required maxlength="10"
            pattern="\d{10}"
            inputmode="numeric"
            oninput="this.value = this.value.replace(/[^0-9]/g,'');"
            >
         </div>
 
-        <!-- Pincode -->
+        <!-- State -->
         <div class="form-group">
-            <label class="form-label sr-only" for="signup_pincode">{{ _("Pincode") }}</label>
-            <input type="text" id="signup_pincode" name="pincode" class="form-control"
-                   placeholder="{{ _('Pincode') }}" required maxlength="6" pattern="\d{6}" inputmode="numeric"
-           oninput="this.value = this.value.replace(/[^0-9]/g,'');">
+            <label class="form-label sr-only" for="signup_state">{{ _("State") }}</label>
+            <select id="signup_state" name="state" class="form-control" required>
+                <option value="">{{ _("Select State") }}</option>
+                {% for state in states %}
+                <option value="{{ state }}">{{ state }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- City -->
+        <div class="form-group">
+            <label class="form-label sr-only" for="signup_city">{{ _("City") }}</label>
+            <select id="signup_city" name="city" class="form-control" required disabled>
+                <option value="">{{ _("Select City") }}</option>
+            </select>
         </div>
 
         <!-- Gender -->

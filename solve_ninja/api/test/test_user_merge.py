@@ -5,7 +5,7 @@ import random
 
 import frappe
 from frappe.exceptions import PermissionError, ValidationError
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 from frappe.utils import add_to_date, cint, flt, now_datetime
 
 from solve_ninja.api.user_merge import get_merge_preview, merge_users
@@ -240,7 +240,7 @@ class MergeTestDataFactory:
 		frappe.db.commit()
 
 
-class TestUserMerge(FrappeTestCase):
+class TestUserMerge(IntegrationTestCase):
 	def setUp(self):
 		frappe.set_user("Administrator")
 		self.factory = MergeTestDataFactory()

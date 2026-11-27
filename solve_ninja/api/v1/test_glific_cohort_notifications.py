@@ -4,7 +4,7 @@
 from unittest.mock import patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from solve_ninja.api.v1.glific_cohort_notifications import (
 	format_glific_job_stats,
@@ -13,7 +13,7 @@ from solve_ninja.api.v1.glific_cohort_notifications import (
 )
 
 
-class TestGlificCohortNotifications(FrappeTestCase):
+class TestGlificCohortNotifications(IntegrationTestCase):
 	def test_thread_message_id_is_stable_per_job_key(self):
 		msg_id = glific_job_thread_message_id("sync_Test Group")
 		self.assertIn("glific-job.sync_Test Group@", msg_id)

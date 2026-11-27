@@ -351,7 +351,7 @@ def create_lead_page_doctype():
                 "amend": 0
             }
         ],
-        "sort_field": "modified",
+        "sort_field": "creation",
         "sort_order": "DESC",
         "track_changes": 1
     }

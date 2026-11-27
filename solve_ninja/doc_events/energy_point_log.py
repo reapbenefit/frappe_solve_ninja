@@ -1,17 +1,64 @@
 import frappe
 import requests
 import json
-from frappe.utils import flt
+from frappe.utils import add_to_date, flt, now_datetime
 from solve_ninja.utils import validate_and_normalize_mobile
 from time import sleep
 
 # Short lock while enqueue/worker runs; long lock after a successful send
 BADGE_NOTIFY_LOCK_SECS = 300
 BADGE_NOTIFY_SENT_SECS = 7 * 24 * 3600
+# Single-message actions set hours after Events insert; wait before HSM so action_hours is real.
+HOURS_WAIT_POLL_SECS = 10
+HOURS_WAIT_MAX_POLLS = 18  # ~3 minutes after the initial energy-point delay
 
 
 def _badge_notification_cache_key(event_name):
 	return f"badge_notification_sent_{event_name}"
+
+
+def _try_acquire_badge_notify_lock(event_name, expires_in_sec=BADGE_NOTIFY_LOCK_SECS):
+	"""
+	Atomically claim the per-event notify lock.
+
+	Uses Redis SET NX (not get_value/set_value). get_value caches a miss as None in
+	frappe.local.cache, and set_value with expires_in_sec does not update local cache,
+	so later gets in the same request always miss and re-enqueue — one HSM per skill.
+	"""
+	cache = frappe.cache()
+	redis_key = cache.make_key(_badge_notification_cache_key(event_name))
+	try:
+		return bool(cache.set(redis_key, b"1", nx=True, ex=expires_in_sec))
+	except Exception:
+		# Same-request fallback if Redis is unavailable
+		locks = getattr(frappe.local, "_badge_notify_locks", None)
+		if locks is None:
+			locks = frappe.local._badge_notify_locks = set()
+		if event_name in locks:
+			return False
+		locks.add(event_name)
+		return True
+
+
+def _release_badge_notify_lock(event_name):
+	cache = frappe.cache()
+	redis_key = cache.make_key(_badge_notification_cache_key(event_name))
+	try:
+		cache.delete(redis_key)
+	except Exception:
+		pass
+	locks = getattr(frappe.local, "_badge_notify_locks", None)
+	if locks is not None:
+		locks.discard(event_name)
+
+
+def _mark_badge_notify_sent(event_name):
+	cache = frappe.cache()
+	redis_key = cache.make_key(_badge_notification_cache_key(event_name))
+	try:
+		cache.set(redis_key, b"1", ex=BADGE_NOTIFY_SENT_SECS)
+	except Exception:
+		pass
 
 
 def handle_energy_point_log(doc, method):
@@ -26,28 +73,77 @@ def handle_energy_point_log(doc, method):
 	if doc.reference_doctype != "Events" or not doc.reference_name:
 		return
 
-	cache_key = _badge_notification_cache_key(doc.reference_name)
-
-	# Check if notification was already enqueued / sent for this event
-	if frappe.cache().get_value(cache_key):
-		return
-
 	# Verify Events document exists and check source
 	try:
 		events_doc = frappe.get_doc("Events", doc.reference_name)
 		if events_doc.source and events_doc.source in ["SamaajData", "manualupload"]:
 			return
+		# SMA sets hours after insert; wait for process_submission to enqueue once hours > 0.
+		if flt(events_doc.hours_invested) <= 0:
+			return
 	except frappe.DoesNotExistError:
 		return
 
-	# Lock immediately so other EPS for the same event do not enqueue again
-	frappe.cache().set_value(cache_key, True, expires_in_sec=BADGE_NOTIFY_LOCK_SECS)
+	_enqueue_badge_if_hours_ready(doc.reference_name, enqueue_after_commit=True)
+
+
+def send_badge_notification_after_insert(doc, method=None):
+	"""
+	On Events create: claim the notify lock early and enqueue once.
+	Later Energy Point Log inserts see the same lock and skip enqueueing,
+	so multi-skill events send a single WhatsApp notification.
+
+	Skip when hours are still 0 — single-message actions set hours after insert
+	and enqueue from process_submission. Momentum HSM must not send with 0 hours.
+	"""
+	if not doc.user or not doc.source or doc.source in ["SamaajData", "manualupload"]:
+		return
+
+	if flt(doc.hours_invested) <= 0:
+		return
+
+	_enqueue_badge_if_hours_ready(doc.name, enqueue_after_commit=True)
+
+
+def send_badge_notification_on_update(doc, method=None):
+	"""
+	When hours land after insert (classic conversational / CMP update), enqueue
+	Momentum HSM once hours_invested becomes > 0. No-ops if already sent.
+	"""
+	if not doc.user or not doc.source or doc.source in ["SamaajData", "manualupload"]:
+		return
+	if flt(doc.hours_invested) <= 0:
+		return
+	if not doc.has_value_changed("hours_invested"):
+		return
+	_enqueue_badge_if_hours_ready(doc.name, enqueue_after_commit=True)
+
+
+def _enqueue_badge_if_hours_ready(event_name, enqueue_after_commit=True):
+	"""Single entry point for Momentum HSM enqueue: lock + deduped job per event."""
+	if not event_name:
+		return False
+	if flt(frappe.db.get_value("Events", event_name, "hours_invested")) <= 0:
+		return False
+	if _badge_already_sent(event_name):
+		return False
+	# Web Quick Add + chatbot SMA already show an in-channel summary; skip Momentum HSM.
+	from solve_ninja.api.single_message_action import is_single_message_action_event
+
+	if is_single_message_action_event(event_name=event_name):
+		return False
+	if not _try_acquire_badge_notify_lock(event_name):
+		return False
 
 	frappe.enqueue(
 		"solve_ninja.doc_events.energy_point_log.send_badge_notification",
-		event_name=doc.reference_name,
-		enqueue_after_commit=True,
+		queue="default",
+		event_name=event_name,
+		enqueue_after_commit=enqueue_after_commit,
+		job_id=f"badge_hsm::{event_name}",
+		deduplicate=True,
 	)
+	return True
 
 
 def send_glific_message(doc, url, headers, data):
@@ -100,12 +196,121 @@ def _log_badge_ir(event_name, status, description, data=None, response=None, err
 			"is_remote_request": 1,
 		}).insert(ignore_permissions=True, ignore_links=True)
 	except Exception:
+		# Clear aborted Postgres txn so Error Log insert can succeed
+		frappe.db.rollback()
 		frappe.log_error(
 			title="Badge IR Logging Error",
 			message=frappe.get_traceback(),
 			reference_doctype="Events",
 			reference_name=event_name,
 		)
+
+
+def _submission_expects_hours(row):
+	"""True when an Action Submission will write hours onto Events."""
+	if not row:
+		return False
+	if row.get("status") in ("Failed", "Not an Action"):
+		return False
+	return flt(row.get("hours_value")) > 0
+
+
+def _pending_action_submission_for_hours(events):
+	"""Find an Action Submission that will set hours on this event."""
+	by_event = frappe.db.get_value(
+		"Action Submission",
+		{"event_id": events.name},
+		["name", "hours_value", "last_completed_step", "status", "event_id"],
+		as_dict=True,
+	)
+	if _submission_expects_hours(by_event):
+		return by_event
+
+	# Events may be inserted before event_id is saved on the submission.
+	recent = frappe.get_all(
+		"Action Submission",
+		filters={
+			"user": events.user,
+			"status": ("in", ["Pending", "Processing", "Done"]),
+			"creation": (">=", add_to_date(now_datetime(), minutes=-30)),
+		},
+		fields=["name", "hours_value", "last_completed_step", "status", "event_id"],
+		order_by="creation desc",
+		limit=5,
+	)
+	for row in recent:
+		if row.event_id and row.event_id != events.name:
+			continue
+		if _submission_expects_hours(row):
+			return row
+	return None
+
+
+def _refresh_event(event_name):
+	"""End the worker txn so reload sees hours / badge IRs committed by other jobs."""
+	frappe.db.rollback()
+	return frappe.get_doc("Events", event_name)
+
+
+def _badge_already_sent(event_name):
+	return bool(
+		frappe.db.exists(
+			"Integration Request",
+			{
+				"integration_request_service": "Glific Badge HSM",
+				"reference_doctype": "Events",
+				"reference_docname": event_name,
+				"status": "Completed",
+			},
+		)
+	)
+
+
+def _await_hours_if_needed(events):
+	"""
+	If a single-message Action Submission will supply hours, wait until
+	Events.hours_invested > 0. Never proceed early just because step 4 passed —
+	that raced with a second worker and produced a 0-hour HSM.
+	"""
+	if flt(events.hours_invested) > 0:
+		return events
+	if not _pending_action_submission_for_hours(events):
+		return events
+
+	_log_badge_ir(
+		events.name,
+		"Queued",
+		"Waiting for Events.hours_invested before sending badge HSM",
+		data={"hours_invested": events.hours_invested},
+	)
+	event_name = events.name
+	for poll in range(1, HOURS_WAIT_MAX_POLLS + 1):
+		sleep(HOURS_WAIT_POLL_SECS)
+		events = _refresh_event(event_name)
+		if flt(events.hours_invested) > 0:
+			_log_badge_ir(
+				event_name,
+				"Queued",
+				f"Hours arrived after poll {poll}: {events.hours_invested}",
+			)
+			return events
+		if _badge_already_sent(event_name):
+			_log_badge_ir(event_name, "Queued", "Badge HSM already sent while waiting for hours")
+			return events
+		if not _pending_action_submission_for_hours(events):
+			break
+
+	_log_badge_ir(
+		event_name,
+		"Queued",
+		f"Hours wait finished; hours_invested={events.hours_invested}",
+	)
+	return events
+
+
+def enqueue_badge_notification(event_name, enqueue_after_commit=True):
+	"""Enqueue Momentum HSM after hours are on the event (SMA step 4)."""
+	return _enqueue_badge_if_hours_ready(event_name, enqueue_after_commit=enqueue_after_commit)
 
 
 def _build_badge_notification_context(user, ninja_profile, user_metadata, eps, events):
@@ -126,7 +331,9 @@ def _build_badge_notification_context(user, ninja_profile, user_metadata, eps, e
 	total_hours_row = frappe.db.get_all(
 		"Events",
 		filters={"user": events.user},
-		fields=["sum(hours_invested) as total_hours"],
+		fields=[{"SUM": "hours_invested", "as": "total_hours"}],
+		group_by="user",
+		order_by=None,
 	)
 	total_hours = flt(total_hours_row[0].total_hours) if total_hours_row else 0
 
@@ -157,9 +364,9 @@ def send_badge_notification(event_name, events=None):
 	# Small delay to allow all Energy Point Logs to be created in the same request
 	sleep(3)
 
-	# Always reload by name — do not rely on a serialized Document from enqueue
+	# Fresh snapshot — long sleeps otherwise hide hours / Completed IRs from other workers.
 	try:
-		events = frappe.get_doc("Events", event_name)
+		events = _refresh_event(event_name)
 	except frappe.DoesNotExistError:
 		_log_badge_ir(event_name, "Failed", "Events document not found")
 		frappe.log_error(
@@ -170,18 +377,9 @@ def send_badge_notification(event_name, events=None):
 		)
 		return
 
-	eps = frappe.get_all("Energy Point Log", filters={
-		"reference_doctype": "Events",
-		"reference_name": event_name,
-		"type": "Auto",
-		"badge": ("is", "set")
-	}, fields=["*"])
-
-	cache_key = _badge_notification_cache_key(event_name)
-
-	if not eps:
-		_log_badge_ir(event_name, "Cancelled", "No badge Energy Point Logs found for event")
-		frappe.cache().delete_value(cache_key)
+	if _badge_already_sent(event_name):
+		_log_badge_ir(event_name, "Cancelled", "Badge HSM already sent for this event")
+		_mark_badge_notify_sent(event_name)
 		return
 
 	if not events.user:
@@ -190,6 +388,38 @@ def send_badge_notification(event_name, events=None):
 
 	if events.source and events.source in ["SamaajData", "manualupload"]:
 		_log_badge_ir(event_name, "Cancelled", f"Source '{events.source}' is excluded from badge notifications")
+		return
+
+	# Wait for SMA hours before reading action_hours into the HSM template.
+	events = _await_hours_if_needed(events)
+	events = _refresh_event(event_name)
+
+	if _badge_already_sent(event_name):
+		_log_badge_ir(event_name, "Cancelled", "Badge HSM already sent for this event")
+		_mark_badge_notify_sent(event_name)
+		return
+
+	# Never send Momentum HSM with 0 / missing hours (was causing duplicate 0-hour messages).
+	if flt(events.hours_invested) <= 0:
+		_log_badge_ir(
+			event_name,
+			"Cancelled",
+			"Skipping badge HSM until Events.hours_invested > 0",
+			data={"hours_invested": events.hours_invested},
+		)
+		_release_badge_notify_lock(event_name)
+		return
+
+	eps = frappe.get_all("Energy Point Log", filters={
+		"reference_doctype": "Events",
+		"reference_name": event_name,
+		"type": "Auto",
+		"badge": ("is", "set")
+	}, fields=["*"])
+
+	if not eps:
+		_log_badge_ir(event_name, "Cancelled", "No badge Energy Point Logs found for event")
+		_release_badge_notify_lock(event_name)
 		return
 
 	try:
@@ -239,7 +469,7 @@ def send_badge_notification(event_name, events=None):
 			) or {}
 			contact_id = contact.get("id")
 			if contact_id:
-				ninja_profile.db_set("wa_id", contact_id, commit=True)
+				ninja_profile.db_set("wa_id", contact_id, commit=False)
 				ninja_profile.reload()
 
 		if not ninja_profile.wa_id:
@@ -258,6 +488,13 @@ def send_badge_notification(event_name, events=None):
 			"user": events.user,
 			"mobile_no": mobile_no,
 		}
+
+		# Final race guard: another worker may have Completed while we built context.
+		frappe.db.rollback()
+		if _badge_already_sent(event_name):
+			_log_badge_ir(event_name, "Cancelled", "Badge HSM already sent for this event")
+			_mark_badge_notify_sent(event_name)
+			return
 
 		# One transient retry on timeout
 		glific_response = glific_settings.send_hsm_message(
@@ -284,17 +521,19 @@ def send_badge_notification(event_name, events=None):
 				reference_doctype="Events",
 				reference_name=event_name,
 			)
-			frappe.cache().delete_value(cache_key)
+			_release_badge_notify_lock(event_name)
 			return
 
 		_log_badge_ir(event_name, "Completed",
 					  f"HSM sent successfully (message id: {message_id})",
 					  data=request_data, response=glific_response)
 		# Keep lock so later EPS for this event cannot re-notify
-		frappe.cache().set_value(cache_key, True, expires_in_sec=BADGE_NOTIFY_SENT_SECS)
+		_mark_badge_notify_sent(event_name)
 
 	except Exception:
 		tb = frappe.get_traceback()
+		# Clear aborted Postgres txn so IR / Error Log inserts can succeed
+		frappe.db.rollback()
 		_log_badge_ir(event_name, "Failed",
 					  f"Unhandled exception in badge notification for {event_name}",
 					  error=tb)
@@ -304,4 +543,4 @@ def send_badge_notification(event_name, events=None):
 			reference_doctype="Events",
 			reference_name=event_name,
 		)
-		frappe.cache().delete_value(cache_key)
+		_release_badge_notify_lock(event_name)

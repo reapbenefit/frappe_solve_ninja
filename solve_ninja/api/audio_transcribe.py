@@ -32,11 +32,10 @@ def transcribe_sarvam(file_url=None):
         # Initialize client with your API key
         client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
-        # Transcribe using saarika (for Indian + English languages)
         with open(file_path, "rb") as f:
             response = client.speech_to_text.transcribe(
                 file=f,
-                model="saarika:v2.5",  # or saaras:v2.5 for translation
+                model="saaras:v3",  # or saaras:v2.5 for translation
                 language_code="unknown"  # auto-detect language
             )
 
@@ -64,7 +63,7 @@ def upload_and_transcribe_sarvam():
         with open(file_path, "rb") as f:
             response = client.speech_to_text.transcribe(
                 file=f,
-                model="saarika:v2.5",
+                model="saaras:v3",
                 language_code="unknown"
             )
 
@@ -83,7 +82,7 @@ def upload_and_transcribe_sarvam():
 def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None,callback_function=None, callback_kwargs=None):
 # async def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_diarization=0, num_speakers=None):
     """
-    Upload via upload_file() and create a Sarvam Batch STT job (saarika only).
+    Upload via upload_file() and create a Sarvam Batch STT job .
     Returns job_id for polling.
     """
 
@@ -98,10 +97,8 @@ def upload_and_create_sarvam_job(audio_url, model=None, with_timestamps=1, with_
 
     file_doc = save_audio_from_url(audio_url, is_private=1)
     file_url = file_doc.get_full_path()
-    allowed = {"saarika:v1", "saarika:v2", "saarika:v2.5", "saarika:flash"}
-    model = (model or "saarika:v2.5").strip()
-    if model not in allowed:
-        model = "saarika:v2.5"
+    
+    model = "saaras:v3"
 
     request_payload = {
         "model": model,

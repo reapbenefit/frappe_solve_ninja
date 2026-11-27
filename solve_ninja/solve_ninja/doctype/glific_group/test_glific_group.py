@@ -4,7 +4,7 @@
 from unittest.mock import MagicMock, patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from solve_ninja.api.v1.automated_cohort import _member_rows_from_users
 from solve_ninja.models.result import Result
@@ -29,7 +29,7 @@ from solve_ninja.solve_ninja.doctype.glific_group.glific_group import (
 )
 
 
-class TestGlificGroup(FrappeTestCase):
+class TestGlificGroup(IntegrationTestCase):
 	def test_member_rows_from_users_sets_glific_contact_id_from_wa_id(self):
 		rows = _member_rows_from_users(
 			[

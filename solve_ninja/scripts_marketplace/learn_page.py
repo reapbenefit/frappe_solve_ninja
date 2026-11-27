@@ -324,7 +324,7 @@ def create_learn_page_doctype():
             "read_only": 0,
             "read_only_onload": 0,
             "show_name_in_global_search": 1,
-            "sort_field": "modified",
+            "sort_field": "creation",
             "sort_order": "DESC",
             "states": [],
             "track_changes": 1,

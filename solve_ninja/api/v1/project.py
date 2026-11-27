@@ -53,13 +53,20 @@ def get_funded_projects(page_length=10, start=0, city=None, project_type=None, s
 			else:
 				base_conditions = project_type_condition
 		
-		# Status filter
-		if status:
+		# Status filter (only if DocType defines the field)
+		if status and frappe.get_meta("Funded Project").has_field("status"):
 			status_condition = FundedProject.status.isin(status)
 			if base_conditions:
 				base_conditions = base_conditions & status_condition
 			else:
 				base_conditions = status_condition
+		elif status:
+			return custom_response(
+				message="Funded Project has no status field; status filter is unavailable",
+				data=None,
+				status_code=400,
+				error="Missing status field on Funded Project",
+			)
 		
 		# Build query
 		query = (
@@ -210,6 +217,14 @@ def get_funded_projects_by_status(status, page_length=10, start=0):
 				status_code=400,
 				error="Missing status parameter"
 			)
+
+		if not frappe.get_meta("Funded Project").has_field("status"):
+			return custom_response(
+				message="Funded Project has no status field; status filter is unavailable",
+				data=None,
+				status_code=400,
+				error="Missing status field on Funded Project",
+			)
 		
 		page_length = int(page_length)
 		start = int(start)
@@ -274,6 +289,7 @@ def get_funded_projects_by_status(status, page_length=10, start=0):
 		)
 		
 	except Exception as e:
+		frappe.db.rollback()
 		frappe.log_error(f"Error in get_funded_projects_by_status: {str(e)}")
 		return custom_response(
 			message="Failed to retrieve funded projects by status",

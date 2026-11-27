@@ -17,6 +17,12 @@
   "column_break_qvm9s",
   "wa_id",
   "last_active_date_bot",
+  "lifecycle_section",
+  "ninja_level",
+  "ninja_status",
+  "column_break_lifecycle",
+  "hours_last_12_months",
+  "hours_calculated_on",
   "action_section",
   "last_action",
   "last_action_date",
@@ -66,6 +72,51 @@
    "fieldname": "last_active_date_bot",
    "fieldtype": "Date",
    "label": "Last Active Date Bot"
+  },
+  {
+   "fieldname": "lifecycle_section",
+   "fieldtype": "Section Break",
+   "label": "Lifecycle"
+  },
+  {
+   "default": "0",
+   "description": "Level 3 is assigned manually and never changed automatically",
+   "fieldname": "ninja_level",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Ninja Level",
+   "options": "0\n1\n2\n3",
+   "search_index": 1
+  },
+  {
+   "default": "Active",
+   "description": "Alumni is assigned manually and never changed automatically",
+   "fieldname": "ninja_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Ninja Status",
+   "options": "Active\nInactive\nDormant\nAlumni",
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_lifecycle",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Hours from actions dated within the 12 months up to Hours Calculated On; Level 2 needs 30 or more",
+   "fieldname": "hours_last_12_months",
+   "fieldtype": "Float",
+   "label": "Hours (Last 12 Months)",
+   "read_only": 1
+  },
+  {
+   "description": "Updated on every action, at each month end (as of the last day 23:59:59) and on Recalculate",
+   "fieldname": "hours_calculated_on",
+   "fieldtype": "Datetime",
+   "label": "Hours Calculated On",
+   "read_only": 1
   },
   {
    "fieldname": "action_section",
@@ -156,9 +207,19 @@
   {
    "link_doctype": "Events",
    "link_fieldname": "user"
+  },
+  {
+   "group": "Lifecycle",
+   "link_doctype": "Ninja Monthly Snapshot",
+   "link_fieldname": "ninja"
+  },
+  {
+   "group": "Lifecycle",
+   "link_doctype": "Ninja Lifecycle Log",
+   "link_fieldname": "ninja"
   }
  ],
- "modified": "2025-12-30 00:07:30.776971",
+ "modified": "2026-10-26 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Solve Ninja",
  "name": "Ninja Profile",
@@ -188,7 +249,7 @@
    "share": 1
   }
  ],
- "sort_field": "modified",
+ "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
  "title_field": "ninja_name"

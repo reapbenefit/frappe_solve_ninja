@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils.file_manager import save_file
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def upload_file():
     file = frappe.request.files.get("file")
     is_private = frappe.form_dict.get("is_private")

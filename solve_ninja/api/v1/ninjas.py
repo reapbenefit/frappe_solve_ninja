@@ -3,13 +3,20 @@ from collections import defaultdict
 from frappe.utils import cint, flt, format_datetime, get_datetime, add_days, nowdate
 from samaaja.api.common import custom_response
 
-from solve_ninja.api.v1.ninja_query_utils import normalize_organization_filter
+from solve_ninja.api.v1.ninja_query_utils import (
+	fetch_event_action_counts_by_user,
+	fetch_org_event_action_metrics,
+	get_program_actions_start_date,
+	normalize_organization_filter,
+)
 
 VIEW_NAME = "vw_ninja_listing"
 DEFAULT_PAGE_LENGTH = 20
 MAX_PAGE_LENGTH = 100
 SKILL_LIMIT = 3
 ACTIVE_TIME_OPTIONS = {"", "all", "7d", "30d"}
+UNFILTERED_AGGREGATES_CACHE_KEY = "solve_ninja:ninja_listing:unfiltered_aggregates"
+UNFILTERED_AGGREGATES_CACHE_TTL = 300
 
 # Whitelist of sort keys → SQL column expressions (view column names only).
 SORT_COLUMNS = {
@@ -58,6 +65,11 @@ def get_ninja_listing(
 			active_time = ""
 
 		organization = normalize_organization_filter(organization)
+		# Program-backed orgs only: scope action/hour columns to Program.start_date.
+		# Public directory (no organization) is unchanged and still uses the view as-is.
+		actions_from_date = (
+			get_program_actions_start_date(organization) if organization else None
+		)
 
 		where_clause, params = _build_filters(
 			search=search,
@@ -69,39 +81,17 @@ def get_ninja_listing(
 		)
 		order_clause = _build_order_clause(sort_by, sort_order)
 
-		rows = frappe.db.sql(
-			f"""
-			SELECT
-				user_id,
-				full_name,
-				username,
-				user_image,
-				city,
-				contributions,
-				hours_invested,
-				last_action_date
-			FROM `{VIEW_NAME}`
-			WHERE {where_clause}
-			ORDER BY {order_clause}
-			LIMIT %s OFFSET %s
-			""",
-			[*params, page_length, start],
-			as_dict=True,
+		rows, total_count, total_hours = _fetch_listing_rows(
+			where_clause=where_clause,
+			params=params,
+			order_clause=order_clause,
+			page_length=page_length,
+			start=start,
+			sort_by=sort_by,
+			sort_order=sort_order,
+			organization=organization,
+			actions_from_date=actions_from_date,
 		)
-
-		stats = frappe.db.sql(
-			f"""
-			SELECT
-				COUNT(*) AS total_count,
-				COALESCE(SUM(hours_invested), 0) AS total_hours
-			FROM `{VIEW_NAME}`
-			WHERE {where_clause}
-			""",
-			params,
-			as_dict=True,
-		)[0]
-		total_count = cint(stats.total_count)
-		total_hours = flt(stats.total_hours)
 
 		user_ids = [row.user_id for row in rows]
 		skills_map = _get_top_skills_for_users(user_ids, limit=SKILL_LIMIT)
@@ -146,6 +136,8 @@ def get_ninja_listing(
 					"skills": skill_titles,
 					"active_time": active_time or "all",
 					"organization": organization,
+					"actions_from_date": str(actions_from_date) if actions_from_date else None,
+					"actions_scoped_to_program_start": bool(actions_from_date),
 				},
 			},
 			status_code=200,
@@ -202,6 +194,98 @@ def _normalize_sort(sort_by, sort_order):
 		sort_order = "desc" if sort_by != "name" else "asc"
 
 	return sort_by, sort_order
+
+
+def _apply_actions_from_date_to_listing_rows(rows, actions_from_date):
+	if not rows or not actions_from_date:
+		return rows
+
+	counts_map = fetch_event_action_counts_by_user(
+		[row.user_id for row in rows],
+		actions_from_date,
+	)
+	for row in rows:
+		counts = counts_map.get(row.user_id, {})
+		row.contributions = counts.get("contributions", 0)
+		row.hours_invested = counts.get("hours_invested", 0)
+	return rows
+
+
+def _fetch_listing_rows(
+	where_clause,
+	params,
+	order_clause,
+	page_length,
+	start,
+	sort_by,
+	sort_order,
+	organization=None,
+	actions_from_date=None,
+):
+	"""
+	Load listing rows from vw_ninja_listing.
+
+	When organization maps to a Program, replace contributions/hours with Events
+	totals since Program.start_date. Sorting by actions/hours then uses those
+	scoped totals (in-memory for the filtered org set).
+	"""
+	select_sql = f"""
+		SELECT
+			user_id,
+			full_name,
+			username,
+			user_image,
+			city,
+			contributions,
+			hours_invested,
+			last_action_date
+		FROM `{VIEW_NAME}`
+		WHERE {where_clause}
+	"""
+
+	needs_scoped_action_sort = bool(
+		actions_from_date and sort_by in ("total_actions", "hours")
+	)
+
+	if needs_scoped_action_sort:
+		all_rows = frappe.db.sql(
+			f"{select_sql} ORDER BY full_name ASC",
+			params,
+			as_dict=True,
+		)
+		_apply_actions_from_date_to_listing_rows(all_rows, actions_from_date)
+		reverse = sort_order != "asc"
+		sort_attr = "contributions" if sort_by == "total_actions" else "hours_invested"
+		all_rows.sort(
+			key=lambda row: (flt(row.get(sort_attr)), row.full_name or ""),
+			reverse=reverse,
+		)
+		total_count = len(all_rows)
+		total_hours = sum(flt(row.hours_invested) for row in all_rows)
+		rows = all_rows[start : start + page_length]
+		return rows, total_count, total_hours
+
+	rows = frappe.db.sql(
+		f"""
+		{select_sql}
+		ORDER BY {order_clause}
+		LIMIT %s OFFSET %s
+		""",
+		[*params, page_length, start],
+		as_dict=True,
+	)
+
+	if actions_from_date:
+		_apply_actions_from_date_to_listing_rows(rows, actions_from_date)
+		total_count, _lifetime_hours = _get_listing_aggregates(where_clause, params)
+		action_metrics = fetch_org_event_action_metrics(
+			{"organization": organization},
+			actions_from_date,
+		)
+		return rows, total_count, flt(action_metrics.get("total_hours_logged") or 0)
+
+	total_count, total_hours = _get_listing_aggregates(where_clause, params)
+	return rows, total_count, total_hours
 
 
 def _build_order_clause(sort_by, sort_order):
@@ -293,6 +377,38 @@ def _build_filters(
 		params.extend(skill_titles)
 
 	return " AND ".join(conditions), params
+
+
+def _get_listing_aggregates(where_clause, params):
+	"""COUNT/SUM over the view. Cache the unfiltered totals for a few minutes."""
+	unfiltered = where_clause == "1=1" and not params
+	if unfiltered:
+		cached = frappe.cache().get_value(UNFILTERED_AGGREGATES_CACHE_KEY)
+		if cached:
+			return cint(cached.get("total_count")), flt(cached.get("total_hours"))
+
+	stats = frappe.db.sql(
+		f"""
+		SELECT
+			COUNT(*) AS total_count,
+			COALESCE(SUM(hours_invested), 0) AS total_hours
+		FROM `{VIEW_NAME}`
+		WHERE {where_clause}
+		""",
+		params,
+		as_dict=True,
+	)[0]
+	total_count = cint(stats.total_count)
+	total_hours = flt(stats.total_hours)
+
+	if unfiltered:
+		frappe.cache().set_value(
+			UNFILTERED_AGGREGATES_CACHE_KEY,
+			{"total_count": total_count, "total_hours": total_hours},
+			expires_in_sec=UNFILTERED_AGGREGATES_CACHE_TTL,
+		)
+
+	return total_count, total_hours
 
 
 def _profile_url(username):

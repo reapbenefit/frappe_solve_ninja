@@ -7,6 +7,18 @@ app_description = "This app is created to support ReapBenefit specific use cases
 app_email = "info@reapbenefit.org"
 app_license = "MIT"
 
+required_apps = ["samaaja", "eps"]
+
+add_to_apps_screen = [
+	{
+		"name": "solve_ninja",
+		"title": "Solve Ninja",
+		"route": "/desk/solve-ninja",
+		"logo": "/files/logo-vmXI3rix.png",
+		"has_permission": "solve_ninja.api.check_app_permission",
+	}
+]
+
 # Includes in <head>
 # ------------------
 
@@ -116,6 +128,7 @@ permission_query_conditions = {
 
 has_permission = {
 	"Mentorship Request": "solve_ninja.solve_ninja.doctype.mentorship_request.mentorship_request.has_permission",
+	"Events": "solve_ninja.api.common.has_permission",
 }
 
 # DocType Class
@@ -143,6 +156,12 @@ override_doctype_class = {
 # ---------------
 
 scheduler_events = {
+    "cron": {
+        # 00:30 on the 1st (site timezone): month-end status/level rules, then the monthly snapshot
+        "30 0 1 * *": [
+            "solve_ninja.services.ninja_mis.run_monthly_job",
+        ],
+    },
 #	"all": [
 #		"solve_ninja.tasks.all"
 #	],
@@ -231,9 +250,11 @@ doc_events = {
         "on_update": [
             "solve_ninja.doc_events.events.update_subcategory",
             "solve_ninja.doc_events.events.update_ninja_profile_hook",
+            "solve_ninja.doc_events.energy_point_log.send_badge_notification_on_update",
         ],
         "after_insert": [
 			"solve_ninja.doc_events.events.after_insert",
+			"solve_ninja.doc_events.energy_point_log.send_badge_notification_after_insert",
 		],
         "on_trash": "solve_ninja.doc_events.events.on_trash",
     },
@@ -254,13 +275,11 @@ doc_events = {
     }
 }
 
-has_permission = {
-    "Events": "solve_ninja.api.common.has_permission"
-}
-
 ignore_links_on_delete = [
     "Event Source Metadata",
     "Login OTP",
     "Chat History",
-    "OAuth Bearer Token"
+    "OAuth Bearer Token",
+    "Ninja Lifecycle Log",
+    "Ninja Monthly Snapshot",
 ]

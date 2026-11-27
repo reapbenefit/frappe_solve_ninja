@@ -1,7 +1,11 @@
 from setuptools import setup, find_packages
 
 with open("requirements.txt") as f:
-	install_requires = f.read().strip().split("\n")
+	install_requires = [
+		line.strip()
+		for line in f
+		if line.strip() and not line.strip().startswith("#")
+	]
 
 # get version from __version__ variable in solve_ninja/__init__.py
 from solve_ninja import __version__ as version

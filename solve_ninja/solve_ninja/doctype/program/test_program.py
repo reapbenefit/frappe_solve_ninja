@@ -6,7 +6,7 @@ import random
 from unittest.mock import patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from frappe.tests import IntegrationTestCase
 
 from solve_ninja.api.common import assign_user_organization
 from solve_ninja.api.v1.solve_event import program_checkin
@@ -20,7 +20,7 @@ def _parse_response(result):
 	return result
 
 
-class TestProgramUserOrganization(FrappeTestCase):
+class TestProgramUserOrganization(IntegrationTestCase):
 	def setUp(self):
 		self.suffix = str(random.randint(1000000000, 9999999999))
 		self.program_name = f"TestProgOrg-{self.suffix}"
@@ -226,7 +226,7 @@ class TestProgramUserOrganization(FrappeTestCase):
 			frappe.db.exists("Program Participation", {"user": email, "program": self.program_name})
 		)
 
-	def test_program_checkin_existing_user_does_not_overwrite_org(self):
+	def test_program_checkin_existing_user_overwrites_org(self):
 		self._create_program()
 
 		other_org = f"OtherOrg-{self.suffix}"
@@ -259,11 +259,16 @@ class TestProgramUserOrganization(FrappeTestCase):
 		if frappe.db.exists("User Metadata", email):
 			self.track("User Metadata", email)
 
+		self.assertEqual(
+			frappe.db.get_value("User Metadata", email, "org_id"),
+			other_org,
+		)
+
 		result = _parse_response(program_checkin(mobile=mobile, program_id=self.program_name))
 		self.assertEqual(result.get("status_code"), 200, result)
 		self.assertEqual(
 			frappe.db.get_value("User Metadata", email, "org_id"),
-			other_org,
+			self.program_name,
 		)
 		self.assertTrue(
 			frappe.db.exists("Program Participation", {"user": email, "program": self.program_name})
